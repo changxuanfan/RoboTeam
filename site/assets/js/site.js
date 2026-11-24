@@ -88,9 +88,12 @@ function clipVideo(src, posterUrl, label) {
 
 function film() {
   const f = D.media.film, box = $('film'); if (!f || !f.loop) return;
-  const base = mediaUrl(f.base), small = matchMedia('(max-width: 900px)').matches && f.loop.small;
-  const v = clipVideo(base + (small || f.loop.video), base + f.loop.poster, 'The RoboTeam film');
-  v.preload = 'metadata'; box.append(v);
+  // The 720p file is sharp enough unless the box is wider than about 1400 device pixels.
+  const base = mediaUrl(f.base), wide = box.clientWidth * (devicePixelRatio || 1) > 1400;
+  const v = clipVideo(base + (wide || !f.loop.small ? f.loop.video : f.loop.small), '', 'The RoboTeam film');
+  v.preload = 'auto'; v.addEventListener('playing', () => v.classList.add('ready'), { once: true });
+  if (override) box.querySelector('.film-poster').src = base + f.loop.poster;
+  box.append(v);
   if (f.film) {
     const b = $('watch-film'); b.hidden = false;
     if (f.film.seconds) b.querySelector('span').textContent = `Watch the film · ${clock(f.film.seconds)}`;
@@ -197,14 +200,16 @@ function library() {
     shown += list.length;
     const section = el('section', 'team'); section.id = `team-${set}`;
     const minutes = Math.round(list.reduce((n, t) => n + run(set, t).seconds, 0) / 60);
-    section.append(el('div', 'team-head', `<h3>${teamName(set)}${set === REFERENCE ? '<span class="tag">Reference</span>' : ''}</h3><span>${list.length} ${list.length === 1 ? 'video' : 'videos'}${list.length ? ` · ${minutes} min` : ''}</span>`));
+    const finished = D.outcomes ? D.tasks.filter(t => done(set, t)).length : null;
+    section.append(el('div', 'team-head', `<h3>${teamName(set)}${set === REFERENCE ? '<span class="tag">Reference</span>' : ''}</h3><span>${list.length} ${list.length === 1 ? 'video' : 'videos'}${list.length ? ` · ${minutes} min` : ''}</span>${finished !== null ? `<b>${finished} of 36 finished</b>` : ''}`));
     const grid = el('div', 'grid');
     list.forEach(task => {
       const r = run(set, task), finished = done(set, task), o = outcome(set, task);
       const card = el('button', `card t-${typeOf(task)}`); card.type = 'button';
-      card.innerHTML = `<div class="thumb"><img alt="" loading="lazy" src="${poster(set, task, 'front')}"><img class="alt" alt="" loading="lazy" src="${poster(set, task, 'top')}">` +
+      card.innerHTML = `<div class="thumb"><img alt="" loading="lazy" src="${poster(set, task, 'front')}"><img class="alt" alt="" data-src="${poster(set, task, 'top')}">` +
         (F.status === 'all' && finished !== null ? `<span class="mark${finished ? ' done' : ''}">${finished ? 'Complete' : 'Incomplete'}</span>` : '') +
         `<span class="len">${clock(r.seconds)}</span></div><b><i></i>${F.job === 'all' ? `${cap(typeOf(task))} · ` : ''}${short(task)}</b><small>${facts(task)}${o && o.hours != null ? ` · ${o.hours} h` : ''}</small>`;
+      card.addEventListener('pointerenter', () => { const alt = card.querySelector('.alt'); if (alt && !alt.src) alt.src = alt.dataset.src; }, { once: true });
       card.addEventListener('click', () => openRun(set, task)); grid.append(card);
     });
     if (soon.length) grid.append(el('div', 'rest', `<b><span class="soon">Coming soon</span>${soon.length} more ${soon.length === 1 ? 'video' : 'videos'}</b><ul>${soon.map(t => `<li class="t-${typeOf(t)}"><i></i>${F.job === 'all' ? `${cap(typeOf(t))} · ` : ''}${short(t)}</li>`).join('')}</ul>`));

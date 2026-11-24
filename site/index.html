@@ -7,14 +7,18 @@
 <meta name="description" content="RoboTeam: teams of AI agents control 4 to 16 robot arms in real time, seeing the world only through cameras. 36 long jobs, and every run is on video.">
 <meta property="og:title" content="RoboTeam">
 <meta property="og:description" content="Teams of AI agents control 4 to 16 robot arms in real time, seeing the world only through cameras. 36 long jobs, and every run is on video.">
-<meta property="og:image" content="assets/img/og.jpg">
+<meta property="og:image" content="https://changxuanfan.github.io/RoboTeam/assets/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0e1013" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{var t=localStorage.getItem('roboteam-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="preload" as="image" href="https://changxuanfan.github.io/RoboTeam-media/film/roboteam-loop.webp" fetchpriority="high">
 <link rel="stylesheet" href="assets/css/site.css">
 <script src="assets/js/site.js" defer></script>
 </head>
@@ -38,7 +42,7 @@
 <main id="top">
 <section class="hero" aria-labelledby="hero-title">
   <div class="hero-text">
-    <p class="kicker">RoboTeam</p>
+    <p class="kicker">Real time · Cameras only · 4–16 arms</p>
     <h1 id="hero-title">AI teams run a factory hall of robot arms.</h1>
     <p class="lede">In real time, seeing the world only through cameras. 36 long jobs, up to 16 arms on one job, and every run is on video.</p>
     <div class="cta">
@@ -48,7 +52,7 @@
       <a class="btn" href="https://huggingface.co/datasets/RoboTeam-Bench/RoboTeam-Videos">Videos</a>
     </div>
   </div>
-  <div class="film" id="film" aria-label="The RoboTeam film, a 30 second loop"></div>
+  <div class="film" id="film" aria-label="The RoboTeam film, a 30 second loop"><img class="film-poster" src="https://changxuanfan.github.io/RoboTeam-media/film/roboteam-loop.webp" alt="" width="1280" height="720" fetchpriority="high"></div>
 </section>
 
 <section class="chapter" id="jobs" aria-labelledby="jobs-title">
@@ -70,13 +74,15 @@
     <p class="kicker">How it works</p>
     <h2 id="how-title">Look, decide, act, while the clock runs.</h2>
   </div>
-  <div class="steps">
-    <div class="step t-transport"><span>1</span><h3>See</h3><p>The agents get pictures from fixed cameras and the state of their own arms. They never get object positions, depth or contacts.</p></div>
-    <div class="step t-mosaic"><span>2</span><h3>Decide</h3><p>One agent may control every arm, or a controller may split the job and hand arms to helpers. They can write and run their own code.</p></div>
-    <div class="step t-relay"><span>3</span><h3>Act</h3><p>One robot tool moves the arms: move an arm to a pose; open, close or grasp with a gripper. That is all an arm can be told.</p></div>
-    <div class="step t-dial"><span>24 h</span><h3>The clock never stops</h3><p>The hall is simulated in real time and does not wait while an agent thinks. A run ends when the agents say the job is done, or after 24 hours of work.</p></div>
+  <ol class="flow">
+    <li class="step t-transport"><div class="step-top"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="13" height="11" rx="2.5"/><path d="M16 11l5-3v9l-5-3z"/><circle cx="9.5" cy="12.5" r="2.6"/></svg></span><span class="n">Step 1</span></div><h3>See</h3><p>The agents get pictures from fixed cameras and the state of their own arms. They never get object positions, depth or contacts.</p></li>
+    <li class="step t-mosaic"><div class="step-top"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.4"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 7.4V17M10.6 7 6 17.2M13.4 7 18 17.2"/></svg></span><span class="n">Step 2</span></div><h3>Decide</h3><p>One agent may control every arm, or a controller may split the job and hand arms to helpers. They can write and run their own code.</p></li>
+    <li class="step t-relay"><div class="step-top"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20.5h9M8.5 20.5V15l5.5-6.5 5 3"/><circle cx="8.5" cy="15" r="1.7"/><circle cx="14" cy="8.5" r="1.7"/><path d="M19 11.5l2.2 3M19 11.5l-.6 3.6"/></svg></span><span class="n">Step 3</span></div><h3>Act</h3><p>One robot tool moves the arms: move an arm to a pose; open, close or grasp with a gripper. That is all an arm can be told.</p></li>
+  </ol>
+  <div class="rules">
+    <div class="rule t-dial"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2.2"/></svg></span><div><h3>The clock never stops</h3><p>The hall is simulated in real time and does not wait while an agent thinks. A run ends when the agents say the job is done, or after 24 hours of work.</p></div></div>
+    <div class="rule t-transport"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.6 13.2A7.8 7.8 0 1 1 17.5 6.4"/><path d="M19.8 3.8v5h-5"/></svg></span><div><h3>Nobody says it worked</h3><p>The agents look again, and when a move or a grasp has failed they try again. Every failure stays in the record, and an evaluator they cannot reach decides whether the job is really done.</p></div></div>
   </div>
-  <p class="aside">Nothing reports success to the agents. They look again, and when a move or a grasp has failed they try again. Every failure stays in the record, and an evaluator they cannot reach decides whether the job is really done.</p>
 </section>
 
 <section class="chapter" id="results" aria-labelledby="results-title">
@@ -87,7 +93,7 @@
   </div>
   <div class="big" id="big" aria-live="polite"></div>
   <div class="board" id="board"></div>
-  <div class="legend"><span><i class="cell done"></i>Finished the job</span><span><i class="cell"></i>Did not finish</span><span><i class="cell none"></i>Video coming soon</span></div>
+  <div class="legend"><span><i class="cell done"></i>Finished the job</span><span><i class="cell"></i>Did not finish</span><span><i class="cell none"></i>Video coming soon</span><span class="legend-note">In each group of three, the squares are Levels 1, 2 and 3.</span></div>
 </section>
 
 <section class="chapter" id="videos" aria-labelledby="videos-title">
