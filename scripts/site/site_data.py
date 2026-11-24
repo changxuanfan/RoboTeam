@@ -11,7 +11,7 @@ media:  site/data/media.json, where the page finds its media: every video set wi
 
     .venv/bin/python -m scripts.site.site_data tasks
     .venv/bin/python -m scripts.site.site_data media VIDEOS VIDEOS_URL MEDIA MEDIA_URL
-    .venv/bin/python -m scripts.site.site_data readme-gallery
+    .venv/bin/python -m scripts.site.site_data task-gallery
 """
 
 import argparse
@@ -22,7 +22,7 @@ from pathlib import Path
 
 from roboteam.tasks.config import ROOT
 
-# The published project page; README media links point at it.
+# The published project page; the task gallery links point at it.
 PROJECT_PAGE = 'https://changxuanfan.github.io/RoboTeam/'
 SITE = ROOT / 'site/data'
 # The order of the video sets on the page: the models by tasks completed, then the reference.
@@ -177,8 +177,8 @@ def media(videos, videos_url, media, media_url):
     return write(SITE / 'media.json', document)
 
 
-def readme_gallery(page=PROJECT_PAGE, readme=ROOT / 'README.md'):
-    """Fill the README's gallery block: per task type a 3 x 3 table of task thumbnails."""
+def task_gallery(page=PROJECT_PAGE, guide=ROOT / 'docs/tasks/README.md'):
+    """Fill the task guide's gallery block: per task type a 3 x 3 table of task thumbnails."""
     data = json.loads((SITE / 'tasks.json').read_text())
     blocks = []
     for task_type, info in data['task_types'].items():
@@ -192,17 +192,17 @@ def readme_gallery(page=PROJECT_PAGE, readme=ROOT / 'README.md'):
             for s in scales:
                 t = next(t for t in rows if key(t) == s and t['level'] == level)
                 cells.append(
-                    f'<td><a href="{page}#task={t["id"]}"><img src="docs/media/readme/tasks/{t["id"]}.jpg" '
+                    f'<td><a href="{page}#task={t["id"]}"><img src="../media/readme/tasks/{t["id"]}.jpg" '
                     f'width="240" alt="{t["id"]}"></a><br><sub>{t["id"]}</sub></td>'
                 )
             body.append(f'<tr><th>L{level}</th>{"".join(cells)}</tr>')
         blocks.append(f'<b>{info["name"]}</b>\n\n<table><tr><th></th>{head}</tr>{"".join(body)}</table>\n')
-    text = readme.read_text()
+    text = guide.read_text()
     start, end = '<!-- gallery -->', '<!-- /gallery -->'
     before, rest = text.split(start, 1)
     _, after = rest.split(end, 1)
-    readme.write_text(before + start + '\n' + '\n'.join(blocks) + end + after)
-    return readme
+    guide.write_text(before + start + '\n' + '\n'.join(blocks) + end + after)
+    return guide
 
 
 def write(path, document):
@@ -220,14 +220,14 @@ def main(argv=None):
     m.add_argument('videos_url')
     m.add_argument('media')
     m.add_argument('media_url')
-    sub.add_parser('readme-gallery')
+    sub.add_parser('task-gallery')
     args = parser.parse_args(argv)
     if args.command == 'tasks':
         print(tasks())
     elif args.command == 'media':
         print(media(args.videos, args.videos_url, args.media, args.media_url))
     else:
-        print(readme_gallery())
+        print(task_gallery())
 
 
 if __name__ == '__main__':

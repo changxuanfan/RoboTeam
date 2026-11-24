@@ -1,299 +1,197 @@
 <div align="center">
 
-# RoboTeam
+<h1>
+<a href="https://changxuanfan.github.io/RoboTeam/">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/wordmark-dark.svg">
+<img src="docs/media/readme/wordmark-light.svg" alt="RoboTeam" width="360">
+</picture>
+</a>
+</h1>
 
-**Benchmarking Vision-Based Multi-Agent Control of Many Robot Arms in Real Time**
+**Teams of AI agents run a factory hall of robot arms, in real time, from camera images alone.**
 
-[Paper](https://arxiv.org/abs/2611.22138) ·
-[Project page](https://changxuanfan.github.io/RoboTeam/) ·
-[Tasks](docs/tasks/README.md) ·
-[Getting started](docs/getting-started.md) ·
-[Docs](docs/README.md)
+<a href="https://arxiv.org/abs/2611.22138"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/button-paper-dark.svg"><img src="docs/media/readme/button-paper-light.svg" alt="Paper: arXiv 2611.22138" height="36"></picture></a>&nbsp;
+<a href="https://changxuanfan.github.io/RoboTeam/"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/button-page-dark.svg"><img src="docs/media/readme/button-page-light.svg" alt="Project page" height="36"></picture></a>&nbsp;
+<a href="https://huggingface.co/datasets/RoboTeam-Bench/RoboTeam-Videos"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/button-videos-dark.svg"><img src="docs/media/readme/button-videos-light.svg" alt="Videos on Hugging Face" height="36"></picture></a>&nbsp;
+<a href="#license"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/button-license-dark.svg"><img src="docs/media/readme/button-license-light.svg" alt="License: MIT" height="36"></picture></a>
 
-[![License: MIT](https://img.shields.io/badge/code-MIT-3b7fc4?style=flat-square)](LICENSE)
-[![Data: CC BY 4.0](https://img.shields.io/badge/data%20%26%20media-CC%20BY%204.0-3f9440?style=flat-square)](LICENSE-DATA.md)
-[![Python 3.12](https://img.shields.io/badge/python-3.12-d65b3c?style=flat-square)](pyproject.toml)
+[The four jobs](#the-four-jobs) · [How a run works](#how-a-run-works) · [What we found](#what-we-found) · [Watch](#watch-whole-runs) · [Quick start](#quick-start) · [Docs](docs/README.md)
 
-<img src="docs/media/readme/overview.png" alt="RoboTeam at a glance: the four task types and one step of each, the four agent systems, the two tool modes, and 20 minutes of one run" width="100%">
+<picture>
+<source type="image/avif" srcset="docs/media/readme/hero.avif">
+<img src="docs/media/readme/hero.webp" alt="The RoboTeam factory hall, then one moment from each of its four kinds of job: Transport, Mosaic, Relay and Dial" width="100%">
+</picture>
+
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/numbers-dark.svg">
+<img src="docs/media/readme/numbers-light.svg" alt="36 tasks in one factory hall; 4 to 16 robot arms on one task; 24 hours of work allowed per task; 28 of 36 done by the best AI team" width="100%">
+</picture>
 
 </div>
 
-## What it is
+## What RoboTeam is
 
-RoboTeam is a simulated benchmark where multimodal agents control **4 to 16 robot arms in
-real time from camera images alone**. Its 36 tasks are long jobs that the arms must do
-together, such as passing timbers or building a picture from hundreds of cubes.
+RoboTeam is a simulated factory hall with 36 long jobs that robot arms can only do together:
+sorting parts onto boards, building a picture from hundreds of cubes, passing timbers down a
+line of arms, and cracking a code by turning cranks.
 
-| | |
+The workers are language models. Nobody tells them where anything is. They look at camera
+pictures, decide what to do, and send simple commands to the arms, and the world keeps moving
+while they think. RoboTeam measures how many of the jobs they finish, how long it takes them and
+what it costs.
+
+## The four jobs
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="docs/media/readme/transport.webp" alt="Twelve arms deliver items to their boards" width="100%"><br><b>Transport</b><br>Deliver every item to its place on the right board. Any arm may carry any item, and items cross the table by being handed over or set down for the next arm.<br><sub><b>Arms</b> 4, 8, 12 &nbsp;·&nbsp; <b>Levels</b> flat targets → sockets → sockets on a sprung board</sub><br><sub>Shown: gpt-6.1-sol, 12 arms, 36 items</sub></td>
+<td width="50%" valign="top"><img src="docs/media/readme/mosaic.webp" alt="Eight arms build a picture from 288 cubes" width="100%"><br><b>Mosaic</b><br>Build a reference picture, one colored cube per cell. The picture has four colors, and every cell needs the right one.<br><sub><b>Arms</b> 4, 6, 8 &nbsp;·&nbsp; <b>Levels</b> pockets → printed lines → unmarked cells</sub><br><sub>Shown: opus-5.5, 8 arms, 288 cubes</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="docs/media/readme/relay.webp" alt="Twelve arms pass timbers from arm to arm" width="100%"><br><b>Relay</b><br>Carry long timbers to the goal. It takes at least two arms to carry one, and each timber must change hands in the air at least once.<br><sub><b>Arms</b> 8, 12, 16 &nbsp;·&nbsp; <b>Levels</b> straight → curved with a hanging weight → hinged with a hanging weight</sub><br><sub>Shown: gpt-6.1-sol, 12 arms, 3 hinged timbers</sub></td>
+<td width="50%" valign="top"><img src="docs/media/readme/dial.webp" alt="Sixteen arms turn eight cranks to find a code" width="100%"><br><b>Dial</b><br>Find a hidden code by turning spring-loaded knobs and holding them all at once. The only hint is a display of the best try so far.<br><sub><b>Arms</b> 4 to 16 &nbsp;·&nbsp; <b>Levels</b> knobs on the table → modules held in the air → cranks</sub><br><sub>Shown: gpt-6.1-sol, 16 arms, 8 dials</sub></td>
+</tr>
+</table>
+
+Each job comes in three team sizes and three levels, which makes 36 tasks. A bigger team has
+more arms and more work to divide. A higher level makes the same job physically or visually
+harder. The number in the corner of a clip is its playback speed. The
+[task guide](docs/tasks/README.md) shows all 36 and has a page for each job:
+[Transport](docs/tasks/transport.md), [Mosaic](docs/tasks/mosaic.md),
+[Relay](docs/tasks/relay.md) and [Dial](docs/tasks/dial.md).
+
+## How a run works
+
+<a href="https://changxuanfan.github.io/RoboTeam/#how">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/how-it-works-dark.svg">
+<img src="docs/media/readme/how-it-works-light.svg" alt="How RoboTeam works: cameras send pictures, AI agents decide, commands move the robot arms, and the clock never stops" width="100%">
+</picture>
+</a>
+
+1. **The clock starts and never stops.** The hall is simulated in real time. It does not wait
+   while an agent thinks, so slow decisions cost working time.
+2. **The agents look.** They get pictures from fixed cameras and the state of their own arms.
+   They never get object positions, depth or contacts.
+3. **They organize themselves.** One agent may control every arm, or a controller may split the
+   job and hand arms to helpers. The four ways are listed below.
+4. **They act through one robot tool.** Move an arm to a pose; open, close or grasp with a
+   gripper. That is all an arm can be told.
+5. **They check their own work.** Nothing reports success. The agents look again, and when a
+   move or a grasp has failed they try again. Every failure stays in the record.
+6. **The run ends** when the agents say the job is done, or after 24 hours of work. An evaluator
+   they cannot reach then decides whether it really is done.
+
+Agents run inside a coding-agent program, either Codex or Claude Code. Unless a setting takes
+it away, they can write and run their own Python in a sandbox that keeps them away from the
+simulator and the evaluator, for example to measure where a cube is in a picture. They also
+share one notebook of lessons, which starts empty in every run.
+
+| Agent system | How the team is organized |
 | --- | --- |
-| **Real time** | The world advances with the clock and never waits for an agent. It runs in MuJoCo with a 2 ms physics step. |
-| **Vision only** | Agents get RGB images from fixed cameras (1280 × 800) and the state of the arms. They never receive object positions, depth or contacts. Every task runs at its own desk in one factory hall, with the desks of the other 35 tasks around it. |
-| **One robot tool** | Arms move only through one tool with simple commands: move an arm to a pose, or open, close or grasp with a gripper. Every failed motion or grasp is visible. |
-| **Code tools** | Unless a condition removes them, agents also have a shell, file editing and their own Python code, inside a sandbox that keeps them away from the simulator and the evaluator. |
-| **Long runs** | A run ends when the agents declare the task done or after 24 hours of active time. Agents may fail and retry. |
-
-## Tasks
-
-Four task types, each at three team sizes and three difficulty levels. Team size adds arms and
-work to divide. Difficulty makes the same job physically or visually harder.
-
-<div align="center">
-<img src="docs/media/readme/tasks.png" alt="The four task types and their three levels" width="70%">
-</div>
-
-| Task type | The job | Arms | Level 1 → 2 → 3 |
-| --- | --- | --- | --- |
-| **Transport** | Deliver every item to its target board | 4, 8, 12 | Flat targets → sockets → sockets on a sprung board |
-| **Mosaic** | Build a reference picture from colored cubes | 4, 6, 8 | Pockets → printed lines → unmarked cells |
-| **Relay** | Move long timbers to a goal, handing over in the air | 8, 12, 16 | Straight → curved with a hanging weight → hinged with a hanging weight |
-| **Dial** | Find a hidden code by turning and holding spring-loaded knobs | 4 to 16 | Knobs on the table → modules held in the air → cranks |
-
-Each task type has [its own guide](docs/tasks/README.md), and the 36 cases are in
-[`benchmark/`](benchmark/README.md).
-
-## Agent systems
-
-| Agent system | Organization |
-| --- | --- |
-| `adaptive` | One Controller that forks delegates, hands them arms and takes the arms back. |
+| `adaptive` | One Controller that creates helpers, hands them arms and takes the arms back. The default. |
 | `single-agent` | One agent controls every arm. |
 | `hierarchical` | One Worker per arm under a Controller. |
-| `decentralized` | One Worker per arm and no Controller; Workers coordinate directly. |
+| `decentralized` | One Worker per arm and no Controller. Workers coordinate directly. |
 
-Agents run in a coding-agent harness, either Codex or Claude Code. In both, they get the same
-robot tool, instructions, camera images and sandbox, and they can write lessons to one shared
-skill file that starts empty in every run.
+## What we found
 
-## Results
+<a href="https://changxuanfan.github.io/RoboTeam/#results">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/results-dark.svg">
+<img src="docs/media/readme/results-light.svg" alt="Tasks completed out of 36: gpt-6.1-sol 28, opus-5.5 27, kimi-k3.1-pro 3, qwen3.8-flash 1, deepseek-v4.1-flash 1, glm-5.3-flash 0; the Oracle, given object positions, 36" width="100%">
+</picture>
+</a>
 
-<div align="center">
-<img src="docs/media/readme/results.png" alt="How many of the 36 tasks each of the 14 conditions completes" width="55%">
-</div>
+- **The best teams finish most of the jobs.** gpt-6.1-sol completes 28 of the 36 tasks and
+  opus-5.5 completes 27. Four other models complete at most 3.
+- **It is slow, patient work.** A typical task takes gpt-6.1-sol 3.5 hours, and one in three of
+  its steps fails at least once and has to be tried again.
+- **Seeing is the hard part.** Told where every object is instead of looking at pictures, the
+  same model completes all 36 tasks. We call that run the Oracle. It shows that every task can
+  be done.
 
-- **The best models complete most tasks, but at a high price.** With the adaptive system,
-  gpt-6.1-sol and opus-5.5 complete 28 and 27 of the 36 tasks, and four other models at most 3.
-  A typical task takes gpt-6.1-sol 3.5 hours and 218 million input tokens, and 34% of its
-  atomic steps fail at least once and must be retried.
-- **Other agent systems trade time for tokens.** The four systems complete a similar number of
-  tasks. The hierarchical and decentralized systems are faster than the adaptive system but use
-  1.9 and 1.7 times its tokens, and the single agent uses fewer tokens but takes 1.6 times as long.
-- **What limits the agents is recovering positions from images.** Given ground-truth object
-  positions (the Oracle), gpt-6.1-sol completes all 36 tasks. With low-resolution images it
-  completes 14, and without code tools 13.
+The paper goes further:
 
-No model or agent system is yet fast, cheap and reliable at once.
+- **Organizing the team differently trades time for cost.** All four agent systems complete
+  27 to 29 tasks. Giving every arm its own Worker is faster but uses 1.7 to 1.9 times the
+  tokens. A single agent uses fewer tokens but takes 1.6 times as long.
+- **Sharp pictures and code both matter.** With low-resolution pictures gpt-6.1-sol completes
+  14 tasks, and without its own code it completes 13.
+- **It is expensive.** A typical task costs gpt-6.1-sol 218 million input tokens.
 
-## Videos
+No model or agent system is fast, cheap and reliable at once yet. The
+[paper](https://arxiv.org/abs/2611.22138) has every condition and number.
 
-The videos below are **Oracle** reference runs: gpt-6.1-sol in Codex as a single agent, given
-the ground-truth position of every object instead of camera images. They show that each task
-can be done. Idle time is removed and playback is sped up. Each montage plays all nine tasks of
-a task type at once: rows are Levels 1 to 3, columns are team sizes. Runs of every model are on
-the [project page](https://changxuanfan.github.io/RoboTeam/).
+## Watch whole runs
 
-### Transport
+Eight complete runs, sped up. The [project page](https://changxuanfan.github.io/RoboTeam/)
+has every run of every model from three cameras.
 
-<!-- media:montage-transport -->
+<table>
+<tr>
+<td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/85ab5c04-a60b-4e3f-b364-105a6b39f723" controls muted width="100%"></video><!-- video:transport-1 --><br><sub><b>Transport</b> · opus-5.5 · 12 arms, items set into sockets</sub></td>
+<td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/06263096-6cc7-4c47-96ba-8815f376f2f5" controls muted width="100%"></video><!-- video:transport-2 --><br><sub><b>Transport</b> · gpt-6.1-sol · 8 arms, items set into sockets</sub></td>
+</tr>
+<tr>
+<td valign="top"><video src="https://github.com/user-attachments/assets/804f16ac-984b-4a7b-98ef-41f686ad29ca" controls muted width="100%"></video><!-- video:mosaic-1 --><br><sub><b>Mosaic</b> · opus-5.5 · 6 arms, 162 cubes, no grid on the table</sub></td>
+<td valign="top"><video src="https://github.com/user-attachments/assets/edf6dfaf-4797-4478-b983-82612114b3a5" controls muted width="100%"></video><!-- video:mosaic-2 --><br><sub><b>Mosaic</b> · gpt-6.1-sol · 4 arms, 72 cubes, no grid on the table</sub></td>
+</tr>
+<tr>
+<td valign="top"><video src="https://github.com/user-attachments/assets/1e4f76cd-a82e-42ba-989c-55effefd5e1f" controls muted width="100%"></video><!-- video:relay-1 --><br><sub><b>Relay</b> · gpt-6.1-sol · 16 arms, hinged timbers with a hanging weight</sub></td>
+<td valign="top"><video src="https://github.com/user-attachments/assets/de8afa7e-a1fb-46e8-9eb6-75f3715b8780" controls muted width="100%"></video><!-- video:relay-2 --><br><sub><b>Relay</b> · opus-5.5 · 12 arms, curved timbers with a hanging weight</sub></td>
+</tr>
+<tr>
+<td valign="top"><video src="https://github.com/user-attachments/assets/b61e48bd-bd4d-4192-b86e-6c07c43f6ab8" controls muted width="100%"></video><!-- video:dial-1 --><br><sub><b>Dial</b> · gpt-6.1-sol · 16 arms, 8 cranks held in the air</sub></td>
+<td valign="top"><video src="https://github.com/user-attachments/assets/6b6cfcf8-25e7-4227-8b83-9539a6f82f1d" controls muted width="100%"></video><!-- video:dial-2 --><br><sub><b>Dial</b> · opus-5.5 · 12 arms, 6 cranks held in the air</sub></td>
+</tr>
+</table>
 
-https://github.com/user-attachments/assets/6224985c-da54-4098-9066-18fc0c023712
+All the files are in the
+[RoboTeam-Videos dataset](https://huggingface.co/datasets/RoboTeam-Bench/RoboTeam-Videos) on
+Hugging Face. Videos for a few runs are coming soon.
 
-<!-- /media:montage-transport -->
+## Quick start
 
-### Mosaic
+```sh
+git clone https://github.com/changxuanfan/RoboTeam.git && cd RoboTeam
+uv sync --locked                                   # Python 3.12 and the locked packages
+.venv/bin/roboteam bootstrap                       # the task assets, checked by hash
+.venv/bin/roboteam plan --task-types relay --level 1
+```
 
-<!-- media:montage-mosaic -->
+`plan` lists the tasks a batch would run and calls no model, so it is a safe first command.
+A real run also needs:
 
-https://github.com/user-attachments/assets/07e18688-2711-4835-a474-398f504023ea
+- an account for a model (an API key or a subscription),
+- the pinned Codex or Claude Code command-line program,
+- a sandboxed Python environment for the agents, built once per computer.
 
-<!-- /media:montage-mosaic -->
+[Getting started](docs/getting-started.md) goes from a fresh clone to a finished run, and
+there is a guide for each kind of host under [Documentation](#documentation).
 
-### Relay
+## What is in this repository
 
-<!-- media:montage-relay -->
-
-https://github.com/user-attachments/assets/d786c4b1-1cde-4034-b195-56546a41e8ee
-
-<!-- /media:montage-relay -->
-
-### Dial
-
-<!-- media:montage-dial -->
-
-https://github.com/user-attachments/assets/f4abfc06-8e7c-433a-bc16-aa3cb9df9641
-
-<!-- /media:montage-dial -->
-
-<details>
-<summary><b>All 36 tasks, one by one</b> — select a task to watch its full run, front and side</summary>
-
-<!-- gallery -->
-<b>Transport</b>
-
-<table><tr><th></th><th>4 arms</th><th>8 arms</th><th>12 arms</th></tr><tr><th>L1</th><td><a href="https://changxuanfan.github.io/RoboTeam/#task=transport-small-l1"><img src="docs/media/readme/tasks/transport-small-l1.jpg" width="240" alt="transport-small-l1"></a><br><sub>transport-small-l1</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=transport-medium-l1"><img src="docs/media/readme/tasks/transport-medium-l1.jpg" width="240" alt="transport-medium-l1"></a><br><sub>transport-medium-l1</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=transport-large-l1"><img src="docs/media/readme/tasks/transport-large-l1.jpg" width="240" alt="transport-large-l1"></a><br><sub>transport-large-l1</sub></td></tr><tr><th>L2</th><td><a href="https://changxuanfan.github.io/RoboTeam/#task=transport-small-l2"><img src="docs/media/readme/tasks/transport-small-l2.jpg" width="240" alt="transport-small-l2"></a><br><sub>transport-small-l2</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=transport-medium-l2"><img src="docs/media/readme/tasks/transport-medium-l2.jpg" width="240" alt="transport-medium-l2"></a><br><sub>transport-medium-l2</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=transport-large-l2"><img src="docs/media/readme/tasks/transport-large-l2.jpg" width="240" alt="transport-large-l2"></a><br><sub>transport-large-l2</sub></td></tr><tr><th>L3</th><td><a href="https://changxuanfan.github.io/RoboTeam/#task=transport-small-l3"><img src="docs/media/readme/tasks/transport-small-l3.jpg" width="240" alt="transport-small-l3"></a><br><sub>transport-small-l3</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=transport-medium-l3"><img src="docs/media/readme/tasks/transport-medium-l3.jpg" width="240" alt="transport-medium-l3"></a><br><sub>transport-medium-l3</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=transport-large-l3"><img src="docs/media/readme/tasks/transport-large-l3.jpg" width="240" alt="transport-large-l3"></a><br><sub>transport-large-l3</sub></td></tr></table>
-
-<b>Mosaic</b>
-
-<table><tr><th></th><th>4 arms</th><th>6 arms</th><th>8 arms</th></tr><tr><th>L1</th><td><a href="https://changxuanfan.github.io/RoboTeam/#task=mosaic-small-l1"><img src="docs/media/readme/tasks/mosaic-small-l1.jpg" width="240" alt="mosaic-small-l1"></a><br><sub>mosaic-small-l1</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=mosaic-medium-l1"><img src="docs/media/readme/tasks/mosaic-medium-l1.jpg" width="240" alt="mosaic-medium-l1"></a><br><sub>mosaic-medium-l1</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=mosaic-large-l1"><img src="docs/media/readme/tasks/mosaic-large-l1.jpg" width="240" alt="mosaic-large-l1"></a><br><sub>mosaic-large-l1</sub></td></tr><tr><th>L2</th><td><a href="https://changxuanfan.github.io/RoboTeam/#task=mosaic-small-l2"><img src="docs/media/readme/tasks/mosaic-small-l2.jpg" width="240" alt="mosaic-small-l2"></a><br><sub>mosaic-small-l2</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=mosaic-medium-l2"><img src="docs/media/readme/tasks/mosaic-medium-l2.jpg" width="240" alt="mosaic-medium-l2"></a><br><sub>mosaic-medium-l2</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=mosaic-large-l2"><img src="docs/media/readme/tasks/mosaic-large-l2.jpg" width="240" alt="mosaic-large-l2"></a><br><sub>mosaic-large-l2</sub></td></tr><tr><th>L3</th><td><a href="https://changxuanfan.github.io/RoboTeam/#task=mosaic-small-l3"><img src="docs/media/readme/tasks/mosaic-small-l3.jpg" width="240" alt="mosaic-small-l3"></a><br><sub>mosaic-small-l3</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=mosaic-medium-l3"><img src="docs/media/readme/tasks/mosaic-medium-l3.jpg" width="240" alt="mosaic-medium-l3"></a><br><sub>mosaic-medium-l3</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=mosaic-large-l3"><img src="docs/media/readme/tasks/mosaic-large-l3.jpg" width="240" alt="mosaic-large-l3"></a><br><sub>mosaic-large-l3</sub></td></tr></table>
-
-<b>Relay</b>
-
-<table><tr><th></th><th>8 arms</th><th>12 arms</th><th>16 arms</th></tr><tr><th>L1</th><td><a href="https://changxuanfan.github.io/RoboTeam/#task=relay-small-l1"><img src="docs/media/readme/tasks/relay-small-l1.jpg" width="240" alt="relay-small-l1"></a><br><sub>relay-small-l1</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=relay-medium-l1"><img src="docs/media/readme/tasks/relay-medium-l1.jpg" width="240" alt="relay-medium-l1"></a><br><sub>relay-medium-l1</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=relay-large-l1"><img src="docs/media/readme/tasks/relay-large-l1.jpg" width="240" alt="relay-large-l1"></a><br><sub>relay-large-l1</sub></td></tr><tr><th>L2</th><td><a href="https://changxuanfan.github.io/RoboTeam/#task=relay-small-l2"><img src="docs/media/readme/tasks/relay-small-l2.jpg" width="240" alt="relay-small-l2"></a><br><sub>relay-small-l2</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=relay-medium-l2"><img src="docs/media/readme/tasks/relay-medium-l2.jpg" width="240" alt="relay-medium-l2"></a><br><sub>relay-medium-l2</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=relay-large-l2"><img src="docs/media/readme/tasks/relay-large-l2.jpg" width="240" alt="relay-large-l2"></a><br><sub>relay-large-l2</sub></td></tr><tr><th>L3</th><td><a href="https://changxuanfan.github.io/RoboTeam/#task=relay-small-l3"><img src="docs/media/readme/tasks/relay-small-l3.jpg" width="240" alt="relay-small-l3"></a><br><sub>relay-small-l3</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=relay-medium-l3"><img src="docs/media/readme/tasks/relay-medium-l3.jpg" width="240" alt="relay-medium-l3"></a><br><sub>relay-medium-l3</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=relay-large-l3"><img src="docs/media/readme/tasks/relay-large-l3.jpg" width="240" alt="relay-large-l3"></a><br><sub>relay-large-l3</sub></td></tr></table>
-
-<b>Dial</b>
-
-<table><tr><th></th><th>4 dials</th><th>6 dials</th><th>8 dials</th></tr><tr><th>L1</th><td><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-small-l1"><img src="docs/media/readme/tasks/dial-small-l1.jpg" width="240" alt="dial-small-l1"></a><br><sub>dial-small-l1</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-medium-l1"><img src="docs/media/readme/tasks/dial-medium-l1.jpg" width="240" alt="dial-medium-l1"></a><br><sub>dial-medium-l1</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-large-l1"><img src="docs/media/readme/tasks/dial-large-l1.jpg" width="240" alt="dial-large-l1"></a><br><sub>dial-large-l1</sub></td></tr><tr><th>L2</th><td><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-small-l2"><img src="docs/media/readme/tasks/dial-small-l2.jpg" width="240" alt="dial-small-l2"></a><br><sub>dial-small-l2</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-medium-l2"><img src="docs/media/readme/tasks/dial-medium-l2.jpg" width="240" alt="dial-medium-l2"></a><br><sub>dial-medium-l2</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-large-l2"><img src="docs/media/readme/tasks/dial-large-l2.jpg" width="240" alt="dial-large-l2"></a><br><sub>dial-large-l2</sub></td></tr><tr><th>L3</th><td><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-small-l3"><img src="docs/media/readme/tasks/dial-small-l3.jpg" width="240" alt="dial-small-l3"></a><br><sub>dial-small-l3</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-medium-l3"><img src="docs/media/readme/tasks/dial-medium-l3.jpg" width="240" alt="dial-medium-l3"></a><br><sub>dial-medium-l3</sub></td><td><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-large-l3"><img src="docs/media/readme/tasks/dial-large-l3.jpg" width="240" alt="dial-large-l3"></a><br><sub>dial-large-l3</sub></td></tr></table>
-<!-- /gallery -->
-
-</details>
-
-## Getting started
-
-### 1. What you need
-
-| | |
+| Folder | What it holds |
 | --- | --- |
-| **Host** | macOS on Apple silicon, Linux with an NVIDIA GPU or CPU only, a Slurm cluster, a RunPod pod or Docker. Each has a guide in [docs/hosts/](docs/README.md). |
-| **Software** | Python 3.12, [uv](https://docs.astral.sh/uv/), Node.js, `ffmpeg`, and the CLI of the harness you run: Claude Code 2.1.316 (`claude`) or Codex 0.165.0 (`codex`). Other versions are refused, so that every run uses the CLI the results were measured with. |
-| **Linux sandbox** | `bwrap` and `socat` where user namespaces work; otherwise Linux 6.7 or newer (Landlock ABI 4) with `libseccomp`. |
-| **A model account** | An API key, a Claude subscription (token or saved login) or a ChatGPT login, for one of the models in [`models.json`](models.json). |
+| [`benchmark/`](benchmark/README.md) | The 36 released tasks and the factory hall |
+| `roboteam/` | The Python package: the simulation, the tasks and their scoring, and the program that runs the agents |
+| `prompts/` | Every text a model reads: rules, roles and guides |
+| [`docs/`](docs/README.md) | The guides |
+| [`scripts/`](scripts/README.md) | Commands for releases, analysis and the project page |
+| `site/` | The [project page](https://changxuanfan.github.io/RoboTeam/) |
+| `tests/` | The tests |
 
-### 2. Install
+## Documentation
 
-```sh
-git clone https://github.com/changxuanfan/RoboTeam.git
-cd RoboTeam
-uv sync --locked
-.venv/bin/roboteam bootstrap
-```
-
-`bootstrap` downloads the pinned task assets and checks every file against its hash. The
-project runs from this checkout; it is not installed with `pip`.
-
-Install the harness CLI at its pinned version. A `--prefix` install keeps it apart from a
-newer CLI you use yourself; put its `node_modules/.bin` first on `PATH`:
-
-```sh
-npm install --prefix "$PWD/.harness-cli" @anthropic-ai/claude-code@2.1.316   # Claude Code
-npm install --prefix "$PWD/.harness-cli" @openai/codex@0.165.0               # Codex
-export PATH="$PWD/.harness-cli/node_modules/.bin:$PATH"
-```
-
-On Ubuntu or Debian, the system packages are
-`sudo apt-get install ffmpeg bubblewrap socat libosmesa6`.
-
-### 3. Credentials
-
-```sh
-cp .env.example .env
-chmod 600 .env
-```
-
-Fill in only the variable your model reads. Keep credentials in `.env`, not exported in the
-shell: runs load it themselves and hand the Claude token to the CLI on a pipe, so no policy
-shell can read it.
-
-| You have | Model (`--model`) | What to set |
-| --- | --- | --- |
-| An OpenAI API key | `sol` (the Codex default), `luna` | `OPENAI_API_KEY` in `.env` |
-| An Anthropic API key | `opus` (the Claude Code default), `haiku` | `ANTHROPIC_API_KEY` in `.env` |
-| A Claude subscription, with a token | `opus_subscription_token`, `haiku_subscription_token` | `CLAUDE_CODE_OAUTH_TOKEN` in `.env`, from `claude setup-token` |
-| A Claude subscription, logged in with Claude Code | `opus_subscription`, `haiku_subscription` | Nothing in `.env`. `export ROBOTEAM_CLAUDE_HOME="$HOME/.claude"` and leave `CLAUDE_CONFIG_DIR` unset ([saved login](docs/harness/claude-code.md#saved-login)) |
-| A ChatGPT plan | `sol_subscription`, `luna_subscription` | Nothing in `.env`. Log in once in the project's own Codex home, `CODEX_HOME=~/.roboteam/codex-home codex login`, and set `runtime.codex_home_scope = "shared"` in your TOML ([Codex login](docs/harness/codex.md#authentication)). Your personal `~/.codex` is never used |
-
-### 4. Choose what to run
-
-Defaults are in [`roboteam.toml`](roboteam.toml): Codex with `sol` (`--harness claude` selects `opus`), the adaptive
-system, all 36 tasks, 24 hours per run, and a renderer picked for the host. Change them with
-options (`--cases`, `--parallel`, `--wall-limit`, ...; [all of them](docs/cli.md#commands)) or a
-small TOML of your own, passed before the command (`roboteam --config site.toml ...`);
-[`docs/hosts/examples/`](docs/hosts/examples) has one for the Mac, RunPod and Slurm.
-
-```sh
-.venv/bin/roboteam doctor --harness claude                  # CLI version, sandbox, renderer
-.venv/bin/roboteam plan --harness claude --task-types relay --level 1
-```
-
-`plan` lists each task, its arms and the model, and makes no model calls.
-
-The conditions of the paper are these settings:
-
-| Condition | Options |
-| --- | --- |
-| Agent system | `--system adaptive`, `single-agent`, `hierarchical` or `decentralized` |
-| Harness and model | `--harness codex` or `claude`, `--model` with an entry of [`models.json`](models.json) |
-| Robot tool only | `--tools robot_only` |
-| Low resolution | `--observation-profile jpeg_128x80_q95` |
-| Oracle | `--harness codex --model sol --system single-agent --observation ground_truth` |
-
-The Oracle gets the ground-truth state of every object instead of camera images
-([rules](docs/benchmark/rules.md)).
-
-### 5. Build and check the policy environment
-
-Every run gives the model its own frozen Python environment, closed off from the rest of the
-host. Build it once per host, in a folder outside your home folder and the repository, then
-check that its sandbox holds:
-
-```sh
-# macOS: /Users/Shared/roboteam is the default base
-.venv/bin/python -m scripts.release.build_policy_env --base /Users/Shared/roboteam   # prints its root
-.venv/bin/python -m scripts.release.check_policy_env --harness claude /Users/Shared/roboteam/policy-env-<id>
-```
-
-```sh
-# Linux: pick a base outside your home folder, the checkout and /tmp, and keep it exported
-export ROBOTEAM_POLICY_ENV_BASE=/var/lib/roboteam/env      # any folder you can write
-.venv/bin/python -m scripts.release.build_policy_env --base $ROBOTEAM_POLICY_ENV_BASE   # prints its root
-.venv/bin/python -m scripts.release.check_policy_env --harness claude $ROBOTEAM_POLICY_ENV_BASE/policy-env-<id>
-```
-
-`prepare` refuses on Linux without `ROBOTEAM_POLICY_ENV_BASE`. Where the host forbids
-unprivileged user namespaces (Ubuntu 24.04 does by default), the check reports
-`landlock-v1` instead of `claude-sandbox`; that is expected. The check starts each
-harness's real CLI against a local stub, with no model calls, and tries about 50 things a policy
-must and must not be able to do; `prepare` refuses an environment that has not passed it.
-[Policy environment](docs/hosts/policy-environment.md) covers what each platform allows.
-
-### 6. Preflight, then run
-
-```sh
-.venv/bin/roboteam preflight --harness claude --confirm-spend --max-budget-usd 1
-.venv/bin/roboteam prepare --harness claude --task-types relay --level 1 --output runs/batches/claude-relay-l1
-.venv/bin/roboteam run runs/batches/claude-relay-l1
-.venv/bin/roboteam status runs/batches/claude-relay-l1
-```
-
-- `preflight` makes a few small, paid calls to confirm the model and CLI behave as the runtime
-  needs; a run is refused without its passed receipt.
-- `prepare` freezes the code, the task inputs, the model and the configuration into a new
-  folder. Nothing in it changes afterwards.
-- `run` on macOS hands the batch to launchd and returns, so it outlives the terminal; on Linux
-  add `--durable` for the same. Each run has 24 hours of active time from its START and is
-  scored then, or when the model finishes.
-- `stop` ends a batch in order. A run that stopped unexpectedly continues by itself once;
-  `roboteam continue` continues stopped runs by hand, as the same trials.
-
-Each run's results, videos and evidence stay in the batch folder; when the batch ends they are
-also collected into `runs/exports/<batch>-<hash>/` and a verified ZIP beside it (the runs root
-is `paths.runs_root`, default `runs/`). [Getting started](docs/getting-started.md) goes through each step in detail;
-[docs/](docs/README.md) has every guide.
-
-## Repository layout
-
-| Path | What is there |
-| --- | --- |
-| [`benchmark/`](benchmark/README.md) | The 36 released tasks and `release.json` |
-| [`roboteam/`](roboteam) | The package: simulation, robot tool, runtime with its sandbox, the Codex and Claude Code adapters, evaluation and analysis |
-| [`prompts/`](prompts) | Every text an agent reads: rules, roles and guides |
-| [`roboteam.toml`](roboteam.toml), [`models.json`](models.json) | The defaults for new runs and the models ([settings](docs/cli.md#settings-files)) |
-| [`scripts/`](scripts/README.md) | Engineering commands: release and policy environment, analysis, project page, tests |
-| [`tests/`](docs/development/testing.md) | The test suite |
-| [`docs/`](docs/README.md) | Guides by topic |
-| [`site/`](site/DESIGN.md) | The project page |
-| [`docker/`](docker/Dockerfile) | The container image |
-
-To change the code, read the [contribution guide](.github/CONTRIBUTING.md); the
-[changelog](docs/changelog.md) lists what changed between releases.
+- [Getting started](docs/getting-started.md) and the [command line](docs/cli.md)
+- [The tasks](docs/tasks/README.md) and the [rules of a run](docs/benchmark/rules.md)
+- [Harnesses and models](docs/harness/README.md): Codex, Claude Code and the models each can run
+- Hosts: [Mac](docs/hosts/mac.md), [Linux](docs/hosts/linux.md), [Docker](docs/hosts/docker.md)
+  and [Slurm](docs/hosts/slurm.md)
+- [Every guide](docs/README.md), the [repository layout](docs/development/repository-layout.md)
+  and the [contribution guide](.github/CONTRIBUTING.md)
 
 ## Citation
 
@@ -312,13 +210,10 @@ To change the code, read the [contribution guide](.github/CONTRIBUTING.md); the
 }
 ```
 
-The paper is [arXiv:2611.22138](https://arxiv.org/abs/2611.22138);
 [`CITATION.cff`](CITATION.cff) has the same record.
 
 ## License
 
-Code is under the [MIT License](LICENSE). Benchmark data and media (task and scene data,
-rendered images, the factory hall scene assets and published videos) are under
-[CC BY 4.0](LICENSE-DATA.md). Third-party material keeps its own license: the Franka Panda
-model from MuJoCo Menagerie (Apache 2.0), the Barlow Condensed, Space Grotesk and JetBrains
-Mono fonts (OFL 1.1) and a Poly Haven texture (CC0); see [`LICENSE-DATA.md`](LICENSE-DATA.md).
+Code is under the [MIT License](LICENSE). Benchmark data and media are under
+[CC BY 4.0](LICENSE-DATA.md), which also lists the third-party material that keeps its own
+license.

@@ -57,7 +57,7 @@ repository: the data folder, the list of runs and the output paths are arguments
 | Script | Purpose |
 | --- | --- |
 | `site_media.py` | Make the images and short clips of the project page: `posters`, `clips`, and `starts` for the task guide's thumbnails |
-| `site_data.py` | Generate the project page's `site/data/` files and the README's task gallery: `tasks`, `media`, `readme-gallery` |
+| `site_data.py` | Generate the project page's `site/data/` files and the task guide's gallery: `tasks`, `media`, `task-gallery` |
 
 ## Commands inside the package
 

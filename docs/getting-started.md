@@ -1,9 +1,8 @@
 # Getting started
 
 This guide takes a fresh clone to one finished, collected run on one machine: the smallest
-Transport task with a 30-minute limit. It follows the steps of the "Getting started" section of
-the [README](../README.md) and adds what each command checks and what to do when it fails. Run
-every command from the repository root.
+Transport task with a 30-minute limit. For each command it says what the command checks and
+what to do when it fails. Run every command from the repository root.
 
 The examples use Claude Code. For Codex, replace `--harness claude` with `--harness codex` and
 leave out `--max-budget-usd`.
@@ -322,11 +321,17 @@ Nothing under `runs/` is in Git; back it up separately
 - A full experiment: remove the three settings from `site.toml` to run all 36 tasks for 24
   hours each, and read the guide for your platform first: [Mac](hosts/mac.md),
   [Linux](hosts/linux.md), [Slurm](hosts/slurm.md), [Docker](hosts/docker.md).
-- The conditions of the paper: `--system`, `--tools robot_only`
-  ([robot-only runs](benchmark/robot-tool-only.md)), `--observation ground_truth`
-  ([ground-truth observation](benchmark/rules.md#ground-truth-observation)) and
-  `--observation-profile jpeg_128x80_q95` for low-resolution images.
 - Harnesses: [overview](harness/README.md), [Codex](harness/codex.md),
   [Claude Code](harness/claude-code.md).
 - What a run is: [the tasks](tasks/README.md), [rules of a run](benchmark/rules.md),
   [physics and robot limits](benchmark/physics.md), [architecture](development/architecture.md).
+
+The conditions of the paper are these settings:
+
+| Condition | Options |
+| --- | --- |
+| Agent system | `--system adaptive`, `single-agent`, `hierarchical` or `decentralized` ([what each is](development/architecture.md)) |
+| Harness and model | `--harness codex` or `claude`, `--model` with an entry of [`models.json`](../models.json) |
+| Robot tool only | `--tools robot_only` ([robot-only runs](benchmark/robot-tool-only.md)) |
+| Low resolution | `--observation-profile jpeg_128x80_q95` |
+| Oracle | `--harness codex --model sol --system single-agent --observation ground_truth` ([ground-truth observation](benchmark/rules.md#ground-truth-observation)) |
