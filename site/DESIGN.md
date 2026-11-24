@@ -11,30 +11,31 @@ benchmark works and what came out. It is written for readers outside computer sc
 
 ## Page structure
 
-One long page. A sticky bar links to the sections and marks the one in view. Tabs and filters
-appear only inside a section, where they switch between choices of the same thing.
+Three pages in one file, switched by a tab bar at the top without reloading. Each page has its
+own address, so a link can open any of them, or any section inside them.
 
-| Section | Content | Data |
+| Page | Address | Content, in order |
 | --- | --- | --- |
-| Hero | One sentence, links, and the film as a silent 30 s loop. A button opens the long film when `media.json` lists one | `media.json` |
-| What is new | How RoboTeam compares with the benchmarks in the paper (arms against run length, with marks for real time and cameras only), and three short points | `findings.json` |
-| The four jobs | Per task type: a clip of one run at 300 times real time, which opens that run; what the job is, its team sizes and what the levels change | `media.json`, static text |
-| How it works | See, decide, act, and the clock that never stops | static |
-| Results | Three numbers, then the board: one row per model, one square per task, grouped by task type and team size. The Oracle is a reference card under the six models | results |
-| What we learned | Six findings, each a chart with a plain sentence: every run as a progress line (point to see it, click to watch), vision conditions with a full and 128 × 80 camera picture to compare, where the time goes, the four agent systems, failure rates, and team size against level | `findings.json` |
-| All videos | Every run, grouped by team, with three filters: result (All, Complete, Incomplete), team and job | `media.json`, results |
-| Get started | The first commands, the citation and links | static |
+| Overview | `#overview` (the default) | The film as a silent 30 s loop, with a button for the long film; four numbers; What is new (how RoboTeam compares with the benchmarks in the paper, and three short points); the four jobs, each with a 300× clip that opens its run and a button that shows its nine tasks at their start; how a run works (three steps and two rules); links to the other two pages |
+| Results | `#results` | Who finished what: three numbers, the board of squares (one row per team, one square per task, the Oracle as a reference card under the six teams); then six findings, each with text on the left and a chart on the right. A list of contents stays beside the page, and becomes a row of links on narrow screens |
+| Videos | `#videos` | Every run, grouped by team, with filters for result (All, Complete, Incomplete), team and job beside the grid, or above it on narrow screens |
 
-A square or a card opens the player: the run's three camera views on one clock. Any view can
-be made the large one. The videos are ten times real time, and the speed buttons (10, 20, 50,
-100 times) only change the playback rate. A row of buttons switches to another team's run of
-the same task.
+Paper, Code and Cite sit at the right of the tab bar; Cite opens the BibTeX. Every page ends
+with the same footer: the clone command, the getting-started guide and links.
+
+A square, a card, a progress line or a job clip opens the player: the run's three camera views
+on one clock. Any view can be made the large one. The videos are ten times real time, and the
+speed buttons (10, 20, 50, 100 times) only change the playback rate. A row of buttons switches
+to another team's run of the same task.
 
 A run without a video is shown as a hatched square and listed as "Coming soon". No reason is
 given on the page.
 
 No result is written in the HTML. Until the results load, the board shows squares without
 outcomes.
+
+Charts are drawn as SVG at the width they are shown and drawn again when the window changes
+size, so their text is always 12 px.
 
 ## Media
 
@@ -44,7 +45,7 @@ outcomes.
   gives each task's folder (`<task>-yes` or `<task>-no`) and length. A run's files are
   `front.mp4`, `side.mp4` and `top.mp4`. The videos are in the Hugging Face dataset
   `RoboTeam-Bench/RoboTeam-Videos`.
-- `posters`, `clips`, `film`: folders on the media repository's Pages site (`RoboTeam-media`).
+- `posters`, `clips`, `film`, and the `tasks` and `findings` folders: on the media repository's Pages site (`RoboTeam-media`).
   A poster is `<set>/<task>-<view>.webp`, for the front and top views.
 
 Clips and the film play only while they are on screen, and no video is fetched before it is
@@ -105,8 +106,10 @@ site/
 
 ## Links
 
-`#task=<task>` opens one run of that task, from the first video set unless `&set=<set>` names
-another. The task guide's gallery links this way.
+`#overview`, `#results` and `#videos` open a page. The id of a section opens its page and
+scrolls to it, for example `#new`, `#how`, `#scoreboard` or `#f-vision`. `#task=<task>` opens
+the Videos page and plays one run of that task, from the first video set unless `&set=<set>`
+names another; the task guide's gallery links this way.
 
 ## Caching
 
