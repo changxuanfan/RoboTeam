@@ -80,9 +80,17 @@ runs (schema `roboteam.site-findings.v1`). The camera pictures for the vision ch
 
 - Light by default, with a Theme button for dark (stored under the `localStorage` key
   `roboteam-theme`).
-- Fonts: Space Grotesk (display), IBM Plex Sans (body), JetBrains Mono (labels and data).
-- One color per task type: light theme Transport `#3b7fc4`, Mosaic `#3f9440`, Relay `#d65b3c`,
-  Dial `#b98a12`; dark theme `#8fc1ec`, `#9fdc8c`, `#ff9f87`, `#f2d46b`.
+- Fonts: Space Grotesk (headings and big numbers), IBM Plex Sans (text, chart labels),
+  JetBrains Mono (only the small capital section labels, code and video times).
+- The four task colors mean a task type and nothing else: light theme Transport `#3b7fc4`,
+  Mosaic `#3f9440`, Relay `#d65b3c`, Dial `#b98a12`; dark theme `#8fc1ec`, `#9fdc8c`,
+  `#ff9f87`, `#f2d46b`.
+- In charts, violet (`--hi`, `#6a4fd1`) marks the point the chart makes, and gpt-6.1-sol
+  wherever models are compared; light violet (`--hi-soft`) is the Oracle; three slates
+  (`--s1` to `--s3`) carry everything else, with opus-5.5 in the darkest. No data is drawn in
+  black. The README figures use the same colors.
+- Marks are thin: bars 10 to 16 px with 2 px corners, lines 1.5 px (2.5 px when pointed at),
+  points 5 px.
 - Motion respects `prefers-reduced-motion`; controls work from the keyboard.
 
 ## Media pipeline
