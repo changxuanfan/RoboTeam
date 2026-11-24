@@ -2,21 +2,22 @@
 
 tasks:  site/data/tasks.json, the 36 released cases with their public facts (task type, level,
         arms, workload) and the one-line level differences, from the release and each case's
-        public policy task, with the playback speed of each Oracle video from site/data/oracle-videos.json.
-media:  site/data/media.json, every video set (Oracle, then one per model) with its base URL
-        and per-task front/side files, from the manifests that scripts.site.site_media writes.
+        public policy task.
+media:  site/data/media.json, where the page finds its media: every video set with the folder
+        and length of each run, the posters, the short clips and the film. VIDEOS is the
+        published video folder (<set>/<task>-<yes|no>/<view>.mp4), VIDEOS_URL where it is
+        published, and MEDIA_URL the media repository's Pages site, which holds posters/,
+        clips/ and film/. MEDIA is a local checkout of that repository.
 
     .venv/bin/python -m scripts.site.site_data tasks
-    .venv/bin/python -m scripts.site.site_data media SET=BASE_URL=MANIFEST [...] [--film VIDEO POSTER]
+    .venv/bin/python -m scripts.site.site_data media VIDEOS VIDEOS_URL MEDIA MEDIA_URL
     .venv/bin/python -m scripts.site.site_data readme-gallery
-
-A set's BASE_URL is where its files are published (its folder on the media repository's Pages
-site), or a relative path such as `_media/oracle/` for a local preview.
 """
 
 import argparse
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 from roboteam.tasks.config import ROOT
@@ -24,7 +25,17 @@ from roboteam.tasks.config import ROOT
 # The published project page; README media links point at it.
 PROJECT_PAGE = 'https://changxuanfan.github.io/RoboTeam/'
 SITE = ROOT / 'site/data'
-ORACLE_VIDEOS = ROOT / 'site/data/oracle-videos.json'
+# The order of the video sets on the page: the models by tasks completed, then the reference.
+SETS = [
+    'gpt-6.1-sol',
+    'opus-5.5',
+    'kimi-k3.1-pro',
+    'qwen3.8-flash',
+    'deepseek-v4.1-flash',
+    'glm-5.3-flash',
+    'oracle',
+]
+VIEWS = ['front', 'side', 'top']
 
 TASK_TYPES = {
     'transport': {
@@ -66,11 +77,6 @@ TASK_TYPES = {
 }
 
 
-def oracle_videos():
-    """Per case: the playback speed of its Oracle video (site/data/oracle-videos.json)."""
-    return json.loads(ORACLE_VIDEOS.read_text())['videos']
-
-
 def workload(task):
     """The task type's unit of work for one case, from its released task: targets, cells,
     timbers or dials."""
@@ -91,7 +97,6 @@ def tasks():
 
     payload = (ROOT / RELEASE).read_bytes()
     release = json.loads(payload)
-    references = oracle_videos()
     rows = []
     for task_type in TASK_TYPES:
         for record in release['task_types'][task_type]['policy']:
@@ -114,7 +119,6 @@ def tasks():
                     'level_note': TASK_TYPES[task_type]['levels'][public['level'] - 1],
                     'objective': public['objective'],
                     'rules': public['rules'],
-                    'oracle': references[public['id']],
                 }
             )
     rows.sort(key=lambda r: (list(TASK_TYPES).index(r['task_type']), r['arms'], r['workload'], r['level']))
@@ -127,33 +131,49 @@ def tasks():
     return write(SITE / 'tasks.json', document)
 
 
-def media(specs, film=None):
+def seconds(video):
+    out = subprocess.run(
+        ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', str(video)],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    return round(float(out), 1)
+
+
+def media(videos, videos_url, media, media_url):
+    videos, media = Path(videos), Path(media)
+    videos_url, media_url = videos_url.rstrip('/') + '/', media_url.rstrip('/') + '/'
     sets = []
-    for spec in specs:
-        key, base, manifest = spec.split('=', 2)
-        data = json.loads(Path(manifest).read_text())
-        if data.get('schema') != 'roboteam.site-media.v1':
-            raise ValueError('Not a site media manifest: ' + manifest)
-        sets.append(
-            {
-                'key': key,
-                'base': base,
-                'tasks': {
-                    case: {
-                        view: {k: record[k] for k in ('video', 'poster', 'size', 'duration_s', 'sha256')}
-                        for view, record in views.items()
-                    }
-                    for case, views in sorted(data['tasks'].items())
-                },
-            }
-        )
-    document = {'schema': 'roboteam.site-media-index.v1', 'sets': sets}
-    if film:
-        document['film'] = {
-            'video': film[0],
-            'poster': film[1],
-            'note': 'A tour of the factory hall: one moment from each zone, then every task type and team size; 3 min 41 s, 1080p. Oracle reference runs, not model results.',
+    for key in SETS:
+        runs = {}
+        for folder in sorted((videos / key).iterdir()):
+            if not folder.is_dir():
+                continue
+            missing = [view for view in VIEWS if not (folder / f'{view}.mp4').is_file()]
+            if missing:
+                raise ValueError(f'{folder} lacks {missing}')
+            task, _, outcome = folder.name.rpartition('-')
+            if outcome not in ('yes', 'no'):
+                raise ValueError(f'{folder} does not end in -yes or -no')
+            runs[task] = {'folder': folder.name, 'seconds': seconds(folder / 'front.mp4')}
+        sets.append({'key': key, 'base': f'{videos_url}{key}/', 'runs': runs})
+    document = {
+        'schema': 'roboteam.site-media-index.v2',
+        'views': VIEWS,
+        'posters': media_url + 'posters/',
+        'sets': sets,
+    }
+    clips = media / 'clips/clips.json'
+    if clips.is_file():
+        keep = ('key', 'video', 'poster', 'seconds', 'speed', 'set', 'task', 'caption')
+        document['clips'] = {
+            'base': media_url + 'clips/',
+            'items': [{k: clip[k] for k in keep} for clip in json.loads(clips.read_text())],
         }
+    film = media / 'film/film.json'
+    if film.is_file():
+        document['film'] = {'base': media_url + 'film/', **json.loads(film.read_text())}
     return write(SITE / 'media.json', document)
 
 
@@ -196,14 +216,16 @@ def main(argv=None):
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('tasks')
     m = sub.add_parser('media')
-    m.add_argument('sets', nargs='+', help='KEY=BASE_URL=MANIFEST')
-    m.add_argument('--film', nargs=2, metavar=('VIDEO_URL', 'POSTER_URL'))
+    m.add_argument('videos')
+    m.add_argument('videos_url')
+    m.add_argument('media')
+    m.add_argument('media_url')
     sub.add_parser('readme-gallery')
     args = parser.parse_args(argv)
     if args.command == 'tasks':
         print(tasks())
     elif args.command == 'media':
-        print(media(args.sets, args.film))
+        print(media(args.videos, args.videos_url, args.media, args.media_url))
     else:
         print(readme_gallery())
 

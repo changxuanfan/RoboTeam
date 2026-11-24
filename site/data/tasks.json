@@ -61,10 +61,7 @@
     "L1: release stably at the final board targets. L2 and L3: both flat blades must enter the real blind slots and the item must be released, seated and stable. L2 has a fixed board; L3 has the same three inline sockets on a passive spring-supported z/roll/pitch board. Preserve prior placements and allow gripper opening and withdrawal clearance.",
     "Cubes have 60 mm sides; cylinders have 60 mm diameter and height. Blades initially point up or sideways. Grasp, airborne reorientation, receiving grasp and subsequent insertion must form a feasible continuous sequence. Allocation, routes and independent concurrent work are planner choices; minimize unnecessary cycling, staging and regrasping while maintaining real support and collision clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "transport-small-l2",
@@ -83,10 +80,7 @@
     "L1: release stably at the final board targets. L2 and L3: both flat blades must enter the real blind slots and the item must be released, seated and stable. L2 has a fixed board; L3 has the same three inline sockets on a passive spring-supported z/roll/pitch board. Preserve prior placements and allow gripper opening and withdrawal clearance.",
     "Cubes have 60 mm sides; cylinders have 60 mm diameter and height. Blades initially point up or sideways. Grasp, airborne reorientation, receiving grasp and subsequent insertion must form a feasible continuous sequence. Allocation, routes and independent concurrent work are planner choices; minimize unnecessary cycling, staging and regrasping while maintaining real support and collision clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "transport-small-l3",
@@ -105,10 +99,7 @@
     "L1: release stably at the final board targets. L2 and L3: both flat blades must enter the real blind slots and the item must be released, seated and stable. L2 has a fixed board; L3 has the same three inline sockets on a passive spring-supported z/roll/pitch board. Preserve prior placements and allow gripper opening and withdrawal clearance.",
     "Cubes have 60 mm sides; cylinders have 60 mm diameter and height. Blades initially point up or sideways. Grasp, airborne reorientation, receiving grasp and subsequent insertion must form a feasible continuous sequence. Allocation, routes and independent concurrent work are planner choices; minimize unnecessary cycling, staging and regrasping while maintaining real support and collision clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "transport-medium-l1",
@@ -127,10 +118,7 @@
     "L1: release stably at the final board targets. L2 and L3: both flat blades must enter the real blind slots and the item must be released, seated and stable. L2 has a fixed board; L3 has the same three inline sockets on a passive spring-supported z/roll/pitch board. Preserve prior placements and allow gripper opening and withdrawal clearance.",
     "Cubes have 60 mm sides; cylinders have 60 mm diameter and height. Blades initially point up or sideways. Grasp, airborne reorientation, receiving grasp and subsequent insertion must form a feasible continuous sequence. Allocation, routes and independent concurrent work are planner choices; minimize unnecessary cycling, staging and regrasping while maintaining real support and collision clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "transport-medium-l2",
@@ -149,10 +137,7 @@
     "L1: release stably at the final board targets. L2 and L3: both flat blades must enter the real blind slots and the item must be released, seated and stable. L2 has a fixed board; L3 has the same three inline sockets on a passive spring-supported z/roll/pitch board. Preserve prior placements and allow gripper opening and withdrawal clearance.",
     "Cubes have 60 mm sides; cylinders have 60 mm diameter and height. Blades initially point up or sideways. Grasp, airborne reorientation, receiving grasp and subsequent insertion must form a feasible continuous sequence. Allocation, routes and independent concurrent work are planner choices; minimize unnecessary cycling, staging and regrasping while maintaining real support and collision clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "transport-medium-l3",
@@ -171,10 +156,7 @@
     "L1: release stably at the final board targets. L2 and L3: both flat blades must enter the real blind slots and the item must be released, seated and stable. L2 has a fixed board; L3 has the same three inline sockets on a passive spring-supported z/roll/pitch board. Preserve prior placements and allow gripper opening and withdrawal clearance.",
     "Cubes have 60 mm sides; cylinders have 60 mm diameter and height. Blades initially point up or sideways. Grasp, airborne reorientation, receiving grasp and subsequent insertion must form a feasible continuous sequence. Allocation, routes and independent concurrent work are planner choices; minimize unnecessary cycling, staging and regrasping while maintaining real support and collision clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "transport-large-l1",
@@ -193,10 +175,7 @@
     "L1: release stably at the final board targets. L2 and L3: both flat blades must enter the real blind slots and the item must be released, seated and stable. L2 has a fixed board; L3 has the same three inline sockets on a passive spring-supported z/roll/pitch board. Preserve prior placements and allow gripper opening and withdrawal clearance.",
     "Cubes have 60 mm sides; cylinders have 60 mm diameter and height. Blades initially point up or sideways. Grasp, airborne reorientation, receiving grasp and subsequent insertion must form a feasible continuous sequence. Allocation, routes and independent concurrent work are planner choices; minimize unnecessary cycling, staging and regrasping while maintaining real support and collision clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "transport-large-l2",
@@ -215,10 +194,7 @@
     "L1: release stably at the final board targets. L2 and L3: both flat blades must enter the real blind slots and the item must be released, seated and stable. L2 has a fixed board; L3 has the same three inline sockets on a passive spring-supported z/roll/pitch board. Preserve prior placements and allow gripper opening and withdrawal clearance.",
     "Cubes have 60 mm sides; cylinders have 60 mm diameter and height. Blades initially point up or sideways. Grasp, airborne reorientation, receiving grasp and subsequent insertion must form a feasible continuous sequence. Allocation, routes and independent concurrent work are planner choices; minimize unnecessary cycling, staging and regrasping while maintaining real support and collision clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "transport-large-l3",
@@ -237,10 +213,7 @@
     "L1: release stably at the final board targets. L2 and L3: both flat blades must enter the real blind slots and the item must be released, seated and stable. L2 has a fixed board; L3 has the same three inline sockets on a passive spring-supported z/roll/pitch board. Preserve prior placements and allow gripper opening and withdrawal clearance.",
     "Cubes have 60 mm sides; cylinders have 60 mm diameter and height. Blades initially point up or sideways. Grasp, airborne reorientation, receiving grasp and subsequent insertion must form a feasible continuous sequence. Allocation, routes and independent concurrent work are planner choices; minimize unnecessary cycling, staging and regrasping while maintaining real support and collision clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "mosaic-small-l1",
@@ -258,10 +231,7 @@
     "Stock allocations do not restrict which robot can use an item. Preserve completed placements and account for finger release/withdrawal clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits.",
     "The pattern matrix and the reference image are already in world orientation (row 1 north, column 1 west); use them as given."
-   ],
-   "oracle": {
-    "speedup": 30
-   }
+   ]
   },
   {
    "id": "mosaic-small-l2",
@@ -279,10 +249,7 @@
     "Stock allocations do not restrict which robot can use an item. Preserve completed placements and account for finger release/withdrawal clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits.",
     "The pattern matrix and the reference image are already in world orientation (row 1 north, column 1 west); use them as given."
-   ],
-   "oracle": {
-    "speedup": 30
-   }
+   ]
   },
   {
    "id": "mosaic-small-l3",
@@ -300,10 +267,7 @@
     "Stock allocations do not restrict which robot can use an item. Preserve completed placements and account for finger release/withdrawal clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits.",
     "The pattern matrix and the reference image are already in world orientation (row 1 north, column 1 west); use them as given."
-   ],
-   "oracle": {
-    "speedup": 30
-   }
+   ]
   },
   {
    "id": "mosaic-medium-l1",
@@ -321,10 +285,7 @@
     "Stock allocations do not restrict which robot can use an item. Preserve completed placements and account for finger release/withdrawal clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits.",
     "The pattern matrix and the reference image are already in world orientation (row 1 north, column 1 west); use them as given."
-   ],
-   "oracle": {
-    "speedup": 30
-   }
+   ]
   },
   {
    "id": "mosaic-medium-l2",
@@ -342,10 +303,7 @@
     "Stock allocations do not restrict which robot can use an item. Preserve completed placements and account for finger release/withdrawal clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits.",
     "The pattern matrix and the reference image are already in world orientation (row 1 north, column 1 west); use them as given."
-   ],
-   "oracle": {
-    "speedup": 30
-   }
+   ]
   },
   {
    "id": "mosaic-medium-l3",
@@ -363,10 +321,7 @@
     "Stock allocations do not restrict which robot can use an item. Preserve completed placements and account for finger release/withdrawal clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits.",
     "The pattern matrix and the reference image are already in world orientation (row 1 north, column 1 west); use them as given."
-   ],
-   "oracle": {
-    "speedup": 30
-   }
+   ]
   },
   {
    "id": "mosaic-large-l1",
@@ -384,10 +339,7 @@
     "Stock allocations do not restrict which robot can use an item. Preserve completed placements and account for finger release/withdrawal clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits.",
     "The pattern matrix and the reference image are already in world orientation (row 1 north, column 1 west); use them as given."
-   ],
-   "oracle": {
-    "speedup": 30
-   }
+   ]
   },
   {
    "id": "mosaic-large-l2",
@@ -405,10 +357,7 @@
     "Stock allocations do not restrict which robot can use an item. Preserve completed placements and account for finger release/withdrawal clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits.",
     "The pattern matrix and the reference image are already in world orientation (row 1 north, column 1 west); use them as given."
-   ],
-   "oracle": {
-    "speedup": 30
-   }
+   ]
   },
   {
    "id": "mosaic-large-l3",
@@ -426,10 +375,7 @@
     "Stock allocations do not restrict which robot can use an item. Preserve completed placements and account for finger release/withdrawal clearance.",
     "Only robot actuators and real contacts may affect the live task. No hand welds, object state writes, resets, hidden state tools or runtime physics edits.",
     "The pattern matrix and the reference image are already in world orientation (row 1 north, column 1 west); use them as given."
-   ],
-   "oracle": {
-    "speedup": 30
-   }
+   ]
   },
   {
    "id": "relay-small-l1",
@@ -452,10 +398,7 @@
     "A handover qualifies only while the timber is off the table and at least two current holders keep it: a new arm must hold the timber for at least 0.2 seconds before a current holder lets go. A timber placed in GOAL without a qualified handover is not complete; a regrasp of a timber resting on the table is never a handover.",
     "A timber that falls may be lifted again by the arms that held it when it fell. If any other arm picks it up, none of that timber's handovers counts until it is put down, lifted again by those arms and handed over again in the air. Pushing or dragging a timber along the table is allowed but is never a handover.",
     "Collisions, drops and other process events are recorded separately. Recover using ordinary robot actions; do not reset, respawn or erase history."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "relay-small-l2",
@@ -480,10 +423,7 @@
     "A handover qualifies only while the timber is off the table and at least two current holders keep it: a new arm must hold the timber for at least 0.2 seconds before a current holder lets go. A timber placed in GOAL without a qualified handover is not complete; a regrasp of a timber resting on the table is never a handover.",
     "A timber that falls may be lifted again by the arms that held it when it fell. If any other arm picks it up, none of that timber's handovers counts until it is put down, lifted again by those arms and handed over again in the air. Pushing or dragging a timber along the table is allowed but is never a handover.",
     "Collisions, drops and other process events are recorded separately. Recover using ordinary robot actions; do not reset, respawn or erase history."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "relay-small-l3",
@@ -508,10 +448,7 @@
     "A handover qualifies only while the timber is off the table and at least two current holders keep it: a new arm must hold the timber for at least 0.2 seconds before a current holder lets go. A timber placed in GOAL without a qualified handover is not complete; a regrasp of a timber resting on the table is never a handover.",
     "A timber that falls may be lifted again by the arms that held it when it fell. If any other arm picks it up, none of that timber's handovers counts until it is put down, lifted again by those arms and handed over again in the air. Pushing or dragging a timber along the table is allowed but is never a handover.",
     "Collisions, drops and other process events are recorded separately. Recover using ordinary robot actions; do not reset, respawn or erase history."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "relay-medium-l1",
@@ -534,10 +471,7 @@
     "A handover qualifies only while the timber is off the table and at least two current holders keep it: a new arm must hold the timber for at least 0.2 seconds before a current holder lets go. A timber placed in GOAL without a qualified handover is not complete; a regrasp of a timber resting on the table is never a handover.",
     "A timber that falls may be lifted again by the arms that held it when it fell. If any other arm picks it up, none of that timber's handovers counts until it is put down, lifted again by those arms and handed over again in the air. Pushing or dragging a timber along the table is allowed but is never a handover.",
     "Collisions, drops and other process events are recorded separately. Recover using ordinary robot actions; do not reset, respawn or erase history."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "relay-medium-l2",
@@ -562,10 +496,7 @@
     "A handover qualifies only while the timber is off the table and at least two current holders keep it: a new arm must hold the timber for at least 0.2 seconds before a current holder lets go. A timber placed in GOAL without a qualified handover is not complete; a regrasp of a timber resting on the table is never a handover.",
     "A timber that falls may be lifted again by the arms that held it when it fell. If any other arm picks it up, none of that timber's handovers counts until it is put down, lifted again by those arms and handed over again in the air. Pushing or dragging a timber along the table is allowed but is never a handover.",
     "Collisions, drops and other process events are recorded separately. Recover using ordinary robot actions; do not reset, respawn or erase history."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "relay-medium-l3",
@@ -590,10 +521,7 @@
     "A handover qualifies only while the timber is off the table and at least two current holders keep it: a new arm must hold the timber for at least 0.2 seconds before a current holder lets go. A timber placed in GOAL without a qualified handover is not complete; a regrasp of a timber resting on the table is never a handover.",
     "A timber that falls may be lifted again by the arms that held it when it fell. If any other arm picks it up, none of that timber's handovers counts until it is put down, lifted again by those arms and handed over again in the air. Pushing or dragging a timber along the table is allowed but is never a handover.",
     "Collisions, drops and other process events are recorded separately. Recover using ordinary robot actions; do not reset, respawn or erase history."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "relay-large-l1",
@@ -616,10 +544,7 @@
     "A handover qualifies only while the timber is off the table and at least two current holders keep it: a new arm must hold the timber for at least 0.2 seconds before a current holder lets go. A timber placed in GOAL without a qualified handover is not complete; a regrasp of a timber resting on the table is never a handover.",
     "A timber that falls may be lifted again by the arms that held it when it fell. If any other arm picks it up, none of that timber's handovers counts until it is put down, lifted again by those arms and handed over again in the air. Pushing or dragging a timber along the table is allowed but is never a handover.",
     "Collisions, drops and other process events are recorded separately. Recover using ordinary robot actions; do not reset, respawn or erase history."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "relay-large-l2",
@@ -644,10 +569,7 @@
     "A handover qualifies only while the timber is off the table and at least two current holders keep it: a new arm must hold the timber for at least 0.2 seconds before a current holder lets go. A timber placed in GOAL without a qualified handover is not complete; a regrasp of a timber resting on the table is never a handover.",
     "A timber that falls may be lifted again by the arms that held it when it fell. If any other arm picks it up, none of that timber's handovers counts until it is put down, lifted again by those arms and handed over again in the air. Pushing or dragging a timber along the table is allowed but is never a handover.",
     "Collisions, drops and other process events are recorded separately. Recover using ordinary robot actions; do not reset, respawn or erase history."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "relay-large-l3",
@@ -672,10 +594,7 @@
     "A handover qualifies only while the timber is off the table and at least two current holders keep it: a new arm must hold the timber for at least 0.2 seconds before a current holder lets go. A timber placed in GOAL without a qualified handover is not complete; a regrasp of a timber resting on the table is never a handover.",
     "A timber that falls may be lifted again by the arms that held it when it fell. If any other arm picks it up, none of that timber's handovers counts until it is put down, lifted again by those arms and handed over again in the air. Pushing or dragging a timber along the table is allowed but is never a handover.",
     "Collisions, drops and other process events are recorded separately. Recover using ordinary robot actions; do not reset, respawn or erase history."
-   ],
-   "oracle": {
-    "speedup": 20
-   }
+   ]
   },
   {
    "id": "dial-small-l1",
@@ -696,10 +615,7 @@
     "L2/L3 require a separate robot to hold each blue handle with the whole module at least 20 mm clear of external supports. Maintain that support during red operation. A crank grip moves around the axle and may require coordinated translation.",
     "Unlock occurs only when all digits of one simultaneous valid input are correct. Success latches, while physical springs and support remain active. Inputs and actuation choices are Agent decisions.",
     "Only robot actuators and real contacts may affect the live world. Use RGB and permitted robot feedback; hidden passwords, per-dial correctness and live object truth are not policy inputs."
-   ],
-   "oracle": {
-    "speedup": 10
-   }
+   ]
   },
   {
    "id": "dial-medium-l1",
@@ -720,10 +636,7 @@
     "L2/L3 require a separate robot to hold each blue handle with the whole module at least 20 mm clear of external supports. Maintain that support during red operation. A crank grip moves around the axle and may require coordinated translation.",
     "Unlock occurs only when all digits of one simultaneous valid input are correct. Success latches, while physical springs and support remain active. Inputs and actuation choices are Agent decisions.",
     "Only robot actuators and real contacts may affect the live world. Use RGB and permitted robot feedback; hidden passwords, per-dial correctness and live object truth are not policy inputs."
-   ],
-   "oracle": {
-    "speedup": 10
-   }
+   ]
   },
   {
    "id": "dial-small-l2",
@@ -744,10 +657,7 @@
     "L2/L3 require a separate robot to hold each blue handle with the whole module at least 20 mm clear of external supports. Maintain that support during red operation. A crank grip moves around the axle and may require coordinated translation.",
     "Unlock occurs only when all digits of one simultaneous valid input are correct. Success latches, while physical springs and support remain active. Inputs and actuation choices are Agent decisions.",
     "Only robot actuators and real contacts may affect the live world. Use RGB and permitted robot feedback; hidden passwords, per-dial correctness and live object truth are not policy inputs."
-   ],
-   "oracle": {
-    "speedup": 10
-   }
+   ]
   },
   {
    "id": "dial-small-l3",
@@ -768,10 +678,7 @@
     "L2/L3 require a separate robot to hold each blue handle with the whole module at least 20 mm clear of external supports. Maintain that support during red operation. A crank grip moves around the axle and may require coordinated translation.",
     "Unlock occurs only when all digits of one simultaneous valid input are correct. Success latches, while physical springs and support remain active. Inputs and actuation choices are Agent decisions.",
     "Only robot actuators and real contacts may affect the live world. Use RGB and permitted robot feedback; hidden passwords, per-dial correctness and live object truth are not policy inputs."
-   ],
-   "oracle": {
-    "speedup": 10
-   }
+   ]
   },
   {
    "id": "dial-large-l1",
@@ -792,10 +699,7 @@
     "L2/L3 require a separate robot to hold each blue handle with the whole module at least 20 mm clear of external supports. Maintain that support during red operation. A crank grip moves around the axle and may require coordinated translation.",
     "Unlock occurs only when all digits of one simultaneous valid input are correct. Success latches, while physical springs and support remain active. Inputs and actuation choices are Agent decisions.",
     "Only robot actuators and real contacts may affect the live world. Use RGB and permitted robot feedback; hidden passwords, per-dial correctness and live object truth are not policy inputs."
-   ],
-   "oracle": {
-    "speedup": 10
-   }
+   ]
   },
   {
    "id": "dial-medium-l2",
@@ -816,10 +720,7 @@
     "L2/L3 require a separate robot to hold each blue handle with the whole module at least 20 mm clear of external supports. Maintain that support during red operation. A crank grip moves around the axle and may require coordinated translation.",
     "Unlock occurs only when all digits of one simultaneous valid input are correct. Success latches, while physical springs and support remain active. Inputs and actuation choices are Agent decisions.",
     "Only robot actuators and real contacts may affect the live world. Use RGB and permitted robot feedback; hidden passwords, per-dial correctness and live object truth are not policy inputs."
-   ],
-   "oracle": {
-    "speedup": 10
-   }
+   ]
   },
   {
    "id": "dial-medium-l3",
@@ -840,10 +741,7 @@
     "L2/L3 require a separate robot to hold each blue handle with the whole module at least 20 mm clear of external supports. Maintain that support during red operation. A crank grip moves around the axle and may require coordinated translation.",
     "Unlock occurs only when all digits of one simultaneous valid input are correct. Success latches, while physical springs and support remain active. Inputs and actuation choices are Agent decisions.",
     "Only robot actuators and real contacts may affect the live world. Use RGB and permitted robot feedback; hidden passwords, per-dial correctness and live object truth are not policy inputs."
-   ],
-   "oracle": {
-    "speedup": 10
-   }
+   ]
   },
   {
    "id": "dial-large-l2",
@@ -864,10 +762,7 @@
     "L2/L3 require a separate robot to hold each blue handle with the whole module at least 20 mm clear of external supports. Maintain that support during red operation. A crank grip moves around the axle and may require coordinated translation.",
     "Unlock occurs only when all digits of one simultaneous valid input are correct. Success latches, while physical springs and support remain active. Inputs and actuation choices are Agent decisions.",
     "Only robot actuators and real contacts may affect the live world. Use RGB and permitted robot feedback; hidden passwords, per-dial correctness and live object truth are not policy inputs."
-   ],
-   "oracle": {
-    "speedup": 10
-   }
+   ]
   },
   {
    "id": "dial-large-l3",
@@ -888,10 +783,7 @@
     "L2/L3 require a separate robot to hold each blue handle with the whole module at least 20 mm clear of external supports. Maintain that support during red operation. A crank grip moves around the axle and may require coordinated translation.",
     "Unlock occurs only when all digits of one simultaneous valid input are correct. Success latches, while physical springs and support remain active. Inputs and actuation choices are Agent decisions.",
     "Only robot actuators and real contacts may affect the live world. Use RGB and permitted robot feedback; hidden passwords, per-dial correctness and live object truth are not policy inputs."
-   ],
-   "oracle": {
-    "speedup": 10
-   }
+   ]
   }
  ]
 }

@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RoboTeam — Agents controlling many robot arms in real time</title>
-<meta name="description" content="RoboTeam: a benchmark where multimodal agents control 4 to 16 robot arms in real time from camera images alone, on 36 long multi-arm tasks.">
+<title>RoboTeam — AI teams running a factory hall of robot arms</title>
+<meta name="description" content="RoboTeam: teams of AI agents control 4 to 16 robot arms in real time, seeing the world only through cameras. 36 long jobs, and every run is on video.">
 <meta property="og:title" content="RoboTeam">
-<meta property="og:description" content="Multimodal agents control 4 to 16 robot arms in real time from camera images alone. 36 long tasks, six models, every run on video.">
+<meta property="og:description" content="Teams of AI agents control 4 to 16 robot arms in real time, seeing the world only through cameras. 36 long jobs, and every run is on video.">
 <meta property="og:image" content="assets/img/og.jpg">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0e1013" media="(prefers-color-scheme: dark)">
@@ -19,15 +19,15 @@
 <script src="assets/js/site.js" defer></script>
 </head>
 <body>
-<a class="skip" href="#watch">Skip to content</a>
+<a class="skip" href="#jobs">Skip to content</a>
 <header class="rail" id="rail">
   <a class="brand" href="#top" aria-label="RoboTeam home"><svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="2.6" fill="currentColor"/><circle cx="14" cy="4.4" r="4.2" fill="var(--transport)"/><circle cx="23.6" cy="14" r="4.2" fill="var(--mosaic)"/><circle cx="14" cy="23.6" r="4.2" fill="var(--relay)"/><circle cx="4.4" cy="14" r="4.2" fill="var(--dial)"/></svg>RoboTeam</a>
-  <nav aria-label="Sections">
-    <a href="#watch" data-chapter="watch">Watch</a>
-    <a href="#tasks" data-chapter="tasks">Tasks</a>
-    <a href="#how" data-chapter="how">How it works</a>
-    <a href="#results" data-chapter="results">Results</a>
-    <a href="#cite" data-chapter="cite">Cite</a>
+  <nav aria-label="Sections" id="nav">
+    <a href="#jobs">The four jobs</a>
+    <a href="#how">How it works</a>
+    <a href="#results">Results</a>
+    <a href="#videos">All videos</a>
+    <a href="#start">Get started</a>
   </nav>
   <div class="rail-links">
     <a href="https://github.com/changxuanfan/RoboTeam">GitHub</a>
@@ -38,148 +38,131 @@
 <main id="top">
 <section class="hero" aria-labelledby="hero-title">
   <div class="hero-text">
-    <p class="plate"><i aria-hidden="true"></i>Real time · Camera images only · Up to 16 arms</p>
-    <h1 id="hero-title">RoboTeam</h1>
-    <p class="title-line">Benchmarking Vision-Based Multi-Agent Control of Many Robot Arms in Real Time</p>
-    <p class="lede">Agents call one robot tool and write their own code to control <b>4 to 16 robot arms</b>. The world never pauses while they think, and they see it only through cameras. Watch them pass timbers, plug parts into sockets, build pictures from hundreds of cubes and crack a code on spring-loaded dials.</p>
+    <p class="kicker">RoboTeam</p>
+    <h1 id="hero-title">AI teams run a factory hall of robot arms.</h1>
+    <p class="lede">In real time, seeing the world only through cameras. 36 long jobs, up to 16 arms on one job, and every run is on video.</p>
     <div class="cta">
-      <a class="btn primary" href="#watch"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>Watch the runs</a>
-      <a class="btn" href="https://github.com/changxuanfan/RoboTeam"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.5 15.6c.4 0 .5-.2.5-.4v-1.5c-2.2.5-2.7-1-2.7-1-.4-.9-.9-1.2-.9-1.2-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.3 1.9.9 2.4.7 0-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-4 0-.9.3-1.6.8-2.1-.1-.2-.4-1 .1-2.1 0 0 .7-.2 2.2.8a7.5 7.5 0 0 1 4 0c1.5-1 2.2-.8 2.2-.8.4 1.1.2 1.9.1 2.1.5.6.8 1.3.8 2.1 0 3.1-1.9 3.8-3.6 4 .3.3.6.8.6 1.5v2.2c0 .2.1.5.6.4A8 8 0 0 0 8 0z"/></svg>Code</a>
-      <a class="btn" href="#cite">BibTeX</a>
+      <button class="btn primary" type="button" id="watch-film" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg><span>Watch the film</span></button>
+      <a class="btn" href="https://arxiv.org/abs/2611.22138">Paper</a>
+      <a class="btn" href="https://github.com/changxuanfan/RoboTeam">Code</a>
+      <a class="btn" href="https://huggingface.co/datasets/RoboTeam-Bench/RoboTeam-Videos">Videos</a>
     </div>
   </div>
-  <div class="stage" id="stage" aria-label="One run of each task type"></div>
+  <div class="film" id="film" aria-label="The RoboTeam film, a 30 second loop"></div>
 </section>
 
-<div class="spec" aria-label="Benchmark at a glance">
-  <div><strong data-count="36">36</strong><small>Tasks</small></div>
-  <div><strong data-count="4">4</strong><small>Task types</small></div>
-  <div><strong><span data-count="4">4</span>–<span data-count="16">16</span></strong><small>Arms per task</small></div>
-  <div><strong data-count="6">6</strong><small>Models</small></div>
-  <div><strong><span data-count="24">24</span>h</strong><small>Per run, at most</small></div>
-</div>
-
-<section class="chapter" id="watch" aria-labelledby="watch-title">
-  <div class="chapter-head reveal">
-    <p class="kicker">Watch</p>
-    <h2 id="watch-title">Every model, every task, on video.</h2>
-    <p class="sub">Pick a model and a task type. Each tile is one full run, with idle time removed and playback sped up. Hover to preview and select to open it.</p>
+<section class="chapter" id="jobs" aria-labelledby="jobs-title">
+  <div class="chapter-head">
+    <p class="kicker">The four jobs</p>
+    <h2 id="jobs-title">Jobs that no arm can finish alone.</h2>
+    <p class="chapter-lede">Each job comes in three team sizes and three levels, 36 tasks in all. A bigger team has more arms and more work to divide. A higher level makes the same job physically or visually harder. Each clip is a real run, and opens it.</p>
   </div>
-  <div class="wall-controls reveal">
-    <div class="segmented wide" role="tablist" aria-label="Model" id="source-tabs"></div>
-    <div class="segmented" role="tablist" aria-label="Task type" id="wall-type"></div>
-    <div class="segmented" role="tablist" aria-label="Camera" id="wall-view">
-      <button type="button" role="tab" aria-selected="true" data-view="front">Front</button>
-      <button type="button" role="tab" aria-selected="false" data-view="side">Side</button>
-    </div>
-  </div>
-  <p class="wall-about" id="wall-about" aria-live="polite"></p>
-  <div class="wall" id="wall"></div>
-</section>
-
-<section class="chapter" id="tasks" aria-labelledby="tasks-title">
-  <div class="chapter-head reveal">
-    <p class="kicker">Tasks</p>
-    <h2 id="tasks-title">Four jobs that no arm can finish alone.</h2>
-    <p class="sub">Each task type comes at three team sizes and three difficulty levels. A larger team adds arms and work to divide. A higher level makes the same job physically or visually harder.</p>
-  </div>
-  <div class="explainer reveal" id="explainer">
-    <div class="explainer-head">
-      <div class="segmented" role="tablist" aria-label="Task type" id="explain-tabs"></div>
-      <p class="sub small">Each image is the task at its start. Hover to preview a run, select to open it.</p>
-    </div>
-    <div class="explainer-body">
-      <aside class="explain-side" id="explain-side" aria-live="polite"></aside>
-      <div class="explain-grid" id="explain-grid"></div>
-    </div>
+  <div class="cards jobs" id="job-cards">
+    <article class="job t-transport" data-clip="transport-sort"><div class="clip"></div><div class="job-text"><h3>Transport</h3><p>Deliver every item to its place on the right board. Any arm may carry any item, and items cross the table by being handed over or set down for the next arm.</p><dl><dt>Arms</dt><dd>4, 8, 12</dd><dt>Levels</dt><dd>Flat targets, then sockets, then sockets on a sprung board</dd></dl></div></article>
+    <article class="job t-mosaic" data-clip="mosaic-build"><div class="clip"></div><div class="job-text"><h3>Mosaic</h3><p>Build a reference picture, one colored cube per cell. The picture has four colors, and every cell needs the right one.</p><dl><dt>Arms</dt><dd>4, 6, 8</dd><dt>Levels</dt><dd>Pockets, then printed lines, then unmarked cells</dd></dl></div></article>
+    <article class="job t-relay" data-clip="relay-carry"><div class="clip"></div><div class="job-text"><h3>Relay</h3><p>Carry long timbers to the goal. It takes at least two arms to carry one, and each timber must change hands in the air at least once.</p><dl><dt>Arms</dt><dd>8, 12, 16</dd><dt>Levels</dt><dd>Straight, then curved with a hanging weight, then hinged with a hanging weight</dd></dl></div></article>
+    <article class="job t-dial" data-clip="dial-search"><div class="clip"></div><div class="job-text"><h3>Dial</h3><p>Find a hidden code by turning spring-loaded knobs and holding them all at once. The only hint is a display of the best try so far.</p><dl><dt>Arms</dt><dd>4 to 16</dd><dt>Levels</dt><dd>Knobs on the table, then modules held in the air, then cranks</dd></dl></div></article>
   </div>
 </section>
 
 <section class="chapter" id="how" aria-labelledby="how-title">
-  <div class="chapter-head reveal">
+  <div class="chapter-head">
     <p class="kicker">How it works</p>
-    <h2 id="how-title">A world that never waits, seen only through cameras.</h2>
-    <p class="sub">Every model drives the same simulated Franka arms through the same tool, sees the same cameras and follows the same rules.</p>
+    <h2 id="how-title">Look, decide, act, while the clock runs.</h2>
   </div>
-  <div class="pillars reveal">
-    <article><span class="pillar-index">01</span><h3>Real time</h3><p>The world advances with the clock and never waits for an agent. A real robot would not wait for a model, and pausing for one agent would also stop its teammates.</p></article>
-    <article><span class="pillar-index">02</span><h3>Camera images only</h3><p>Agents ask for RGB images from 14 to 69 fixed cameras and read the state of the arms. They never receive object positions, depth or contacts.</p></article>
-    <article><span class="pillar-index">03</span><h3>One robot tool</h3><p>Arms move only through one tool: move an arm to a pose, or open, close or grasp with a gripper. Every failed motion or grasp is visible.</p></article>
-    <article><span class="pillar-index">04</span><h3>Their own code</h3><p>Agents also have a shell, file editing and Python, for example to measure object positions in an image. A sandbox keeps them away from the simulator and the evaluator.</p></article>
+  <div class="steps">
+    <div class="step t-transport"><span>1</span><h3>See</h3><p>The agents get pictures from fixed cameras and the state of their own arms. They never get object positions, depth or contacts.</p></div>
+    <div class="step t-mosaic"><span>2</span><h3>Decide</h3><p>One agent may control every arm, or a controller may split the job and hand arms to helpers. They can write and run their own code.</p></div>
+    <div class="step t-relay"><span>3</span><h3>Act</h3><p>One robot tool moves the arms: move an arm to a pose; open, close or grasp with a gripper. That is all an arm can be told.</p></div>
+    <div class="step t-dial"><span>24 h</span><h3>The clock never stops</h3><p>The hall is simulated in real time and does not wait while an agent thinks. A run ends when the agents say the job is done, or after 24 hours of work.</p></div>
   </div>
-
-  <div class="protocol reveal">
-    <div>
-      <h3 class="h3-big">Four ways to organize the agents.</h3>
-      <p class="sub">The adaptive system is the most flexible: one controller holds every arm, forks itself into delegates when work can be shared, and takes the arms back when their jobs end. The other three keep a fixed structure.</p>
-      <div class="topologies" id="topologies"></div>
-    </div>
-    <figure class="protocol-figure" aria-label="Animated diagram: a controller forks three delegates that take arms and return them">
-      <svg viewBox="0 0 600 380" id="protocol-svg">
-        <g class="p-links">
-          <path d="M300 92 C300 150 110 150 110 214"/><path d="M300 92 L300 214"/><path d="M300 92 C300 150 490 150 490 214"/>
-        </g>
-        <g class="p-ctrl"><rect x="210" y="36" width="180" height="56" rx="6"/><text x="300" y="60">CONTROLLER</text><text class="t-dim" x="300" y="78">holds every arm</text></g>
-        <g class="p-del d1"><rect x="40" y="214" width="140" height="52" rx="6"/><text x="110" y="238">DELEGATE 1</text><text class="t-dim" x="110" y="255">arms A · B</text></g>
-        <g class="p-del d2"><rect x="230" y="214" width="140" height="52" rx="6"/><text x="300" y="238">DELEGATE 2</text><text class="t-dim" x="300" y="255">arms C · D · E</text></g>
-        <g class="p-del d3"><rect x="420" y="214" width="140" height="52" rx="6"/><text x="490" y="238">DELEGATE 3</text><text class="t-dim" x="490" y="255">arm F</text></g>
-        <g class="p-arms" id="p-arms"></g>
-        <text class="t-caption" x="300" y="360">fork → work → return the arms</text>
-      </svg>
-    </figure>
-  </div>
+  <p class="aside">Nothing reports success to the agents. They look again, and when a move or a grasp has failed they try again. Every failure stays in the record, and an evaluator they cannot reach decides whether the job is really done.</p>
 </section>
 
 <section class="chapter" id="results" aria-labelledby="results-title">
-  <div class="chapter-head reveal">
+  <div class="chapter-head">
     <p class="kicker">Results</p>
-    <h2 id="results-title">Not yet fast, cheap and reliable at once.</h2>
-    <p class="sub">Fourteen conditions each run the 36 tasks once: four agent systems, two changes to what the agent sees or may use, two harnesses and six models.</p>
+    <h2 id="results-title">Who finished what.</h2>
+    <p class="chapter-lede">Six AI teams tried the same 36 jobs. Each square is one attempt, and you can watch every one of them.</p>
   </div>
-  <div class="findings reveal" id="findings"></div>
-  <div class="board reveal" id="board"></div>
+  <div class="big" id="big" aria-live="polite"></div>
+  <div class="board" id="board"></div>
+  <div class="legend"><span><i class="cell done"></i>Finished the job</span><span><i class="cell"></i>Did not finish</span><span><i class="cell none"></i>Video coming soon</span></div>
 </section>
 
-<section class="chapter cite" id="cite" aria-labelledby="cite-title">
-  <div class="chapter-head reveal">
-    <p class="kicker">Cite</p>
-    <h2 id="cite-title">Use RoboTeam.</h2>
+<section class="chapter" id="videos" aria-labelledby="videos-title">
+  <div class="chapter-head">
+    <p class="kicker">All videos</p>
+    <h2 id="videos-title">Every run, on video.</h2>
+    <p class="chapter-lede">Three cameras for every run, at ten times real time. Pick a team, a job, or only the runs that finished.</p>
   </div>
-  <div class="cite-grid reveal">
+  <div class="filters" id="filters">
+    <div class="chips" id="filter-status" role="group" aria-label="Result"></div>
+    <div class="chips" id="filter-team" role="group" aria-label="Team"></div>
+    <div class="chips" id="filter-job" role="group" aria-label="Job"></div>
+  </div>
+  <p class="count" id="count" aria-live="polite"></p>
+  <div id="library"></div>
+</section>
+
+<section class="chapter" id="start" aria-labelledby="start-title">
+  <div class="chapter-head">
+    <p class="kicker">Get started</p>
+    <h2 id="start-title">Run it, or cite it.</h2>
+  </div>
+  <div class="start-grid">
+    <div class="code-card">
+      <button class="copy" type="button" data-copy="commands">Copy</button>
+<pre id="commands">git clone https://github.com/changxuanfan/RoboTeam.git
+cd RoboTeam
+uv sync --locked
+.venv/bin/roboteam bootstrap
+.venv/bin/roboteam plan --task-types relay --level 1</pre>
+    </div>
     <div class="code-card">
       <button class="copy" type="button" data-copy="bibtex">Copy</button>
-<pre id="bibtex">@misc{roboteam2026,
-  title  = {RoboTeam: Benchmarking Vision-Based Multi-Agent Control of
-            Many Robot Arms in Real Time},
-  author = {Fan, Changxuan and others},
-  year   = {2026},
-  url    = {https://github.com/changxuanfan/RoboTeam}
+<pre id="bibtex">@article{fan2026roboteam,
+  title   = {RoboTeam: Benchmarking Vision-Based Multi-Agent Control of
+             Many Robot Arms in Real Time},
+  author  = {Fan, Changxuan and Xie, Zhongwei and Zhang, Boyi and Hu, Shaoli and
+             Xu, Chang and Ren, Xiyu and Li, Yufei and Xiao, Qiao and Jing, Huihao and
+             Chung, Kawai and Hu, Wenbin and Luo, Hongyu and Xie, Lingyun and
+             Gao, Yisen and Li, Chunyang and Huang, Haoyu and Song, Wuganjing and
+             Liu, Yuxuan and Tang, Chiu Yeung and Zhan, Fangneng and Yang, Xi},
+  journal = {arXiv preprint arXiv:2611.22138},
+  year    = {2026},
+  url     = {https://arxiv.org/abs/2611.22138}
 }</pre>
     </div>
-    <ul class="link-list">
-      <li><a href="https://github.com/changxuanfan/RoboTeam">Source code <span>MIT</span></a></li>
-      <li><a href="data/tasks.json">Public task data <span>JSON</span></a></li>
-      <li><a href="data/media.json">Video index <span>JSON</span></a></li>
-      <li><a href="https://github.com/changxuanfan/RoboTeam/blob/main/LICENSE-DATA.md">Data and media <span>CC BY 4.0</span></a></li>
-    </ul>
   </div>
+  <ul class="link-list">
+    <li><a href="https://arxiv.org/abs/2611.22138">Paper <span>arXiv</span></a></li>
+    <li><a href="https://github.com/changxuanfan/RoboTeam">Source code <span>MIT</span></a></li>
+    <li><a href="https://github.com/changxuanfan/RoboTeam/blob/main/docs/getting-started.md">Getting started <span>Guide</span></a></li>
+    <li><a href="https://huggingface.co/datasets/RoboTeam-Bench/RoboTeam-Videos">All videos <span>CC BY 4.0</span></a></li>
+  </ul>
 </section>
 </main>
 
 <footer class="foot"><span>RoboTeam · 2026</span><span>All videos are simulation renders, not real hardware.</span></footer>
 
+<div class="tip" id="tip" hidden></div>
+
 <dialog class="player" id="player" aria-label="Video player">
   <div class="player-top">
-    <div><p class="kicker" id="player-kicker"></p><h3 id="player-title"></h3></div>
-    <div class="player-actions">
-      <div class="segmented" id="player-view"><button type="button" data-view="front" aria-selected="true">Front</button><button type="button" data-view="side" aria-selected="false">Side</button></div>
-      <button class="icon" type="button" id="player-prev" aria-label="Previous task">←</button>
-      <button class="icon" type="button" id="player-next" aria-label="Next task">→</button>
-      <button class="icon" type="button" id="player-close" aria-label="Close">✕</button>
-    </div>
+    <div><h3 id="player-title"></h3><p class="player-sub" id="player-sub"></p></div>
+    <button class="close" type="button" id="player-close" aria-label="Close">✕</button>
   </div>
-  <video id="player-video" controls playsinline></video>
-  <p class="player-facts" id="player-facts"></p>
+  <div class="views" id="player-views"></div>
+  <div class="controls">
+    <button class="play-btn" type="button" id="player-play" aria-label="Play or pause"></button>
+    <input class="seek" type="range" id="player-seek" min="0" max="1000" value="0" aria-label="Position">
+    <span class="time" id="player-time">0:00</span>
+  </div>
+  <div class="player-row">
+    <div class="chips" id="player-speed" role="group" aria-label="Speed"></div>
+    <div class="chips compare" id="player-compare" role="group" aria-label="Same job, other team"></div>
+  </div>
 </dialog>
 </body>
 </html>
