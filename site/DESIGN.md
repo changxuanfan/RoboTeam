@@ -99,6 +99,12 @@ site/
 `#task=<task>` opens one run of that task, from the first video set unless `&set=<set>` names
 another. The task guide's gallery links this way.
 
+## Caching
+
+GitHub Pages lets browsers keep files for ten minutes. `index.html` links the stylesheet and
+the script with a `?v=` tag; change it whenever either file changes, so a returning visitor
+never gets new HTML with an old stylesheet.
+
 ## Local preview
 
 Preview with `python3 -m http.server -d site 8791`. To read posters, clips, the film and
