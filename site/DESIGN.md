@@ -16,9 +16,9 @@ own address, so a link can open any of them, or any section inside them.
 
 | Page | Address | Content, in order |
 | --- | --- | --- |
-| Overview | `#overview` (the default) | The film as a silent 30 s loop, with a button for the long film; four numbers; What is new (how RoboTeam compares with the benchmarks in the paper, and three short points); the four jobs, each with a 300× clip that opens its run and a button that shows its nine tasks at their start; how a run works (three steps and two rules); links to the other two pages |
+| Overview | `#overview` (the default) | The film as a silent 30 s loop, with a button for the long film; four numbers; the four jobs, each with a 300× clip that opens its run and a button that shows its nine tasks at their start; eight finished runs to watch, with a link to all of them; What is new (how RoboTeam compares with the benchmarks in the paper, and three short points); how a run works, told through one real run of gpt-6.1-sol (what a camera shows, a delegation, a move and a failed grasp with the robot tool's answers) and two rules; links to the other two pages |
 | Results | `#results` | Who finished what: three numbers, the board of squares (one row per team, one square per task, the Oracle as a reference card under the six teams); then six findings, each with text on the left and a chart on the right. A list of contents stays beside the page, and becomes a row of links on narrow screens |
-| Videos | `#videos` | Every run, grouped by team, with filters for result (All, Complete, Incomplete), team and job beside the grid, or above it on narrow screens |
+| Videos | `#videos` | Every run, grouped by team, with rows of filters above the grid: result (All, Complete, Incomplete), team and job |
 
 Paper, Code and Cite sit at the right of the tab bar; Cite opens the BibTeX. Every page ends
 with the same footer: the clone command, the getting-started guide and links.
@@ -36,6 +36,8 @@ outcomes.
 
 Charts are drawn as SVG at the width they are shown and drawn again when the window changes
 size, so their text is always 12 px.
+Pointing at a mark of any chart shows its details in one shared tooltip; pointing at a square of
+the board lights up the same task in every row.
 
 ## Media
 

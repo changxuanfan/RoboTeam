@@ -19,8 +19,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{var t=localStorage.getItem('roboteam-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="preload" as="image" href="https://changxuanfan.github.io/RoboTeam-media/film/roboteam-loop.webp" fetchpriority="high">
-<link rel="stylesheet" href="assets/css/site.css?v=20261125g">
-<script src="assets/js/site.js?v=20261125g" defer></script>
+<link rel="stylesheet" href="assets/css/site.css?v=20261125i">
+<script src="assets/js/site.js?v=20261125i" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -64,21 +64,8 @@
   <div class="t-dial"><b id="stat-best">–</b><span>jobs finished by the best AI team</span></div>
 </div>
 
-<section class="chapter" id="new" aria-labelledby="new-title">
-  <div class="chapter-head">
-    <p class="kicker">What is new</p>
-    <h2 id="new-title">Many arms, long jobs, and a world that never waits.</h2>
-    <p class="chapter-lede">Earlier benchmarks give an agent one or two arms for minutes, often pause the world while it thinks, or tell it where every object is. RoboTeam takes all three away.</p>
-  </div>
-  <div class="new-grid">
-    <figure class="panel" id="chart-compare"><figcaption class="panel-cap">How RoboTeam compares with the benchmarks in the paper</figcaption><div class="f-chart"></div></figure>
-    <ul class="pillars">
-      <li class="t-transport"><b>Up to 16 arms, up to 24 hours</b><span>Teams of 4 to 16 arms on one job, and runs that last hours instead of minutes.</span></li>
-      <li class="t-relay"><b>The world never pauses</b><span>The hall keeps moving while the agents think, as a real factory would.</span></li>
-      <li class="t-mosaic"><b>Cameras only</b><span>No object positions, no depth: the agents must measure the world from pictures.</span></li>
-    </ul>
-  </div>
-</section>
+
+
 
 <section class="chapter" id="jobs" aria-labelledby="jobs-title">
   <div class="chapter-head">
@@ -95,19 +82,74 @@
   <div class="nine" id="nine" hidden></div>
 </section>
 
+<section class="chapter" id="watch" aria-labelledby="watch-title">
+  <div class="chapter-head row-head">
+    <div><p class="kicker">Watch</p><h2 id="watch-title">Eight finished runs.</h2></div>
+    <a class="more-link" href="#videos">All 218 runs →</a>
+  </div>
+  <div class="featured" id="featured"></div>
+</section>
+
+<section class="chapter" id="new" aria-labelledby="new-title">
+  <div class="chapter-head">
+    <p class="kicker">What is new</p>
+    <h2 id="new-title">Many arms, long jobs, and a world that never waits.</h2>
+    <p class="chapter-lede">Earlier benchmarks give an agent one or two arms for minutes, often pause the world while it thinks, or tell it where every object is. RoboTeam takes all three away.</p>
+  </div>
+  <div class="new-grid">
+    <figure class="panel" id="chart-compare"><figcaption class="panel-cap">How RoboTeam compares with the benchmarks in the paper</figcaption><div class="f-chart"></div></figure>
+    <ul class="pillars">
+      <li class="t-transport"><b>Up to 16 arms, up to 24 hours</b><span>Teams of 4 to 16 arms on one job, and runs that last hours instead of minutes.</span></li>
+      <li class="t-relay"><b>The world never pauses</b><span>The hall keeps moving while the agents think, as a real factory would.</span></li>
+      <li class="t-mosaic"><b>Cameras only</b><span>No object positions, no depth: the agents must measure the world from pictures.</span></li>
+    </ul>
+  </div>
+</section>
+
 <section class="chapter" id="how" aria-labelledby="how-title">
   <div class="chapter-head">
     <p class="kicker">How a run works</p>
-    <h2 id="how-title">Look, decide, act, while the clock runs.</h2>
+    <h2 id="how-title">Inside one real run.</h2>
+    <p class="chapter-lede">Agents work in a loop: look through the cameras, decide, send one command to one arm, and look again. Here is that loop in a run of gpt-6.1-sol on a Transport job with 8 arms, which it finished, all 24 items in place.</p>
   </div>
-  <ol class="flow">
-    <li class="step t-transport"><div class="step-top"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="13" height="11" rx="2.5"/><path d="M16 11l5-3v9l-5-3z"/><circle cx="9.5" cy="12.5" r="2.6"/></svg></span><span class="n">Step 1</span></div><h3>See</h3><p>The agents get pictures from fixed cameras and the state of their own arms. They never get object positions, depth or contacts.</p></li>
-    <li class="step t-mosaic"><div class="step-top"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.4"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 7.4V17M10.6 7 6 17.2M13.4 7 18 17.2"/></svg></span><span class="n">Step 2</span></div><h3>Decide</h3><p>One agent may control every arm, or a controller may split the job and hand arms to helpers. They can write and run their own code.</p></li>
-    <li class="step t-relay"><div class="step-top"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20.5h9M8.5 20.5V15l5.5-6.5 5 3"/><circle cx="8.5" cy="15" r="1.7"/><circle cx="14" cy="8.5" r="1.7"/><path d="M19 11.5l2.2 3M19 11.5l-.6 3.6"/></svg></span><span class="n">Step 3</span></div><h3>Act</h3><p>One robot tool moves the arms: move an arm to a pose; open, close or grasp with a gripper. That is all an arm can be told.</p></li>
+  <ol class="walk">
+    <li class="walk-step t-transport">
+      <div class="walk-head"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="13" height="11" rx="2.5"/><path d="M16 11l5-3v9l-5-3z"/><circle cx="9.5" cy="12.5" r="2.6"/></svg></span><div><span class="n">1 · See</span><h3>Only pictures</h3></div></div>
+      <figure class="walk-media"><img id="how-camera" src="https://changxuanfan.github.io/RoboTeam-media/findings/run-camera.webp" alt="The front camera of arm A on this Transport task: items, boards and arms on a wooden table" loading="lazy" width="960" height="600"><figcaption>Arm A's front camera on this task. No positions come with it: the agent has to work them out.</figcaption></figure>
+    </li>
+    <li class="walk-step t-mosaic">
+      <div class="walk-head"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.4"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 7.4V17M10.6 7 6 17.2M13.4 7 18 17.2"/></svg></span><div><span class="n">2 · Decide</span><h3>Split the work</h3></div></div>
+      <div class="walk-card">
+        <p class="who">Controller → a new helper, 10 minutes in</p>
+        <p class="quote">“Deliver one yellow source C cube into B_slot2, seated released stable, using B/C …”</p>
+        <ul class="facts"><li><b>2</b> arms handed over, B and C</li><li><b>24</b> robot actions by the helper</li><li><b>7.8</b> minutes later the arms come back</li></ul>
+      </div>
+    </li>
+    <li class="walk-step t-relay">
+      <div class="walk-head"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20.5h9M8.5 20.5V15l5.5-6.5 5 3"/><circle cx="8.5" cy="15" r="1.7"/><circle cx="14" cy="8.5" r="1.7"/><path d="M19 11.5l2.2 3M19 11.5l-.6 3.6"/></svg></span><div><span class="n">3 · Act</span><h3>One command, one arm</h3></div></div>
+      <div class="walk-card">
+        <p class="who">The agent sends</p>
+<pre class="call"><span class="k">move</span> arm <b>A</b> to (−0.107, −0.973, 0.95) m
+at 0.12 m/s, then show camera A_front</pre>
+        <p class="who">The robot tool answers</p>
+        <p class="reply ok">Completed, with a fresh picture from A_front</p>
+      </div>
+    </li>
+    <li class="walk-step t-dial">
+      <div class="walk-head"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.6 13.2A7.8 7.8 0 1 1 17.5 6.4"/><path d="M19.8 3.8v5h-5"/></svg></span><div><span class="n">4 · Check</span><h3>Notice, and retry</h3></div></div>
+      <div class="walk-card">
+        <p class="who">Another helper sends, later in the run</p>
+<pre class="call"><span class="k">grasp</span> with arm <b>C</b>, expecting 0.06 m,
+then show C_front and C_side</pre>
+        <p class="who">The robot tool answers</p>
+        <p class="reply bad">Grasp stopped outside expected object-width tolerance</p>
+        <p class="note">The gripper closed at 0.065 m instead. Nothing says what went wrong in the world: the agent looks at the pictures and tries again.</p>
+      </div>
+    </li>
   </ol>
   <div class="rules">
-    <div class="rule t-dial"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2.2"/></svg></span><div><h3>The clock never stops</h3><p>The hall is simulated in real time and does not wait while an agent thinks. A run ends when the agents say the job is done, or after 24 hours of work.</p></div></div>
-    <div class="rule t-transport"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.6 13.2A7.8 7.8 0 1 1 17.5 6.4"/><path d="M19.8 3.8v5h-5"/></svg></span><div><h3>Nobody says it worked</h3><p>The agents look again, and when a move or a grasp has failed they try again. Every failure stays in the record, and an evaluator they cannot reach decides whether the job is really done.</p></div></div>
+    <div class="rule t-dial"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2.2"/></svg></span><div><h3>The clock never stops</h3><p>The hall runs in real time and does not wait while an agent thinks. A run ends when the agents say the job is done, or after 24 hours of work.</p></div></div>
+    <div class="rule t-transport"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></svg></span><div><h3>An evaluator they cannot reach</h3><p>The agents run in a sandbox, away from the simulator and the scoring. When they say they are done, an evaluator checks the world itself.</p></div></div>
   </div>
 </section>
 
