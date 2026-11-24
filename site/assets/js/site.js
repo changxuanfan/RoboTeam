@@ -376,7 +376,7 @@ function chartVision(F) {
   F.vision.forEach((v, i) => {
     const y = 24 + i * rowH, bw = 300 * v.completed / 36;
     g += txt(L, y + 2, v.label, 'ink2') + `<rect x="${L}" y="${y + 8}" width="300" height="12" rx="6" class="track"/><rect x="${L}" y="${y + 8}" width="${bw}" height="12" rx="6" class="${i === 0 ? 'c-dim' : 'c-ink'}"/>` +
-      txt(L + bw + 8, y + 19, v.completed, 'lab') + txt(W, y + 19, fmt1(v.grasp_fail) + '%', 'ink', 'end');
+      txt(L + bw + 8, y + 19, v.completed, 'lab') + txt(W, y + 19, (v.grasp_fail < 1 ? fmt1(v.grasp_fail) : Math.round(v.grasp_fail)) + '%', 'ink', 'end');
   });
   box.insertAdjacentHTML('beforeend', svg(W, H, g, 'Tasks completed out of 36 under four vision conditions'));
   const base = mediaUrl(MEDIA + 'findings/');
@@ -430,7 +430,7 @@ function chartFailure(F) {
   box.insertAdjacentHTML('beforeend', svg(W, 4 * rowH + 4, g, 'Median share of steps that fail at least once, by task type, gpt-6.1-sol'));
   const H2 = F.grasp_failure.length * 24 + 26; let g2 = txt(0, 12, 'GRASPS THAT FAIL, BY MODEL');
   F.grasp_failure.forEach(([m, v], i) => { const y = 22 + i * 24, w = (W - 150 - 46) * v / 100;
-    g2 += txt(140, y + 11, m, i < 2 ? 'ink' : 'ink2', 'end') + `<rect x="150" y="${y}" width="${w}" height="14" rx="3" class="${i < 2 ? 'c-ink' : 'c-dim'}"/>` + txt(150 + w + 6, y + 11, fmt1(v) + '%', 'ink2'); });
+    g2 += txt(140, y + 11, m, i < 2 ? 'ink' : 'ink2', 'end') + `<rect x="150" y="${y}" width="${w}" height="14" rx="3" class="${i < 2 ? 'c-ink' : 'c-dim'}"/>` + txt(150 + w + 6, y + 11, Math.round(v) + '%', 'ink2'); });
   box.insertAdjacentHTML('beforeend', svg(W, H2, g2, 'Share of grasps that fail, per model') + `<p class="src">Top: median over the tasks of each type, gpt-6.1-sol. A Relay job has about ${f.median_steps_note.relay} steps, a Mosaic job about ${f.median_steps_note.mosaic}.</p>`);
 }
 

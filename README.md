@@ -16,7 +16,7 @@
 <a href="https://huggingface.co/datasets/RoboTeam-Bench/RoboTeam-Videos"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/button-videos-dark.svg"><img src="docs/media/readme/button-videos-light.svg" alt="Videos on Hugging Face" height="36"></picture></a>&nbsp;
 <a href="#license"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/button-license-dark.svg"><img src="docs/media/readme/button-license-light.svg" alt="License: MIT" height="36"></picture></a>
 
-[The four jobs](#the-four-jobs) · [How a run works](#how-a-run-works) · [What we found](#what-we-found) · [Watch](#watch-whole-runs) · [Quick start](#quick-start) · [Docs](docs/README.md)
+[What is new](#what-is-new) · [The four jobs](#the-four-jobs) · [How a run works](#how-a-run-works) · [What we found](#what-we-found) · [Watch](#watch-whole-runs) · [Quick start](#quick-start) · [Docs](docs/README.md)
 
 <picture>
 <source type="image/avif" srcset="docs/media/readme/hero.avif">
@@ -40,6 +40,28 @@ The workers are language models. Nobody tells them where anything is. They look 
 pictures, decide what to do, and send simple commands to the arms, and the world keeps moving
 while they think. RoboTeam measures how many of the jobs they finish, how long it takes them and
 what it costs.
+
+## What is new
+
+<a href="https://changxuanfan.github.io/RoboTeam/#new">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/compare-dark.svg">
+<img src="docs/media/readme/compare-light.svg" alt="RoboTeam against eleven other robot benchmarks: it has the most arms in one task (16) and the longest runs (up to 24 hours), never pauses, and gives agents camera images only" width="100%">
+</picture>
+</a>
+
+Agents can already control a robot arm or two through tools and code. Earlier benchmarks test
+this in a simpler world, in three ways. RoboTeam removes all three at once:
+
+- **Many arms, long jobs.** Most benchmarks use one or two arms on tasks of minutes. RoboTeam
+  has 4 to 16 arms on one job, and a run may last up to 24 hours.
+- **A world that never pauses.** Many simulators stop while the agent thinks, which a real robot
+  cannot do. In RoboTeam the clock keeps running, so slow thinking costs working time.
+- **Cameras only.** Many benchmarks tell the agent where every object is. A real robot must find
+  out from its sensors, and so must agents in RoboTeam.
+
+The jobs are modeled on real multi-robot work: sharing parts in an assembly cell, laying bricks,
+carrying long parts, and turning valves.
 
 ## The four jobs
 
@@ -104,25 +126,82 @@ share one notebook of lessons, which starts empty in every run.
 </picture>
 </a>
 
-- **The best teams finish most of the jobs.** gpt-6.1-sol completes 28 of the 36 tasks and
-  opus-5.5 completes 27. Four other models complete at most 3.
-- **It is slow, patient work.** A typical task takes gpt-6.1-sol 3.5 hours, and one in three of
-  its steps fails at least once and has to be tried again.
-- **Seeing is the hard part.** Told where every object is instead of looking at pictures, the
-  same model completes all 36 tasks. We call that run the Oracle. It shows that every task can
-  be done.
+**The best teams finish most of the jobs.** gpt-6.1-sol completes 28 of the 36 tasks and
+opus-5.5 completes 27. Four other models complete at most 3, and no Level 3 task. Told where
+every object is, the same gpt-6.1-sol completes all 36, so every task can be done. We call that
+run the Oracle.
 
-The paper goes further:
+### Seeing is the hard part
 
-- **Organizing the team differently trades time for cost.** All four agent systems complete
-  27 to 29 tasks. Giving every arm its own Worker is faster but uses 1.7 to 1.9 times the
-  tokens. A single agent uses fewer tokens but takes 1.6 times as long.
-- **Sharp pictures and code both matter.** With low-resolution pictures gpt-6.1-sol completes
-  14 tasks, and without its own code it completes 13.
-- **It is expensive.** A typical task costs gpt-6.1-sol 218 million input tokens.
+<a href="https://changxuanfan.github.io/RoboTeam/#results">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/vision-dark.svg">
+<img src="docs/media/readme/vision-light.svg" alt="Told where every object is, gpt-6.1-sol completes 36 tasks and 0.3% of its grasps fail; from sharp camera images with its own code, 28 and 23%; from images of 128 by 80 pixels, 14 and 41%; without code, 13 and 31%" width="100%">
+</picture>
+</a>
 
-No model or agent system is fast, cheap and reliable at once yet. The
-[paper](https://arxiv.org/abs/2611.22138) has every condition and number.
+From camera images, gpt-6.1-sol completes 28 tasks and 23% of its grasps fail, against 0.3% for
+the Oracle. To act on an object, an agent must know where it is to within millimeters, and it
+works this out by measuring pictures: in 31 of its 36 runs, gpt-6.1-sol writes code to do it,
+for example to find an object by its color in two views and compute its position in 3D. Take
+away sharp images or that code, and it completes only 14 or 13 tasks.
+
+### Failing and trying again is normal
+
+<a href="https://changxuanfan.github.io/RoboTeam/#results">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/progress-dark.svg">
+<img src="docs/media/readme/progress-light.svg" alt="Progress of every gpt-6.1-sol and opus-5.5 run over time, by task type: most runs climb steadily, some stall and stop at the 24-hour limit" width="100%">
+</picture>
+</a>
+
+Tasks are completed by retrying. For gpt-6.1-sol, the share of steps that fail at least once is
+13% in Dial, 23% in Mosaic, 37% in Transport and 100% in Relay, where every handover in the
+median task fails at least once; yet 8 of the 9 Relay tasks are completed. A typical task takes
+it 3.5 hours and 218 million input tokens. In simulation a dropped cube can simply be picked up
+again; on real robots a failed step can break a part or stop a line.
+
+### The arms mostly wait
+
+In one recorded run, at least one agent is thinking 90% of the time, but at least one arm moves
+only 43% of the time. The agents of gpt-6.1-sol spend 58% of their time thinking, 37% in the
+robot tool and 5% in code. Faster decisions would shorten tasks more than faster arms would.
+
+The two best models work in different ways. gpt-6.1-sol splits the work: its controller delegates
+13 times in the median task. opus-5.5 rarely delegates, and in 20 of the 36 tasks never does;
+it thinks less and computes more, with 35% of its time thinking and 19% in code.
+
+### More agents: faster, but more tokens
+
+<a href="https://changxuanfan.github.io/RoboTeam/#results">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/systems-dark.svg">
+<img src="docs/media/readme/systems-light.svg" alt="The four agent systems of gpt-6.1-sol: hierarchical and decentralized take about 200 hours and 45 to 52 billion input tokens, adaptive 258 hours and 27 billion, the single agent 407 hours and 17 billion" width="100%">
+</picture>
+</a>
+
+All four ways of organizing the agents complete 27 to 29 tasks. They differ in speed and cost.
+Giving every arm its own agent is fastest but uses 1.7 to 1.9 times the tokens of the adaptive
+system, because more agents read more. One agent for everything uses the fewest tokens but takes
+1.6 times as long: on the largest teams, its median task takes 22.0 hours, against 5.5 hours for
+the hierarchical system.
+
+### A bigger team is harder than a harder level
+
+By level, gpt-6.1-sol completes 9, 9 and 10 of the 12 tasks; by team size, 11, 10 and 7 on
+small, medium and large teams. The levels start to matter once the agent sees or computes less:
+with low-resolution images or without code, it completes 2 of the 12 Level 3 tasks.
+
+### Spending more does not buy success
+
+deepseek-v4.1-flash used 25.0 billion input tokens and 316 hours, close to the 27.0 billion
+tokens and 258 hours of gpt-6.1-sol, and completed one task against 28. The four weaker models
+fail at basic handling: 59% to 94% of their grasps fail, and one deepseek-v4.1-flash arm failed
+51 grasps in a row.
+
+No model or agent system is yet fast, cheap and reliable at once. The
+[paper](https://arxiv.org/abs/2611.22138) has every condition and number, and the
+[project page](https://changxuanfan.github.io/RoboTeam/#results) lets you open any run.
 
 ## Watch whole runs
 
