@@ -19,17 +19,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script>try{var t=localStorage.getItem('roboteam-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="preload" as="image" href="https://changxuanfan.github.io/RoboTeam-media/film/roboteam-loop.webp" fetchpriority="high">
-<link rel="stylesheet" href="assets/css/site.css?v=20261124c">
-<script src="assets/js/site.js?v=20261124c" defer></script>
+<link rel="stylesheet" href="assets/css/site.css?v=20261124e">
+<script src="assets/js/site.js?v=20261124e" defer></script>
 </head>
 <body>
 <a class="skip" href="#jobs">Skip to content</a>
 <header class="rail" id="rail">
   <a class="brand" href="#top" aria-label="RoboTeam home"><svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="2.6" fill="currentColor"/><circle cx="14" cy="4.4" r="4.2" fill="var(--transport)"/><circle cx="23.6" cy="14" r="4.2" fill="var(--mosaic)"/><circle cx="14" cy="23.6" r="4.2" fill="var(--relay)"/><circle cx="4.4" cy="14" r="4.2" fill="var(--dial)"/></svg>RoboTeam</a>
   <nav aria-label="Sections" id="nav">
+    <a href="#new">What is new</a>
     <a href="#jobs">The four jobs</a>
     <a href="#how">How it works</a>
     <a href="#results">Results</a>
+    <a href="#learned">What we learned</a>
     <a href="#videos">All videos</a>
     <a href="#start">Get started</a>
   </nav>
@@ -53,6 +55,22 @@
     </div>
   </div>
   <div class="film" id="film" aria-label="The RoboTeam film, a 30 second loop"><img class="film-poster" src="https://changxuanfan.github.io/RoboTeam-media/film/roboteam-loop.webp" alt="" width="1280" height="720" fetchpriority="high"></div>
+</section>
+
+<section class="chapter" id="new" aria-labelledby="new-title">
+  <div class="chapter-head">
+    <p class="kicker">What is new</p>
+    <h2 id="new-title">Many arms, long jobs, and a world that never waits.</h2>
+    <p class="chapter-lede">Earlier benchmarks give an agent one or two arms for minutes, often pause the world while it thinks, or tell it where every object is. RoboTeam takes all three away.</p>
+  </div>
+  <div class="new-grid">
+    <figure class="panel" id="chart-compare"><figcaption class="panel-cap">How RoboTeam compares with the benchmarks in the paper</figcaption></figure>
+    <ul class="pillars">
+      <li class="t-transport"><b>Up to 16 arms, up to 24 hours</b><span>Teams of 4 to 16 arms on one job, and runs that last hours instead of minutes.</span></li>
+      <li class="t-relay"><b>The world never pauses</b><span>The hall keeps moving while the agents think, as a real factory would.</span></li>
+      <li class="t-mosaic"><b>Cameras only</b><span>No object positions, no depth: the agents must measure the world from pictures.</span></li>
+    </ul>
+  </div>
 </section>
 
 <section class="chapter" id="jobs" aria-labelledby="jobs-title">
@@ -94,6 +112,22 @@
   <div class="big" id="big" aria-live="polite"></div>
   <div class="board" id="board"></div>
   <div class="legend"><span><i class="cell done"></i>Finished the job</span><span><i class="cell"></i>Did not finish</span><span><i class="cell none"></i>Video coming soon</span><span class="legend-note">In each group of three, the squares are Levels 1, 2 and 3.</span></div>
+</section>
+
+<section class="chapter" id="learned" aria-labelledby="learned-title">
+  <div class="chapter-head">
+    <p class="kicker">What we learned</p>
+    <h2 id="learned-title">Six things the runs show.</h2>
+    <p class="chapter-lede">The best teams finish most jobs. How they get there, and where the others fall short, says more about AI in the physical world than the score alone.</p>
+  </div>
+  <div class="findings" id="findings">
+    <figure class="panel wide" id="f-progress"></figure>
+    <figure class="panel" id="f-vision"></figure>
+    <figure class="panel" id="f-time"></figure>
+    <figure class="panel" id="f-systems"></figure>
+    <figure class="panel" id="f-failure"></figure>
+    <figure class="panel wide" id="f-levels"></figure>
+  </div>
 </section>
 
 <section class="chapter" id="videos" aria-labelledby="videos-title">

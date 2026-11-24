@@ -17,9 +17,11 @@ appear only inside a section, where they switch between choices of the same thin
 | Section | Content | Data |
 | --- | --- | --- |
 | Hero | One sentence, links, and the film as a silent 30 s loop. A button opens the long film when `media.json` lists one | `media.json` |
+| What is new | How RoboTeam compares with the benchmarks in the paper (arms against run length, with marks for real time and cameras only), and three short points | `findings.json` |
 | The four jobs | Per task type: a clip of one run at 300 times real time, which opens that run; what the job is, its team sizes and what the levels change | `media.json`, static text |
 | How it works | See, decide, act, and the clock that never stops | static |
 | Results | Three numbers, then the board: one row per model, one square per task, grouped by task type and team size. The Oracle is a reference card under the six models | results |
+| What we learned | Six findings, each a chart with a plain sentence: every run as a progress line (point to see it, click to watch), vision conditions with a full and 128 × 80 camera picture to compare, where the time goes, the four agent systems, failure rates, and team size against level | `findings.json` |
 | All videos | Every run, grouped by team, with three filters: result (All, Complete, Incomplete), team and job | `media.json`, results |
 | Get started | The first commands, the citation and links | static |
 
@@ -63,6 +65,13 @@ repository (`MEDIA` in `assets/js/site.js`):
 
 `outcomes` is keyed by video set and task; `hours` is optional. The three numbers come from
 the `adaptive` condition.
+
+## Findings data
+
+`findings.json` in the media repository holds the numbers of the two chart sections, taken from the
+paper and its data tables, and the per-step timelines of the gpt-6.1-sol and opus-5.5 adaptive
+runs (schema `roboteam.site-findings.v1`). The camera pictures for the vision chart are in its
+`findings/` folder.
 
 ## Visual style
 
