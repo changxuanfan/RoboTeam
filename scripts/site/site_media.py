@@ -88,7 +88,9 @@ def posters(videos, out, width=480, workers=8):
             continue
         task, _, outcome = run.name.rpartition('-')
         for view in POSTER_VIEWS:
-            jobs.append((run / f'{view}.mp4', Path(out) / run.parent.name / f'{task}-{view}.webp', outcome == 'yes'))
+            jobs.append(
+                (run / f'{view}.mp4', Path(out) / run.parent.name / f'{task}-{view}.webp', outcome == 'yes')
+            )
 
     def one(job):
         video, poster, completed = job
@@ -134,7 +136,16 @@ def clips(spec, videos, out, size=(960, 600), crf=24):
         poster = video.with_suffix('.webp')
         shown = duration(video)
         subprocess.run(
-            [FFMPEG, '-v', 'error', '-y', '-ss', f'{shown * clip.get("poster_at", 0.5):.2f}', '-i', str(video)]
+            [
+                FFMPEG,
+                '-v',
+                'error',
+                '-y',
+                '-ss',
+                f'{shown * clip.get("poster_at", 0.5):.2f}',
+                '-i',
+                str(video),
+            ]
             + ['-frames:v', '1', '-c:v', 'libwebp', '-q:v', '76', str(poster)],
             check=True,
         )
