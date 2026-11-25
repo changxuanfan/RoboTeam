@@ -1,10 +1,10 @@
 # Rules of a run
 
 The rules every run follows between its start and its score: what the agents are given, what
-they see, how robot requests are identified, and what decides completion. Each prepared run
-freezes its inputs, source and the names of the rules it runs under (`run_protocol` in its
-private task), so read an old run by what it recorded. What differs between the harnesses is
-in the [harness guides](../harness/README.md). Time is in [time and pauses](../runs/time.md),
+they see, how robot requests are identified, and what decides whether a task is finished. Each
+prepared run freezes its inputs, source and the names of the rules it runs under (`run_protocol`
+in its private task), so read an old run by what it recorded. What differs between the harnesses
+is in the [harness guides](../harness/README.md). Time is in [time and pauses](../runs/time.md),
 and stopped runs in [continuing a stopped run](../runs/continuation.md).
 
 Words used here: the *policy* is the team of agents being measured, and a *role* is one of its
@@ -79,7 +79,7 @@ Video recording has its own resolution.
 A released task runs at its desk in the factory hall (`roboteam/sim/hall/world.py`). The hall
 and the other 35 desks, each at its task's start, stand still around the desk and take no part
 in collisions, so the motion is the same with and without them. Images are drawn from a copy of
-the world's model (`roboteam/sim/render/look.py`): colours and textures are converted to linear
+the world's model (`roboteam/sim/render/look.py`): colors and textures are converted to linear
 light, the hall's key light casts hard shadows, and each image gets one display transform. An
 image draws only the hall shapes that can show in it or shade it. The result is the image that
 drawing all of them gives: in some views a handful of pixels differ by one level out of 255,
@@ -91,8 +91,8 @@ from antialiasing. The arms on the other desks are drawn from simplified meshes.
 `policy.observation = "ground_truth"` (or `--observation ground_truth`) prepares runs whose roles
 get the simulator's state instead of camera images. Everything else is an ordinary run: the same
 robot tool, the same actions and timing, the same real-time world, the same scoring. Any harness,
-model and system may select it. The default is `images`. The paper's Oracle condition is Codex
-with the model entry `sol` and the single-agent system:
+model and system may select it. The default is `images`. The paper's Oracle condition, called
+Reference on the project page, is Codex with the model entry `sol` and the single-agent system:
 
 ```sh
 .venv/bin/roboteam prepare --output runs/batches/<batch> --harness codex --model sol \
@@ -105,9 +105,10 @@ What a role gets:
   object its position, quaternion (wxyz), linear and angular velocity; every joint of the task
   scene as `[position, velocity]` by name (arms, fingers, dial hinges, board springs; a free or
   ball joint gives its full position and velocity vectors); and what the evaluator currently
-  tracks: progress, goals met, violations and completion (`{"started": false}` before START).
+  tracks: progress, goals met, violations and whether the task is finished (`{"started": false}`
+  before START).
 - **`public/inputs/ground-truth/`**: `task.json`, the task as the evaluator has it (objects, goals,
-  exact targets, mechanism, completion rule), and `scene.xml` with its `assets/`, the task's
+  exact targets, mechanism, the rule for finishing), and `scene.xml` with its `assets/`, the task's
   MuJoCo scene. The factory hall is not included. The public `task.json` names the folder as
   `ground_truth`.
 - **A simulator**: the `mujoco` variant of the [policy Python
@@ -117,7 +118,7 @@ What a role gets:
 What it does not get:
 
 - **No camera images.** `observe` returns robot feedback only. No image is rendered or written,
-  for an action's completion either. A `cameras` or `views` selection and `public_image` are
+  not even when an action ends. A `cameras` or `views` selection and `public_image` are
   refused, and the public task names no camera, calibration or reference image. The video
   recording and the live view are for people and stay as they are.
 - **No way to change the world except robot actions.** `state` never writes. A role's own
@@ -181,7 +182,7 @@ node --test tests/harness/codex/test_tool_errors.js
 ## IK failure detail
 
 Inverse kinematics (IK) finds the joint angles that put the hand at a requested pose. The hand's
-reference point is the tool centre point (TCP). A `move`, `check_motion` candidate or
+reference point is the tool center point (TCP). A `move`, `check_motion` candidate or
 `action_batch` member whose pose has no verified IK solution is rejected before execution with
 its `error` and an `ik_detail`:
 
@@ -199,17 +200,17 @@ home-orientation solve runs only after a rejection (`roboteam/sim/robot_control.
 ## Terminal outcome
 
 A run is scored by the state of the world at its end (`terminal_outcome_v2` in the frozen
-`run_protocol`). The task's final conditions decide completion:
+`run_protocol`). The task's final conditions decide whether it is finished:
 
 - **Transport and Mosaic:** the geometric, release, stability and assignment predicates of each
   goal.
 - **Relay:** every timber has had a qualified airborne handover (`relay-airborne-handover-v1`)
-  and is released with at least 70 percent of its centreline above the GOAL outline
+  and is released with at least 70 percent of its centerline above the GOAL outline
   (`relay-timber-goal-70pct-v1`).
 - **Dial:** success latches when a simultaneous valid correct input unlocks the device; later dial
   changes do not undo it.
 
-Dropped flags and recorded violations do not veto completion. Reports keep
+Dropped flags and recorded violations do not stop a task from counting as finished. Reports keep
 `strict_task_success`, process compliance and violations; Relay reports also keep
 `process_goals_met`, `process_completed_payloads`, drops and handover records. A violation
 entry is deduplicated by kind and key, not a count of separate collisions. Failed and unresolved
@@ -224,7 +225,7 @@ most 50 ms of simulation time are joined. The report gives per-pair counts and t
 sampling gap; it counts body-pair episodes, not physical impacts. None of these counts changes
 terminal success.
 
-Relay `drops` comes from its airborne, support and contact state machine and is not a complete
+Relay `drops` comes from its airborne, support and contact state machine and is not a full
 count of physical drops. Transport, Mosaic and Dial have no validated general drop counter: an
 absent metric means not measured, not zero. Dial's red-operation support violations are detected
 only before unlock.

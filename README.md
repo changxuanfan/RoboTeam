@@ -127,8 +127,7 @@ Adaptive, the default, has a controller that lends arms to helpers. The
 ## What we found
 
 gpt-6.1-sol finishes 28 of the 36 tasks and opus-5.5 finishes 27; the four other models finish
-at most 3. Given the position of every object, the same gpt-6.1-sol finishes all 36, so every
-task can be finished.
+at most 3. Given the position of every object, the same gpt-6.1-sol finishes all 36.
 
 <a href="https://changxuanfan.github.io/RoboTeam/#results">
 <picture>
@@ -154,7 +153,7 @@ tokens of a Single agent, and a Single agent takes 2× the time of Decentralized
 <a href="https://changxuanfan.github.io/RoboTeam/#f-systems">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/systems-dark.svg">
-<img src="docs/media/readme/systems-light.svg" alt="Same score, very different bill: the four team designs of gpt-6.1-sol finish 27 to 29 of 36 tasks. Over all 36 tasks, Single agent takes 407 hours and reads 17.1 billion tokens; Hierarchical 204 hours and 51.7 billion, 3 times the tokens of Single agent; Decentralized 199 hours and 45.3 billion, half the time of Single agent; Adaptive 258 hours and 27.0 billion" width="100%">
+<img src="docs/media/readme/systems-light.svg" alt="Same score, very different bill: the four team designs of gpt-6.1-sol finish 27 to 29 of 36 tasks. Over all 36 tasks, Single agent takes 407 hours, 2 times the time of Decentralized, and reads 17.1 billion tokens; Hierarchical 204 hours and 51.7 billion, 3 times the tokens of Single agent; Decentralized 199 hours and 45.3 billion; Adaptive 258 hours and 27.0 billion" width="100%">
 </picture>
 </a>
 
