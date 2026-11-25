@@ -11,6 +11,33 @@ Words used here: the *policy* is the team of agents being measured, and a *role*
 agents. The *host* is the process that runs the roles' sessions for one run. The *world owner*
 is the process that steps the physics.
 
+## A run in six steps
+
+1. **The clock starts and never stops.** The hall is simulated in real time. It does not wait
+   while an agent thinks, so slow decisions cost working time.
+2. **The agents look.** They get pictures from fixed cameras and the state of their own arms.
+   They never get object positions, depth or contacts.
+3. **They organize themselves.** One agent may control every arm, or a controller may split the
+   task and hand arms to helpers. The four team designs are listed below.
+4. **They act through one robot tool.** Move an arm to a pose; open, close or grasp with a
+   gripper. That is all an arm can be told.
+5. **They check their own work.** Nothing reports success. The agents look again, and when a
+   move or a grasp has failed they try again. Every failure stays in the record.
+6. **The run ends** when the agents say the task is finished, or after 24 hours of work. An
+   evaluator they cannot reach then decides whether it really is finished.
+
+Agents run inside a coding-agent program, either Codex or Claude Code. Unless a setting takes
+it away, they can write and run their own Python in a sandbox that keeps them away from the
+simulator and the evaluator, for example to measure where a cube is in a picture. They also
+share one notebook of lessons, which starts empty in every run.
+
+| Team design | Setting | How the team is organized |
+| --- | --- | --- |
+| Adaptive | `adaptive` | One controller that creates helpers, hands them arms and takes the arms back. The default. |
+| Single agent | `single-agent` | One agent controls every arm. |
+| Hierarchical | `hierarchical` | One worker per arm under a controller. |
+| Decentralized | `decentralized` | One worker per arm and no controller. Workers coordinate directly. |
+
 ## Start: system prompt, start message, START
 
 - **System prompt.** `private/inputs/bootstrap/system.md` is the policy role statement followed
