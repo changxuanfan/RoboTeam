@@ -21,14 +21,14 @@
 <picture>
 <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/readme/hero.webp">
 <source type="image/avif" srcset="docs/media/readme/hero.avif">
-<img src="docs/media/readme/hero.webp" alt="The RoboTeam factory hall from above with its four jobs, Transport, Mosaic, Relay and Dial, then one moment from each job, ending on 28 of 36 tasks finished" width="100%">
+<img src="docs/media/readme/hero.webp" alt="The RoboTeam factory hall from above with its four jobs, Transport, Mosaic, Relay and Dial, then one moment from each job, ending on 28 of 36 tasks completed" width="100%">
 </picture>
 
 <picture>
 <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="docs/media/readme/numbers-phone-dark.svg">
 <source media="(max-width: 600px)" srcset="docs/media/readme/numbers-phone-light.svg">
 <source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/numbers-dark.svg">
-<img src="docs/media/readme/numbers-light.svg" alt="36 tasks in one factory hall; 4 to 16 robot arms on one task; 24 hours of work allowed per task; 28 of 36 tasks finished by the best AI team" width="100%">
+<img src="docs/media/readme/numbers-light.svg" alt="36 tasks in one factory hall; 4 to 16 robot arms on one task; 24 hours of work allowed per task; 28 of 36 tasks completed by the best AI team" width="100%">
 </picture>
 
 </div>
@@ -37,8 +37,8 @@
 
 RoboTeam is a simulated factory hall in which teams of AI agents run 4 to 16 robot arms, seeing
 only through cameras. It has four jobs, the kinds of work, and 36 tasks: each job with three team
-sizes at three levels. It measures how many tasks a team finishes, how long that takes, and its
-tokens read, the text a model reads, which sets the cost.
+sizes at three levels. It measures how many tasks a team completes, how long that takes, and its
+input tokens, the text a model reads, which sets the cost.
 
 ## The four jobs
 
@@ -120,22 +120,24 @@ Earlier benchmarks test agents in a simpler world in three ways. RoboTeam remove
 </tr></table>
 
 The clock never stops: a run ends when the agents say they are done, or after 24 hours. A team
-runs as a Single agent, Hierarchical, Decentralized or Adaptive (the default). The
+runs one of four agent systems: single-agent, hierarchical, decentralized or adaptive (the
+default). The
 [rules of a run](docs/benchmark/rules.md#a-run-in-six-steps) give the details.
 
 ## What we found
 
-gpt-6.1-sol finishes 28 of the 36 tasks and opus-5.5 finishes 27; the four other models finish
-at most 3. Given the position of every object, the same gpt-6.1-sol finishes all 36.
+gpt-6.1-sol completes 28 of the 36 tasks and opus-5.5 completes 27; the four other models
+complete at most 3. In the Oracle condition, the same gpt-6.1-sol gets the ground-truth position
+of every object instead of camera images, and completes all 36.
 
-### 1 · Two models finish most of the 36 tasks
+### 1 · Two models complete most of the 36 tasks
 
-<sub>One square per task, filled when finished. From camera images alone.</sub>
+<sub>One square per task, filled when completed. From camera images alone.</sub>
 
 <p align="center"><a href="https://changxuanfan.github.io/RoboTeam/#results">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/board-dark.svg">
-<img src="docs/media/readme/board-light.svg" alt="Tasks finished out of 36, one square per task: gpt-6.1-sol 28 and opus-5.5 27, then kimi-k3.1-pro 3, qwen3.8-flash 1, deepseek-v4.1-flash 1 and glm-5.3-flash 0. opus-5.5 ran in Claude Code, the others in Codex. Given the position of every object, the same gpt-6.1-sol finishes all 36" width="78%">
+<img src="docs/media/readme/board-light.svg" alt="Tasks completed out of 36, one square per task: gpt-6.1-sol 28 and opus-5.5 27, then kimi-k3.1-pro 3, qwen3.8-flash 1, deepseek-v4.1-flash 1 and glm-5.3-flash 0. opus-5.5 ran in Claude Code, the others in Codex. Given the ground-truth position of every object (the Oracle), the same gpt-6.1-sol completes all 36" width="78%">
 </picture>
 </a></p>
 
@@ -143,25 +145,26 @@ at most 3. Given the position of every object, the same gpt-6.1-sol finishes all
 
 From camera images, 23% of gpt-6.1-sol's grasps fail, against 0.3% when it is given every
 position. With pictures of only 128 × 80 pixels, or without its own code to measure them, it
-finishes 14 or 13 tasks instead of 28.
+completes 14 or 13 tasks instead of 28.
 
 <p align="center"><a href="https://changxuanfan.github.io/RoboTeam/#f-vision">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/vision-dark.svg">
-<img src="docs/media/readme/vision-light.svg" alt="Given every position, gpt-6.1-sol finishes 36 tasks and 0.3% of its grasps fail; from sharp camera pictures with its own code, 28 and 23%; from pictures of 128 × 80 pixels, 14 and 41%; without code, 13 and 31%. Beside the chart, one spot of a camera picture at 1280 × 800 and at 128 × 80: one pixel at 128 × 80 is about 14.5 mm, more than twice the 6 mm a cube may be off" width="78%">
+<img src="docs/media/readme/vision-light.svg" alt="In the Oracle condition, given the ground-truth position of every object, gpt-6.1-sol completes 36 tasks and 0.3% of its grasps fail; from sharp camera pictures with its own code, 28 and 23%; from pictures of 128 × 80 pixels, 14 and 41%; without code, 13 and 31%. Beside the chart, one spot of a camera picture at 1280 × 800 and at 128 × 80: one pixel at 128 × 80 is about 14.5 mm, more than twice the 6 mm a cube may be off" width="78%">
 </picture>
 </a></p>
 
 ### 3 · Same score, very different bill
 
-The four team designs of gpt-6.1-sol finish 27 to 29 tasks, but over all 36 tasks Hierarchical reads 3× the
-tokens of a Single agent, and a Single agent takes 2× the time of Decentralized. Hours and
-tokens read are totals over all 36 tasks.
+The four agent systems of gpt-6.1-sol complete 27 to 29 tasks, but over all 36 tasks the
+hierarchical system uses 3× the input tokens of the single-agent system, and the single-agent
+system takes 2× the time of the decentralized system. Hours and input tokens are totals over all
+36 tasks.
 
 <p align="center"><a href="https://changxuanfan.github.io/RoboTeam/#f-systems">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/systems-dark.svg">
-<img src="docs/media/readme/systems-light.svg" alt="Same score, very different bill: the four team designs of gpt-6.1-sol finish 27 to 29 of 36 tasks. Over all 36 tasks, Single agent takes 407 hours, 2 times the time of Decentralized, and reads 17.1 billion tokens; Hierarchical 204 hours and 51.7 billion, 3 times the tokens of Single agent; Decentralized 199 hours and 45.3 billion; Adaptive 258 hours and 27.0 billion" width="78%">
+<img src="docs/media/readme/systems-light.svg" alt="Same score, very different bill: the four agent systems of gpt-6.1-sol complete 27 to 29 of 36 tasks. Over all 36 tasks, the single-agent system takes 407 hours, 2 times the time of the decentralized system, and uses 17.1 billion input tokens; the hierarchical system 204 hours and 51.7 billion, 3 times the input tokens of the single-agent system; the decentralized system 199 hours and 45.3 billion; the adaptive system 258 hours and 27.0 billion" width="78%">
 </picture>
 </a></p>
 
@@ -172,13 +175,13 @@ Each with its chart on the project page:
 - [The arms mostly wait.](https://changxuanfan.github.io/RoboTeam/#f-time) In one recorded run,
   at least one agent is thinking 90% of the time, but at least one arm moves only 43% of it.
 - [Failing and trying again is normal.](https://changxuanfan.github.io/RoboTeam/#f-failure)
-  In a typical Relay task of gpt-6.1-sol, every step fails at least once, yet it finishes 8 of
+  In a typical Relay task of gpt-6.1-sol, every step fails at least once, yet it completes 8 of
   the 9 Relay tasks.
 - [A bigger team is harder than a harder level.](https://changxuanfan.github.io/RoboTeam/#f-levels)
-  By level, gpt-6.1-sol finishes 9, 9 and 10 of 12 tasks; by team size, 11, 10 and 7.
+  By level, gpt-6.1-sol completes 9, 9 and 10 of 12 tasks; by team size, 11, 10 and 7.
 
-Spending more does not buy success: deepseek-v4.1-flash read 25.0 billion tokens and finished
-1 task, while gpt-6.1-sol read 27.0 billion and finished 28. No model or team design is yet
+Spending more does not buy success: deepseek-v4.1-flash used 25.0 billion input tokens and
+completed 1 task, while gpt-6.1-sol used 27.0 billion and completed 28. No model or agent system is yet
 fast, cheap and reliable at once. Every chart, with each run to open, is in the
 [project page's results](https://changxuanfan.github.io/RoboTeam/#results), and every condition
 and number in the [paper](https://arxiv.org/abs/2611.22138).
@@ -195,7 +198,7 @@ uv sync --locked                                   # Python 3.12 and the locked 
 `plan` lists the tasks a batch would run and calls no model, so it is a safe first command. A
 real run also needs an account for a model, the pinned Codex or Claude Code command-line program,
 and a sandboxed Python environment for the agents.
-[Getting started](docs/getting-started.md) goes from a fresh clone to a finished run.
+[Getting started](docs/getting-started.md) goes from a fresh clone to a complete run.
 
 ## Documentation
 

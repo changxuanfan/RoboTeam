@@ -21,7 +21,7 @@ const TEAMS = {
   'qwen3.8-flash': ['qwen3.8-flash', 'in Codex'],
   'deepseek-v4.1-flash': ['deepseek-v4.1-flash', 'in Codex'],
   'glm-5.3-flash': ['glm-5.3-flash', 'in Codex'],
-  oracle: ['Reference', 'the same AI, given the position of every object'],
+  oracle: ['Oracle', 'the same AI, given the ground-truth position of every object'],
 };
 const REFERENCE = 'oracle';
 const SPEEDS = [10, 20, 50, 100]; // times real time; the videos themselves are 10x
@@ -35,7 +35,7 @@ const nice = task => { const [type, size, level] = task.split('-'); return `${ca
 const short = task => { const [, size, level] = task.split('-'); return `${cap(size)} · Level ${level[1]}`; };
 
 /* One place for the outcome words and for how hours read */
-const WORDS = { fin: 'Finished', not: 'Not finished', soon: 'Coming soon', pending: 'Result to come' };
+const WORDS = { fin: 'Completed', not: 'Not completed', soon: 'Coming soon', pending: 'Result to come' };
 const statusWord = finished => (finished ? WORDS.fin : WORDS.not);
 const statusChip = (finished, cls = '') => `<span class="chip ${finished ? 'fin' : 'not'}${cls ? ` ${cls}` : ''}">${statusWord(finished)}</span>`;
 // Under 1 h in minutes, under 10 h in hours and minutes, then hours: '41 min', '3 h 45 min', '23.6 h'.
@@ -297,7 +297,7 @@ function boardRow(set) {
 
 function board() {
   const b = $('board'); b.innerHTML = '';
-  b.append(el('div', 'cols', '<span class="kicker">Cameras only</span><span class="kicker">Finished</span>' +
+  b.append(el('div', 'cols', '<span class="kicker">Cameras only</span><span class="kicker">Completed</span>' +
     TYPES.map(([k, n]) => `<div class="ch t-${k}"><span><i></i>${n}</span><small>${SIZES.map(s => `<span data-size="${s}">${cap(s)}</span>`).join('')}</small></div>`).join('')));
   D.sets.filter(s => s !== REFERENCE).forEach(s => b.append(boardRow(s)));
   if (D.sets.includes(REFERENCE)) { const o = el('div', 'oracle'); o.append(boardRow(REFERENCE)); b.append(o); }
@@ -391,7 +391,7 @@ function glance() {
   };
   box.innerHTML = head + GLANCE.filter(([s]) => D.runs[s]).map(row).join('') + '<p class="tz-foot">Each square is one of the 36 tasks, grouped by job. Point at a square to see the run.</p>';
   const best = GLANCE[0][0];
-  if (known) $('glance-lede').innerHTML = `From cameras alone, <span class="model">${teamName(best)}</span> finished ${count(best)} of 36 tasks. Given the position of every object, the same AI finished ${count(REFERENCE) === 36 ? 'all 36' : `${count(REFERENCE)} of 36`}.`;
+  if (known) $('glance-lede').innerHTML = `From cameras alone, <span class="model">${teamName(best)}</span> completed ${count(best)} of 36 tasks. Given the ground-truth position of every object, the same AI completed ${count(REFERENCE) === 36 ? 'all 36' : `${count(REFERENCE)} of 36`}.`;
   if (!box.dataset.bound) {
     box.dataset.bound = '1';
     const cell = e => e.target.closest('.tz-cell');
@@ -459,7 +459,7 @@ function jumps() {
   D.sets.forEach(set => {
     const n = D.outcomes ? D.tasks.filter(t => done(set, t)).length : null;
     const a = el('a', `jump${set === REFERENCE ? ' ref' : ''}`); a.href = `#team-${set}`; a.dataset.set = set; a.setAttribute('data-reveal', '');
-    a.setAttribute('aria-label', `${teamName(set)}${n === null ? '' : `, ${n} of 36 tasks finished`}. Go to its videos`);
+    a.setAttribute('aria-label', `${teamName(set)}${n === null ? '' : `, ${n} of 36 tasks completed`}. Go to its videos`);
     a.innerHTML = `<span class="jump-name">${teamHTML(set)}</span>${strip(set)}` +
       (n === null ? '' : `<span class="jump-score"><b>${n}</b> of 36</span>`);
     a.addEventListener('click', e => { e.preventDefault(); jumpTo(set); });
@@ -575,7 +575,7 @@ function library({ fade = false, scroll = true } = {}) {
     const sub = (TEAMS[set] || [])[1];
     const head = el('div', 'team-head', `<h3>${teamHTML(set)}</h3>` +
       `<span class="team-sub">${sub ? `${sub} · ` : ''}${list.length}\u00a0${list.length === 1 ? 'video' : 'videos'}</span>` +
-      (finished === null ? '' : `<span class="team-score"><b>${finished}</b> of 36 finished</span>`));
+      (finished === null ? '' : `<span class="team-score"><b>${finished}</b> of 36 completed</span>`));
     head.setAttribute('data-reveal', '');
     const grid = el('div', 'vgrid');
     list.forEach((task, i) => {
@@ -1031,21 +1031,21 @@ function barRows(rows, { max = 100, head = '', cls = '', from = 0 } = {}) {
 
 // Seeing: the same AI given every position, with sharp pictures, with 128 × 80 pictures and without code.
 // Rows, spot, enlarged pixel and words match the README's figure.
-const VISION = [['oracle', 'Reference: given every position', 'soft', 'ref'], ['adaptive', 'Sharp pictures and its own code', 'vio', 'lead'],
+const VISION = [['oracle', 'Oracle: ground-truth positions', 'soft', 'ref'], ['adaptive', 'Sharp pictures and its own code', 'vio', 'lead'],
   ['low-resolution', 'Pictures of 128 × 80', 's2', ''], ['robot-tool-only', 'No code, robot tool only', 's2', '']];
 function chartVision(F, box) {
   const V = Object.fromEntries(F.vision.map(v => [v.key, v])), f = F.vision_facts;
   setText('f-vision', 'Seeing', 'Seeing is the hard part.',
-    `Given the position of every object, the same AI finishes all ${V.oracle.completed} tasks; from its cameras, ${V.adaptive.completed}. At 128 × 80 pixels one pixel covers about ${f.pixel_mm} mm, more than twice the ${f.tolerance_mm} mm it has for placing a cube, and it finishes ${V['low-resolution'].completed}.`,
-    [`${V.oracle.completed} → ${V.adaptive.completed}`, 'tasks finished once it must see for itself']);
+    `Given the ground-truth position of every object, the same AI completes all ${V.oracle.completed} tasks; from its cameras, ${V.adaptive.completed}. At 128 × 80 pixels one pixel covers about ${f.pixel_mm} mm, more than twice the ${f.tolerance_mm} mm it has for placing a cube, and it finishes ${V['low-resolution'].completed}.`,
+    [`${V.oracle.completed} → ${V.adaptive.completed}`, 'tasks completed once it must see for itself']);
   const why = { oracle: 'The same AI, given the position of every object instead of pictures.', adaptive: 'Sharp camera pictures, and it may write its own code.', 'low-resolution': 'Every picture shrunk to 128 × 80 pixels.', 'robot-tool-only': 'Sharp pictures, but no code of its own: only the robot tool.' };
   const rows = VISION.filter(([key]) => V[key]).map(([key, label, fill, cls], i) => {
-    const v = V[key], tip = tipLines(label, [['Tasks finished', `${v.completed} of 36`], ['Grasps that fail', pct(v.grasp_fail)]], `<p class="tw">${why[key]}</p>`, `${mname('gpt-6.1-sol')}, Adaptive team. ${SOURCE}.`);
+    const v = V[key], tip = tipLines(label, [['Tasks completed', `${v.completed} of 36`], ['Grasps that fail', pct(v.grasp_fail)]], `<p class="tw">${why[key]}</p>`, `${mname('gpt-6.1-sol')}, adaptive system. ${SOURCE}.`);
     return `<div class="vrow${cls ? ` ${cls}` : ''}" data-reveal="fade" style="--i:${i}" ${tipAt(tip)}><span class="vl">${label}</span>` +
       `<span class="bt"><i class="bf anchor f-${fill}" data-reveal="grow-x" style="width:${(100 * v.completed / 36).toFixed(2)}%"></i></span>` +
       `<span class="bv">${v.completed}</span><span class="bv">${pct(v.grasp_fail)}</span></div>`;
   }).join('');
-  box.innerHTML = `<div class="vbars"><span class="kicker">Finished</span><span class="kicker vg">Grasps fail</span>${rows}</div>${zoomFigure(f)}`;
+  box.innerHTML = `<div class="vbars"><span class="kicker">Completed</span><span class="kicker vg">Grasps fail</span>${rows}</div>${zoomFigure(f)}`;
   zoomSetup(box.querySelector('.zoom'));
 }
 // The same spot of one camera picture at 1280 × 800 and at 128 × 80: a board and three red cubes.
@@ -1112,7 +1112,7 @@ function chartTime(F, box) {
   const t = F.timeline_facts, shares = F.time_shares.rows;
   setText('f-time', 'Waiting', 'The arms mostly wait.', `The world never pauses, yet in one run an arm moves only ${t.arms_moving_pct}% of the time, while an agent is thinking for ${t.thinking_pct}% of it. Faster decisions would shorten tasks more than faster arms.`, [`${t.thinking_pct}%`, 'of one run, an agent is thinking']);
   const rows = shares.map(([m, th, rb, cd]) => ({ label: mname(m), text: `${Math.round(th)}%`, cls: m === 'gpt-6.1-sol' ? 'lead' : '', stack: [[th, 'vio'], [rb, 's2'], [cd, 's3']],
-    tip: tipLines(mname(m), [['Thinking', `${fmt1(th)}%`], ['Robot tool', `${fmt1(rb)}%`], ['Own code', `${fmt1(cd)}%`]], '', `Share of agent time, Adaptive team. ${SOURCE}.`) }));
+    tip: tipLines(mname(m), [['Thinking', `${fmt1(th)}%`], ['Robot tool', `${fmt1(rb)}%`], ['Own code', `${fmt1(cd)}%`]], '', `Share of agent time, adaptive system. ${SOURCE}.`) }));
   box.innerHTML = `<div class="chart-top"><p class="chart-cap kicker">Share of agent time</p><div class="seg" role="group" aria-label="Order of the rows">` +
     [['model', 'Strongest first'], ['think', 'Most thinking first']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${k === sortTime}">${n}</button>`).join('') + '</div></div>' +
     '<p class="keyrow"><span><i class="f-vio"></i>Thinking</span><span><i class="f-s2"></i>Robot tool</span><span><i class="f-s3"></i>Own code</span></p>' + barRows(rows, { cls: 'stacked' });
@@ -1130,28 +1130,28 @@ function chartTime(F, box) {
 function chartFailure(F, box) {
   const f = F.failure_by_type, P = f.median_atomic_failure_pct;
   const relayDone = D.outcomes ? D.tasks.filter(t => typeOf(t) === 'relay' && done(f.set, t)).length : 8;
-  setText('f-failure', 'Retrying', 'Failing and retrying is normal.', `A grasp slips or a handover misses, and the agents see it in the pictures and try again. In a typical Relay task every step fails at least once, yet ${relayDone} of the 9 Relay tasks are finished.`, [`${P.relay}%`, 'of steps fail at least once in a typical Relay task']);
+  setText('f-failure', 'Retrying', 'Failing and retrying is normal.', `A grasp slips or a handover misses, and the agents see it in the pictures and try again. In a typical Relay task every step fails at least once, yet ${relayDone} of the 9 Relay tasks are completed.`, [`${P.relay}%`, 'of steps fail at least once in a typical Relay task']);
   const steps = f.median_steps_note || {};
   const rows = TYPES.map(([type, name]) => ({ label: `<i class="dot t-${type}"></i>${name}`, value: P[type], text: `${P[type]}%`, fill: type === 'relay' ? 'vio' : 's2', cls: type === 'relay' ? 'lead' : '',
-    tip: tipLines(name, [['Steps that fail at least once', `${P[type]}%`]].concat(steps[type] ? [['Steps in a typical task', `about ${steps[type]}`]] : []), '', `Typical task of ${mname(f.set)}, Adaptive team. ${SOURCE}.`) }));
+    tip: tipLines(name, [['Steps that fail at least once', `${P[type]}%`]].concat(steps[type] ? [['Steps in a typical task', `about ${steps[type]}`]] : []), '', `Typical task of ${mname(f.set)}, adaptive system. ${SOURCE}.`) }));
   box.innerHTML = '<p class="chart-cap kicker">Steps that fail at least once</p>' + barRows(rows, { max: 100 });
 }
 
 // Team size: tasks finished at each level and at each team size.
 function chartLevels(F, box) {
   const lv = F.levels;
-  setText('f-levels', 'Team size', 'Bigger teams are harder than harder levels.', `${mname(lv.set)} finishes about as many tasks at every level, but fewer as the team grows. More arms must share the space and the work.`, [`${lv.by_size[0]}\u2009→\u2009${lv.by_size[2]}`, `of ${lv.of} tasks, from small to large teams`]);
+  setText('f-levels', 'Team size', 'Bigger teams are harder than harder levels.', `${mname(lv.set)} completes about as many tasks at every level, but fewer as the team grows. More arms must share the space and the work.`, [`${lv.by_size[0]}\u2009→\u2009${lv.by_size[2]}`, `of ${lv.of} tasks, from small to large teams`]);
   const tasksOf = (kind, i) => D.tasks.filter(t => (kind === 'level' ? t.endsWith(`-l${i + 1}`) : t.split('-')[1] === SIZES[i]));
   const minis = list => `<div class="minis">${list.map(t => `<i class="t-${typeOf(t)}${done(lv.set, t) ? ' done' : ''}"></i>`).join('')}</div>`;
   const block = (title, labels, vals, fill, kind, from) => barRows(vals.map((v, i) => ({ label: labels[i], value: v, text: v, fill,
-    tip: tipLines(labels[i], [['Tasks finished', `${v} of ${lv.of}`]], D.outcomes ? `${minis(tasksOf(kind, i))}<p class="tw">Filled squares are finished tasks.</p>` : '', `${mname(lv.set)}, Adaptive team. ${SOURCE}.`) })),
+    tip: tipLines(labels[i], [['Tasks completed', `${v} of ${lv.of}`]], D.outcomes ? `${minis(tasksOf(kind, i))}<p class="tw">Filled squares are completed tasks.</p>` : '', `${mname(lv.set)}, adaptive system. ${SOURCE}.`) })),
     { max: lv.of, head: `<p class="bar-head">${title}</p>`, from });
-  box.innerHTML = `<p class="chart-cap kicker">Tasks finished, of ${lv.of}</p><div class="levels">` +
+  box.innerHTML = `<p class="chart-cap kicker">Tasks completed, of ${lv.of}</p><div class="levels">` +
     block('By level', ['Level 1', 'Level 2', 'Level 3'], lv.by_level, 's2', 'level', 0) + block('By team size', ['Small', 'Medium', 'Large'], lv.by_size, 'vio', 'size', 3) + '</div>';
 }
 
 // Team design: the four designs over eight arms, as in the film. Arms are squares, agents are dots.
-const DESIGNS = [['single-agent', 'Single agent', 'One agent drives every arm'], ['hierarchical', 'Hierarchical', 'A controller and one worker per arm'],
+const DESIGNS = [['single-agent', 'Single-agent', 'One agent drives every arm'], ['hierarchical', 'Hierarchical', 'A controller and one worker per arm'],
   ['decentralized', 'Decentralized', 'One worker per arm, no controller'], ['adaptive', 'Adaptive', 'A controller that lends arms to helpers']];
 function teamDrawing(kind) {
   const arms = [...Array(8)].map((_, i) => [18 + i * 244 / 7, 112]), top = [140, 22], up = q => [q[0], q[1] - 9];
@@ -1179,30 +1179,30 @@ function chartSystems(F, box) {
   const S = Object.fromEntries(F.systems.map(s => [s.key, s])), fin = F.systems.map(s => s.completed);
   const hMax = Math.max(...F.systems.map(s => s.total_hours)), tMax = Math.max(...F.systems.map(s => s.input_tokens_b));
   const timeX = Math.round(S['single-agent'].total_hours / S.decentralized.total_hours), tokX = Math.round(S.hierarchical.input_tokens_b / S['single-agent'].input_tokens_b);
-  setText('f-systems', 'Team design', 'Same score, very different bill.', `However the agents are organized, they finish ${Math.min(...fin)} to ${Math.max(...fin)} of the 36 tasks. A single agent takes ${timeX}× the time of a decentralized team. A hierarchical team reads ${tokX}× the tokens of a single agent. Tokens read are the text a model reads, which sets the cost.`, [`${tokX}×`, 'the tokens for nearly the same score']);
+  setText('f-systems', 'Agent systems', 'Same score, very different bill.', `All four agent systems complete ${Math.min(...fin)} to ${Math.max(...fin)} of the 36 tasks. The single-agent system takes ${timeX}× the time of the decentralized system, and the hierarchical system uses ${tokX}× the input tokens of the single-agent system. Input tokens are the text a model reads, which sets the cost.`, [`${tokX}×`, 'the input tokens for nearly the same score']);
   const call = { 'single-agent': ['hours', `${timeX}× the time`], hierarchical: ['tokens', `${tokX}× the tokens`] };
   const measure = (key, m, v, vmax, text, i) => {
     const w = 100 * v / vmax, note = call[key] && call[key][0] === m ? call[key][1] : '';
-    return `<div class="team-m${note ? ' has-note' : ''}"><span class="ml">${m === 'hours' ? 'Hours' : 'Tokens read'}</span><span class="bt bare"><i class="bf f-${key === 'adaptive' ? 'vio' : 's2'}" data-reveal="grow-x" style="width:${w.toFixed(2)}%"></i>` +
+    return `<div class="team-m${note ? ' has-note' : ''}"><span class="ml">${m === 'hours' ? 'Hours' : 'Input tokens'}</span><span class="bt bare"><i class="bf f-${key === 'adaptive' ? 'vio' : 's2'}" data-reveal="grow-x" style="width:${w.toFixed(2)}%"></i>` +
       (note ? `<span class="note stem-up callout" data-reveal="up" style="--i:${i + 0.75};right:${(100 - w).toFixed(2)}%">${note}</span>` : '') + `</span><span class="bv">${text}</span></div>`;
   };
   const rows = DESIGNS.map(([key, name, line], i) => {
     const s = S[key];
-    const tip = tipLines(name, [['Tasks finished', `${s.completed} of 36`], ['Finished within 6 hours', s.within_6h], ['Hours, all 36 tasks', fmt1(s.total_hours)], ['Tokens read, all tasks', `${fmt1(s.input_tokens_b)} billion`], ['Agent messages, typical task', s.median_messages]],
+    const tip = tipLines(name, [['Tasks completed', `${s.completed} of 36`], ['Completed within 6 hours', s.within_6h], ['Hours, all 36 tasks', fmt1(s.total_hours)], ['Input tokens, all tasks', `${fmt1(s.input_tokens_b)} billion`], ['Agent messages, typical task', s.median_messages]],
       key === 'adaptive' ? '<p class="tw">The team used everywhere else on this page.</p>' : '', `${mname('gpt-6.1-sol')}, all 36 tasks. ${SOURCE}.`);
     return `<div class="team-row${key === 'adaptive' ? ' ours' : ''}" data-reveal="fade" style="--i:${i}" data-anchor=".team-id b" ${tipAt(tip)}>` +
       `<div class="team-id">${teamDrawing(key)}<div><b>${name}</b><small>${line}</small></div></div>` +
-      `<div class="team-fin"><span class="ml">Finished</span><b>${s.completed}</b></div>` +
+      `<div class="team-fin"><span class="ml">Completed</span><b>${s.completed}</b></div>` +
       measure(key, 'hours', s.total_hours, hMax, `${s.total_hours.toFixed(1)}\u00a0h`, i) + measure(key, 'tokens', s.input_tokens_b, tMax, `${s.input_tokens_b.toFixed(1)}\u00a0B`, i) + '</div>';
   }).join('');
-  box.innerHTML = `<div class="teams"><div class="teams-head" aria-hidden="true"><span></span><span class="kicker">Finished</span><span class="kicker">Hours, all 36 tasks</span><span class="kicker">Tokens read, all tasks</span></div>${rows}</div>` +
-    `<p class="chart-foot">B is billions. Each team is ${mname('gpt-6.1-sol')} on all 36 tasks; hours count unfinished tasks up to the cutoff.</p>`;
+  box.innerHTML = `<div class="teams"><div class="teams-head" aria-hidden="true"><span></span><span class="kicker">Completed</span><span class="kicker">Hours, all 36 tasks</span><span class="kicker">Input tokens, all tasks</span></div>${rows}</div>` +
+    `<p class="chart-foot">B is billions. Each system runs ${mname('gpt-6.1-sol')} on all 36 tasks; hours count tasks not completed up to the cutoff.</p>`;
 }
 
 // Explore every run: the steps each run finished over its hours, one small chart per job.
 let pickProgress = 'both';
 function chartProgress(F, box) {
-  setText('f-progress', 'Every run', 'Explore every run.', 'Each line is one run of one task. It climbs each time an arm finishes a step, such as one cube placed; a dot ends a finished run, a cross one that was not finished.', [String(F.timelines.length), `runs of ${mname('gpt-6.1-sol')} and ${mname('opus-5.5')}`]);
+  setText('f-progress', 'Every run', 'Explore every run.', 'Each line is one run of one task. It climbs each time an arm finishes a step, such as one cube placed; a dot ends a completed run, a cross one that was not completed.', [String(F.timelines.length), `runs of ${mname('gpt-6.1-sol')} and ${mname('opus-5.5')}`]);
   const hint = matchMedia('(hover: none)').matches ? 'Tap a line to watch its run.' : 'Point at a line to see its run; click it to watch.';
   box.innerHTML = `<div class="chart-top"><div class="seg" role="group" aria-label="Show the runs of">` +
     [['both', 'Both'], ['gpt-6.1-sol', mname('gpt-6.1-sol'), 'vio'], ['opus-5.5', mname('opus-5.5'), 's1']].map(([k, n, c]) => `<button type="button" data-v="${k}" aria-pressed="${k === pickProgress}">${c ? `<i class="sw f-${c}"></i>` : ''}${n}</button>`).join('') +

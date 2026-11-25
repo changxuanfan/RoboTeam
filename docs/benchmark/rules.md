@@ -91,8 +91,8 @@ from antialiasing. The arms on the other desks are drawn from simplified meshes.
 `policy.observation = "ground_truth"` (or `--observation ground_truth`) prepares runs whose roles
 get the simulator's state instead of camera images. Everything else is an ordinary run: the same
 robot tool, the same actions and timing, the same real-time world, the same scoring. Any harness,
-model and system may select it. The default is `images`. The paper's Oracle condition, called
-Reference on the project page, is Codex with the model entry `sol` and the single-agent system:
+model and system may select it. The default is `images`. The paper's Oracle condition, shown
+as the Oracle on the project page, is Codex with the model entry `sol` and the single-agent system:
 
 ```sh
 .venv/bin/roboteam prepare --output runs/batches/<batch> --harness codex --model sol \

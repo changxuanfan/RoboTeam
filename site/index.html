@@ -18,8 +18,8 @@
 <link rel="preload" href="assets/fonts/space-grotesk-bold.woff2" as="font" type="font/woff2" crossorigin>
 <script>try{var t=localStorage.getItem('roboteam-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}if('IntersectionObserver'in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('reveal')</script>
 <link rel="preload" as="image" href="https://changxuanfan.github.io/RoboTeam-media/film/roboteam-hero.webp" fetchpriority="high">
-<link rel="stylesheet" href="assets/css/site.css?v=20261126e">
-<script src="assets/js/site.js?v=20261126e" defer></script>
+<link rel="stylesheet" href="assets/css/site.css?v=20261126f">
+<script src="assets/js/site.js?v=20261126f" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -69,7 +69,7 @@
   <div class="stat" data-reveal="up"><b>36</b><span>tasks in one factory hall</span></div>
   <div class="stat" data-reveal="up"><b>4–16</b><span>robot arms on one task</span></div>
   <div class="stat" data-reveal="up"><b>24&nbsp;h</b><span>of work allowed for each task</span></div>
-  <div class="stat best" data-reveal="up"><b><span id="stat-best">–</span><small>of&nbsp;36</small></b><span>tasks finished by the best AI team</span></div>
+  <div class="stat best" data-reveal="up"><b><span id="stat-best">–</span><small>of&nbsp;36</small></b><span>tasks completed by the best AI team</span></div>
 </div>
 
 <section class="chapter" id="new" aria-labelledby="new-title">
@@ -149,14 +149,14 @@
 
 <section class="chapter" id="glance" aria-labelledby="glance-title">
   <div class="chapter-head row-head" data-reveal>
-    <div><p class="kicker">Results</p><h2 id="glance-title">Seeing is the hard part.</h2><p class="chapter-lede" id="glance-lede">From cameras alone, the best AI team finished most tasks. Given the position of every object, the same AI finished them all.</p></div>
+    <div><p class="kicker">Results</p><h2 id="glance-title">Seeing is the hard part.</h2><p class="chapter-lede" id="glance-lede">From cameras alone, the best AI team completed most tasks. Given the ground-truth position of every object, the same AI completed them all.</p></div>
     <a class="more-link" href="#results">See the results <span class="arr" aria-hidden="true">→</span></a>
   </div>
-  <div class="panel tz" id="glance-rows" aria-label="Which of the 36 tasks three teams finished"></div>
+  <div class="panel tz" id="glance-rows" aria-label="Which of the 36 tasks three teams completed"></div>
 </section>
 
 <section class="chapter next" aria-label="Where to go next" data-stagger>
-  <a class="go" href="#results" data-reveal><span class="go-text"><span class="kicker">Results</span><b>Who finished what, and five things the runs show <span class="arr" aria-hidden="true">→</span></b><span class="go-sub">Every attempt of every team on one board, and charts in plain words.</span></span><span class="go-thumb board-thumb" id="go-board" aria-hidden="true"></span></a>
+  <a class="go" href="#results" data-reveal><span class="go-text"><span class="kicker">Results</span><b>Who completed what, and five things the runs show <span class="arr" aria-hidden="true">→</span></b><span class="go-sub">Every attempt of every team on one board, and charts in plain words.</span></span><span class="go-thumb board-thumb" id="go-board" aria-hidden="true"></span></a>
   <a class="go" href="#videos" data-reveal><span class="go-text"><span class="kicker">Videos</span><b>Watch every run from three cameras <span class="arr" aria-hidden="true">→</span></b><span class="go-sub">218 runs of six AI teams and the Reference, at 10 to 100 times real time, with idle stretches cut.</span></span><span class="go-thumb mosaic-thumb" id="go-mosaic" aria-hidden="true"></span></a>
 </section>
 </div>
@@ -165,23 +165,23 @@
 <div class="page" id="results" data-view="results" hidden>
 <div class="with-toc">
   <nav class="toc" aria-label="On this page" id="toc">
-    <a href="#scoreboard">Who finished what</a>
+    <a href="#scoreboard">Who completed what</a>
     <a href="#f-vision">Seeing</a>
     <a href="#f-time">Waiting</a>
     <a href="#f-failure">Retrying</a>
     <a href="#f-levels">Team size</a>
-    <a href="#f-systems">Team design</a>
+    <a href="#f-systems">Agent systems</a>
     <a href="#f-progress">Every run</a>
   </nav>
   <div class="toc-body">
     <section class="chapter" id="scoreboard" aria-labelledby="results-title">
       <div class="chapter-head" data-reveal>
         <p class="kicker">Results</p>
-        <h2 id="results-title">Who finished what.</h2>
+        <h2 id="results-title">Who completed what.</h2>
         <p class="chapter-lede">Six AI teams, seeing only through cameras, tried the same 36 tasks. Each square is one attempt; click it to watch the run.</p>
       </div>
       <div class="big" id="big" data-stagger>
-        <div data-reveal><b><span class="vio" id="big-done">28</span><small>of 36</small></b><span>tasks finished by <span class="model">gpt-6.1-sol</span>, the best team</span></div>
+        <div data-reveal><b><span class="vio" id="big-done">28</span><small>of 36</small></b><span>tasks completed by <span class="model">gpt-6.1-sol</span>, the best team</span></div>
         <div data-reveal><b id="big-hours">3.5&nbsp;h</b><span>of work on a typical task</span></div>
         <div data-reveal><b id="big-fail">34%</b><span>of its steps fail at least once and are tried again</span></div>
       </div>
@@ -194,7 +194,7 @@
           </div>
         </div>
         <div class="legend">
-          <span><i class="cell done"></i>Finished</span><span><i class="cell"></i>Not finished</span><span><i class="cell none"></i>Coming soon</span>
+          <span><i class="cell done"></i>Completed</span><span><i class="cell"></i>Not completed</span><span><i class="cell none"></i>Coming soon</span>
           <span class="legend-note">Each group of three: Levels 1, 2, 3</span>
         </div>
       </div>
@@ -205,7 +205,7 @@
       <div class="chapter-head" data-reveal>
         <p class="kicker">What we learned</p>
         <h2 id="learned-title">Five things the runs show.</h2>
-        <p class="chapter-lede">The best team finishes most tasks. How it gets there, and where the others fall short, says more about AI in the physical world than the score alone.</p>
+        <p class="chapter-lede">The best team completes most tasks. How it gets there, and where the others fall short, says more about AI in the physical world than the score alone.</p>
         <p class="hint"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 1.6l9.6 5.3-4.2 1.2 2.5 4.4-1.8 1-2.5-4.4-3 3.1z"/></svg><span class="on-mouse">Point at a bar or a line for details. Click a line to watch that run.</span><span class="on-touch">Tap a bar for details, or a line to watch that run.</span></p>
       </div>
       <div class="findings">
