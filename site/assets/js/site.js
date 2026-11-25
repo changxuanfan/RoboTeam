@@ -24,7 +24,9 @@ const TEAMS = {
   oracle: ['Oracle', 'the same AI, given the ground-truth position of every object'],
 };
 const REFERENCE = 'oracle';
-const SPEEDS = [10, 20, 50, 100]; // times real time; the videos themselves are 10x
+const SPEEDS = [10, 20, 50, 100, 500, 1500]; // times real time; the videos themselves are 10x
+// 500x plays its own copy of each video (every 50th frame of the 10x one) at normal speed, which stays smooth; 1500x plays that copy 3 times as fast
+const FAST = 500, FAST_STEP = 50, fastSrc = src => src.replace(/\.mp4$/, '-500x.mp4');
 
 const $ = id => document.getElementById(id);
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
@@ -620,7 +622,17 @@ const P = { videos: [], main: 0, speed: 10, set: null, task: null, timer: null, 
 function playerVideos() { return P.videos.filter(v => v.isConnected); }
 function eachVideo(f) { playerVideos().forEach(f); }
 function setSpeed(times) {
-  P.speed = times; eachVideo(v => { v.defaultPlaybackRate = v.playbackRate = times / 10; });
+  const fast = times >= FAST; P.speed = times;
+  if (fast !== P.fast && P.videos.length) {
+    // Swap every view to the other copy at the same moment of the run, and keep playing if it was.
+    const m = P.videos[P.main], at = m && m.duration ? m.currentTime / m.duration : 0, playing = !!m && !m.paused;
+    P.fast = fast;
+    eachVideo(v => {
+      v.addEventListener('loadedmetadata', () => { v.currentTime = at * v.duration; if (playing) v.play().catch(() => {}); }, { once: true });
+      v.src = fast ? fastSrc(v.dataset.src) : v.dataset.src;
+    });
+  }
+  eachVideo(v => { v.defaultPlaybackRate = v.playbackRate = fast ? times / FAST : times / 10; });
   document.querySelectorAll('#player-views .speed').forEach(s => { s.textContent = `${times}× real time`; });
   document.querySelectorAll('#player-speed .chip').forEach(b => b.setAttribute('aria-pressed', +b.dataset.speed === times));
 }
@@ -629,7 +641,8 @@ function tick() {
   if (m.duration) {
     const seek = $('player-seek'), at = m.currentTime / m.duration;
     seek.value = Math.round(1000 * at); seek.style.setProperty('--p', `${(100 * at).toFixed(2)}%`);
-    $('player-time').textContent = `${clock(m.currentTime)} / ${clock(m.duration)}`;
+    const k = P.fast ? FAST_STEP : 1; // the time of the 10x video, whichever copy plays
+    $('player-time').textContent = `${clock(m.currentTime * k)} / ${clock(m.duration * k)}`;
   }
   eachVideo(v => { if (v !== m && !v.seeking && Math.abs(v.currentTime - m.currentTime) > 0.25) v.currentTime = m.currentTime; });
 }
@@ -641,7 +654,7 @@ function togglePlay() {
 }
 function seekBy(s) {
   const m = P.videos[P.main]; if (!m || !m.duration) return;
-  const t = Math.min(m.duration - 0.05, Math.max(0, m.currentTime + s)); eachVideo(v => { v.currentTime = t; }); tick();
+  const t = Math.min(m.duration - 0.05, Math.max(0, m.currentTime + s / (P.fast ? FAST_STEP : 1))); eachVideo(v => { v.currentTime = t; }); tick();
 }
 function viewLabels() {
   const single = P.videos.length === 1;
@@ -651,13 +664,13 @@ function viewLabels() {
   });
 }
 function buildViews(sources) {
-  const box = $('player-views'); box.innerHTML = ''; box.classList.toggle('single', sources.length === 1); P.videos = []; P.main = 0;
+  const box = $('player-views'); box.innerHTML = ''; box.classList.toggle('single', sources.length === 1); P.videos = []; P.main = 0; P.fast = false;
   const seek = $('player-seek'); seek.value = 0; seek.style.setProperty('--p', '0%'); $('player-time').textContent = '0:00';
   sources.forEach(([label, src, posterUrl], i) => {
     const frame = el('button', `view loading${i === 0 ? ' main' : ''}`); frame.type = 'button';
     const v = el('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.disablePictureInPicture = true;
     if (posterUrl) v.poster = posterUrl;
-    v.src = src;
+    v.src = src; v.dataset.src = src;
     // Each view shimmers until it can play; the play button follows the main view.
     v.addEventListener('canplay', () => frame.classList.remove('loading'), { once: true });
     v.addEventListener('playing', () => { if (P.videos[P.main] === v) playIcon(true); });
