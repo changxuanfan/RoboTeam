@@ -38,11 +38,38 @@ function direct(url) {
     if (!r.ok || !r.url || r.url === url) throw new Error('no redirect');
     const exp = +(new URL(r.url).searchParams.get('Expires') || 0) * 1000;
     DIRECT.set(url, { p: Promise.resolve(r.url), until: exp ? exp - 5 * 60 * 1000 : Date.now() + 10 * 60 * 1000 });
-    return r.url;
+    preconnect(r.url); return r.url;
   }).catch(() => { DIRECT.delete(url); return url; });
   DIRECT.set(url, { p, until: Date.now() + 10 * 60 * 1000 });
   return p;
 }
+// Asking ahead: a queue that resolves addresses four at a time, and a preconnect to the CDN host as
+// soon as the first address is known, so the first video request skips the redirect and the handshake.
+const AHEAD = { queue: [], busy: 0, hosts: new Set() };
+function resolveSoon(url) {
+  if (!/^https:\/\/huggingface\.co\//.test(url)) return;
+  const hit = DIRECT.get(url); if (hit && hit.until > Date.now()) return;
+  if (!AHEAD.queue.includes(url)) AHEAD.queue.push(url); pump();
+}
+function pump() {
+  while (AHEAD.busy < 4 && AHEAD.queue.length) {
+    AHEAD.busy++; direct(AHEAD.queue.shift()).then(u => { preconnect(u); AHEAD.busy--; pump(); });
+  }
+}
+function preconnect(u) {
+  let origin; try { origin = new URL(u).origin; } catch (e) { return; }
+  if (origin === 'https://huggingface.co' || AHEAD.hosts.has(origin)) return;
+  AHEAD.hosts.add(origin);
+  const l = document.createElement('link'); l.rel = 'preconnect'; l.href = origin; l.crossOrigin = 'anonymous'; document.head.append(l);
+}
+// Only where hovering is possible and the reader has not asked to save data; elsewhere addresses are asked for on tap.
+const askAhead = () => matchMedia('(hover: hover) and (pointer: fine)').matches && !(navigator.connection && navigator.connection.saveData);
+const playerFiles = (set, task) => D.media.views.flatMap(view => [video(set, task, view), fastSrc(video(set, task, view))]);
+// A card coming near the screen: the file its preview plays.
+const aheadIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return; aheadIO.unobserve(e.target);
+  const { set, task } = e.target.dataset; if (set && task && askAhead()) resolveSoon(fastSrc(video(set, task, 'front')));
+}), { rootMargin: '200px 0px' }) : null;
 // Plays `url` in `v` through its CDN address; if that address fails (for example once it expires),
 // goes back to the plain address at the same moment.
 function setVideoSrc(v, url) {
@@ -386,7 +413,8 @@ function runCard(set, task, { mark = true, type = true, team = false } = {}) {
     (mark && finished !== null ? statusChip(finished, 'mark') : '') + `<span class="chip len">${clock(r.seconds)}</span></div>` +
     `<b><i></i><span>${type ? `<span class="tj">${job} · </span>` : ''}${short(task)}</span></b>` +
     `<small>${type ? `<span class="mj">${job} · </span>` : ''}${team ? `${teamHTML(set)} · ` : ''}${size}${work ? `<span class="wk"><span class="sep"> · </span>${work}</span>` : ''}</small>`;
-  card.addEventListener('pointerenter', e => peekLater(card, set, task, e));
+  if (aheadIO) aheadIO.observe(card);
+  card.addEventListener('pointerenter', e => { peekLater(card, set, task, e); if (askAhead()) playerFiles(set, task).forEach(resolveSoon); });
   card.addEventListener('pointerleave', () => peekStop(card));
   card.addEventListener('click', () => openRun(set, task));
   return card;
@@ -462,7 +490,7 @@ const PEEK = { card: null, v: null, timer: 0 };
 function peekLater(card, set, task, e) {
   clearTimeout(PEEK.timer);
   if (e.pointerType !== 'mouse' || !mouseOK.matches || stillMQ.matches) return;
-  direct(fastSrc(video(set, task, 'front'))); // start asking for its address now
+  resolveSoon(fastSrc(video(set, task, 'front'))); // ask for its address now, if not asked already
   PEEK.timer = setTimeout(() => peekStart(card, set, task), 250);
 }
 function peekStart(card, set, task) {
