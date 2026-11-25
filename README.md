@@ -43,12 +43,12 @@ tokens read, the text a model reads, which sets the cost.
 ## The four jobs
 
 <table><tr>
-<td width="50%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#task=transport-large-l3&amp;set=gpt-6.1-sol"><img src="docs/media/readme/transport.webp" alt="Twelve arms deliver items to their boards, at 300 times real time" width="100%"></a><br><b>Transport</b><br>Deliver every item to its place on the right board. Any arm may carry any item, and items cross the table by being handed over or set down for the next arm.<br><sub><b>Arms</b> 4, 8, 12 &nbsp;·&nbsp; <b>Levels</b> flat targets → sockets → sockets on a sprung board</sub><br><sub>Shown: gpt-6.1-sol, 12 arms, 36 items</sub></td>
-<td width="50%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#task=mosaic-large-l1&amp;set=opus-5.5"><img src="docs/media/readme/mosaic.webp" alt="Eight arms build a picture from 288 cubes, at 300 times real time" width="100%"></a><br><b>Mosaic</b><br>Build a reference picture, one colored cube per cell. The picture has four colors, and every cell needs the right one.<br><sub><b>Arms</b> 4, 6, 8 &nbsp;·&nbsp; <b>Levels</b> pockets → printed lines → unmarked cells</sub><br><sub>Shown: opus-5.5, 8 arms, 288 cubes</sub></td>
+<td width="50%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#task=transport-large-l3&amp;set=gpt-6.1-sol"><img src="docs/media/readme/transport.webp" alt="Twelve arms deliver items to their boards, at 300 times real time" width="100%"></a><br><b>Transport</b><br>Deliver every item to its board, passing it from arm to arm.<br><sub>4–12 arms · flat → sockets → sprung</sub></td>
+<td width="50%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#task=mosaic-large-l1&amp;set=opus-5.5"><img src="docs/media/readme/mosaic.webp" alt="Eight arms build a picture from 288 cubes, at 300 times real time" width="100%"></a><br><b>Mosaic</b><br>Build a picture from colored cubes, one in every cell.<br><sub>4–8 arms · pockets → lines → no grid</sub></td>
 </tr></table>
 <table><tr>
-<td width="50%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#task=relay-medium-l3&amp;set=gpt-6.1-sol"><img src="docs/media/readme/relay.webp" alt="Twelve arms pass timbers from arm to arm, at 300 times real time" width="100%"></a><br><b>Relay</b><br>Carry long timbers to the goal. It takes at least two arms to carry one, and each timber must change hands in the air at least once.<br><sub><b>Arms</b> 8, 12, 16 &nbsp;·&nbsp; <b>Levels</b> straight → curved with a hanging weight → hinged with a hanging weight</sub><br><sub>Shown: gpt-6.1-sol, 12 arms, 3 hinged timbers</sub></td>
-<td width="50%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-large-l3&amp;set=gpt-6.1-sol"><img src="docs/media/readme/dial.webp" alt="Sixteen arms turn eight cranks to find a code, at 300 times real time" width="100%"></a><br><b>Dial</b><br>Find a hidden code by turning spring-loaded knobs and holding them all at once. The only hint is a display of the best try so far.<br><sub><b>Arms</b> 4 to 16 &nbsp;·&nbsp; <b>Levels</b> knobs on the table → modules held in the air → cranks</sub><br><sub>Shown: gpt-6.1-sol, 16 arms, 8 cranks</sub></td>
+<td width="50%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#task=relay-medium-l3&amp;set=gpt-6.1-sol"><img src="docs/media/readme/relay.webp" alt="Twelve arms pass timbers from arm to arm, at 300 times real time" width="100%"></a><br><b>Relay</b><br>Carry long timbers that need two arms and change hands in the air.<br><sub>8–16 arms · straight → curved → hinged</sub></td>
+<td width="50%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-large-l3&amp;set=gpt-6.1-sol"><img src="docs/media/readme/dial.webp" alt="Sixteen arms turn eight cranks to find a code, at 300 times real time" width="100%"></a><br><b>Dial</b><br>Turn spring-loaded knobs to find a hidden code, and hold them all.<br><sub>4–16 arms · table → lifted → crank</sub></td>
 </tr></table>
 
 Each clip opens its whole run on the project page. The [task guide](docs/tasks/README.md) shows
@@ -99,66 +99,67 @@ Earlier benchmarks test agents in a simpler world in three ways. RoboTeam remove
 - **Cameras only.** Many tell the agent where every object is. In RoboTeam, as on a real robot,
   the agents must find out from what they see.
 
-<a href="https://changxuanfan.github.io/RoboTeam/#new">
+<p align="center"><b>Only RoboTeam has 16 arms and runs of up to 24 hours.</b><br><sub>Ten other benchmarks, from the paper's comparison table</sub></p>
+
+<p align="center"><a href="https://changxuanfan.github.io/RoboTeam/#new">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/compare-dark.svg">
-<img src="docs/media/readme/compare-light.svg" alt="RoboTeam against ten other robot benchmarks: every other one has 1 to 4 arms and runs from seconds to at most 4 hours; RoboTeam has 16 arms, runs up to 24 hours, never pauses and gives the agents camera images only" width="100%">
+<img src="docs/media/readme/compare-light.svg" alt="RoboTeam against ten other robot benchmarks: every other one has 1 to 4 arms and runs from seconds to at most 4 hours; RoboTeam has 16 arms, runs up to 24 hours, never pauses and gives the agents camera images only" width="68%">
 </picture>
-</a>
+</a></p>
 
 ## How a run works
 
-<a href="https://changxuanfan.github.io/RoboTeam/#how">
-<picture>
-<source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/how-it-works-dark.svg">
-<img src="docs/media/readme/how-it-works-light.svg" alt="How a run works: cameras send pictures, AI agents decide, one robot tool moves the arms, and the clock never stops" width="100%">
-</picture>
-</a>
-
-- **Real time.** The world moves with the clock and never waits for an agent to think.
-- **Cameras only.** Agents get pictures from fixed cameras and the state of their own arms, never
-  object positions, depth or contacts.
-- **One robot tool.** Move an arm to a pose; open, close or grasp with a gripper.
-
-A team has one of four designs: a Single agent drives every arm; Hierarchical puts a worker on
-each arm under a controller; Decentralized gives each arm a worker and no controller; and
-Adaptive, the default, has a controller that lends arms to helpers. The
-[rules of a run](docs/benchmark/rules.md#a-run-in-six-steps) give its six steps.
+<table><tr>
+<td width="44%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#how"><img src="docs/media/readme/camera.webp" alt="Arm A's front camera at the start of a Transport run: cubes, boards and arms on a wooden table" width="100%"></a><br><sub>What an agent sees: one arm's camera.</sub></td>
+<td valign="top"><b>1 · See.</b> Fixed cameras send pictures. No positions, no depth.<br><br><b>2 · Decide.</b> AI agents split the work and write their own code.<br><br><b>3 · Act.</b> One robot tool moves the arms, one command at a time.<br><br><sub>The clock never stops: a run ends when the agents say they are done, or after 24 hours. A team is a Single agent, Hierarchical, Decentralized or Adaptive (the default). <a href="docs/benchmark/rules.md#a-run-in-six-steps">Rules of a run</a></sub></td>
+</tr></table>
 
 ## What we found
 
 gpt-6.1-sol finishes 28 of the 36 tasks and opus-5.5 finishes 27; the four other models finish
 at most 3. Given the position of every object, the same gpt-6.1-sol finishes all 36.
 
-<a href="https://changxuanfan.github.io/RoboTeam/#results">
+### 1 · Two models finish most of the 36 tasks
+
+<sub>One square per task, filled when finished. From camera images alone.</sub>
+
+<p align="center"><a href="https://changxuanfan.github.io/RoboTeam/#results">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/board-dark.svg">
-<img src="docs/media/readme/board-light.svg" alt="Tasks finished out of 36, one square per task: gpt-6.1-sol 28 and opus-5.5 27, then kimi-k3.1-pro 3, qwen3.8-flash 1, deepseek-v4.1-flash 1 and glm-5.3-flash 0. opus-5.5 ran in Claude Code, the others in Codex. Given the position of every object, the same gpt-6.1-sol finishes all 36" width="100%">
+<img src="docs/media/readme/board-light.svg" alt="Tasks finished out of 36, one square per task: gpt-6.1-sol 28 and opus-5.5 27, then kimi-k3.1-pro 3, qwen3.8-flash 1, deepseek-v4.1-flash 1 and glm-5.3-flash 0. opus-5.5 ran in Claude Code, the others in Codex. Given the position of every object, the same gpt-6.1-sol finishes all 36" width="78%">
 </picture>
-</a>
+</a></p>
+
+### 2 · Seeing is the hard part
 
 From camera images, 23% of gpt-6.1-sol's grasps fail, against 0.3% when it is given every
 position. With pictures of only 128 × 80 pixels, or without its own code to measure them, it
 finishes 14 or 13 tasks instead of 28.
 
-<a href="https://changxuanfan.github.io/RoboTeam/#f-vision">
+<p align="center"><a href="https://changxuanfan.github.io/RoboTeam/#f-vision">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/vision-dark.svg">
-<img src="docs/media/readme/vision-light.svg" alt="Given every position, gpt-6.1-sol finishes 36 tasks and 0.3% of its grasps fail; from sharp camera pictures with its own code, 28 and 23%; from pictures of 128 × 80 pixels, 14 and 41%; without code, 13 and 31%. Beside the chart, one spot of a camera picture at 1280 × 800 and at 128 × 80: one pixel at 128 × 80 is about 14.5 mm, more than twice the 6 mm a cube may be off" width="100%">
+<img src="docs/media/readme/vision-light.svg" alt="Given every position, gpt-6.1-sol finishes 36 tasks and 0.3% of its grasps fail; from sharp camera pictures with its own code, 28 and 23%; from pictures of 128 × 80 pixels, 14 and 41%; without code, 13 and 31%. Beside the chart, one spot of a camera picture at 1280 × 800 and at 128 × 80: one pixel at 128 × 80 is about 14.5 mm, more than twice the 6 mm a cube may be off" width="78%">
 </picture>
-</a>
+</a></p>
 
-The four team designs finish 27 to 29 tasks, but over all 36 tasks Hierarchical reads 3× the
-tokens of a Single agent, and a Single agent takes 2× the time of Decentralized.
+### 3 · Same score, very different bill
 
-<a href="https://changxuanfan.github.io/RoboTeam/#f-systems">
+The four team designs of gpt-6.1-sol finish 27 to 29 tasks, but over all 36 tasks Hierarchical reads 3× the
+tokens of a Single agent, and a Single agent takes 2× the time of Decentralized. Hours and
+tokens read are totals over all 36 tasks.
+
+<p align="center"><a href="https://changxuanfan.github.io/RoboTeam/#f-systems">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/systems-dark.svg">
-<img src="docs/media/readme/systems-light.svg" alt="Same score, very different bill: the four team designs of gpt-6.1-sol finish 27 to 29 of 36 tasks. Over all 36 tasks, Single agent takes 407 hours, 2 times the time of Decentralized, and reads 17.1 billion tokens; Hierarchical 204 hours and 51.7 billion, 3 times the tokens of Single agent; Decentralized 199 hours and 45.3 billion; Adaptive 258 hours and 27.0 billion" width="100%">
+<img src="docs/media/readme/systems-light.svg" alt="Same score, very different bill: the four team designs of gpt-6.1-sol finish 27 to 29 of 36 tasks. Over all 36 tasks, Single agent takes 407 hours, 2 times the time of Decentralized, and reads 17.1 billion tokens; Hierarchical 204 hours and 51.7 billion, 3 times the tokens of Single agent; Decentralized 199 hours and 45.3 billion; Adaptive 258 hours and 27.0 billion" width="78%">
 </picture>
-</a>
+</a></p>
 
-**More findings**, each with its chart on the project page:
+### More findings
+
+Each with its chart on the project page:
 
 - [The arms mostly wait.](https://changxuanfan.github.io/RoboTeam/#f-time) In one recorded run,
   at least one agent is thinking 90% of the time, but at least one arm moves only 43% of it.
