@@ -19,8 +19,9 @@
 [Jobs](#the-four-jobs) · [Watch](#watch-whole-runs) · [How it works](#how-a-run-works) · [Findings](#what-we-found) · [Quick start](#quick-start) · [Docs](docs/README.md)
 
 <picture>
+<source media="(prefers-reduced-motion: reduce)" srcset="docs/media/readme/hero.webp">
 <source type="image/avif" srcset="docs/media/readme/hero.avif">
-<img src="docs/media/readme/hero.webp" alt="The RoboTeam factory hall, then one moment from each of its four jobs, Transport, Mosaic, Relay and Dial, ending on 28 of 36 tasks finished" width="100%">
+<img src="docs/media/readme/hero.webp" alt="The RoboTeam factory hall from above with its four jobs, Transport, Mosaic, Relay and Dial, then one moment from each job, ending on 28 of 36 tasks finished" width="100%">
 </picture>
 
 <picture>
@@ -143,7 +144,7 @@ finishes 14 or 13 tasks instead of 28.
 <a href="https://changxuanfan.github.io/RoboTeam/#f-vision">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/vision-dark.svg">
-<img src="docs/media/readme/vision-light.svg" alt="Given every position, gpt-6.1-sol finishes 36 tasks and 0.3% of its grasps fail; from sharp camera pictures with its own code, 28 and 23%; from pictures of 128 × 80 pixels, 14 and 41%; without code, 13 and 31%" width="100%">
+<img src="docs/media/readme/vision-light.svg" alt="Given every position, gpt-6.1-sol finishes 36 tasks and 0.3% of its grasps fail; from sharp camera pictures with its own code, 28 and 23%; from pictures of 128 × 80 pixels, 14 and 41%; without code, 13 and 31%. Beside the chart, one spot of a camera picture at 1280 × 800 and at 128 × 80: one pixel at 128 × 80 is about 14.5 mm, more than twice the 6 mm a cube may be off" width="100%">
 </picture>
 </a>
 
