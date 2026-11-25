@@ -423,9 +423,9 @@ function howCamera() {
   }), { threshold: 0.6 }).observe(fig);
 }
 
-/* Under a mouse, after a short pause, a card plays a muted preview of its front camera from the
-   middle of the run at 2.5x inside its picture, until the pointer leaves. Never on touch screens
-   or with reduced motion, and the file is only fetched then. */
+/* Under a mouse, after a short pause, a card plays a muted preview of its front camera inside its
+   picture, until the pointer leaves: the 500x copy, which shows the whole run in a few seconds and is
+   small. Never on touch screens or with reduced motion, and the file is only fetched then. */
 const PEEK = { card: null, v: null, timer: 0 };
 function peekLater(card, set, task, e) {
   clearTimeout(PEEK.timer);
@@ -434,12 +434,10 @@ function peekLater(card, set, task, e) {
 }
 function peekStart(card, set, task) {
   peekStop();
-  const from = run(set, task).seconds * 0.5, thumb = card.querySelector('.thumb');
-  const v = el('video', 'peek'); v.muted = true; v.playsInline = true; v.preload = 'none'; v.disablePictureInPicture = true;
-  v.setAttribute('aria-hidden', 'true'); v.src = `${video(set, task, 'front')}#t=${from.toFixed(1)}`;
-  v.defaultPlaybackRate = v.playbackRate = 2.5;
+  const thumb = card.querySelector('.thumb');
+  const v = el('video', 'peek'); v.muted = true; v.playsInline = true; v.preload = 'none'; v.disablePictureInPicture = true; v.loop = true;
+  v.setAttribute('aria-hidden', 'true'); v.src = fastSrc(video(set, task, 'front'));
   v.addEventListener('playing', () => v.classList.add('on'), { once: true });
-  v.addEventListener('ended', () => { v.currentTime = from; v.play().catch(() => {}); });
   thumb.insertBefore(v, thumb.querySelector('.chip'));
   PEEK.card = card; PEEK.v = v; v.play().catch(() => {});
 }
@@ -617,22 +615,31 @@ function countLine(shown) {
   const clear = $('count').querySelector('button'); if (clear) clear.addEventListener('click', clearFilters);
 }
 /* ---------- the player: three cameras on one clock ---------- */
-const P = { videos: [], main: 0, speed: 10, set: null, task: null, timer: null, opener: null };
+const P = { videos: [], sets: { slow: [], fast: [] }, main: 0, speed: 10, fast: false, swap: 0, set: null, task: null, timer: null, opener: null };
 
 function playerVideos() { return P.videos.filter(v => v.isConnected); }
+function allVideos() { return [...P.sets.slow, ...P.sets.fast]; }
 function eachVideo(f) { playerVideos().forEach(f); }
+// Each view holds its 10x video and its 500x copy, both loaded when the player opens (the copy is small).
+// A change of speed across 500x seeks the other copy to the same moment and shows it only once it is
+// there, so the picture never goes blank; the hidden copy stays loaded for the way back.
 function setSpeed(times) {
   const fast = times >= FAST; P.speed = times;
-  if (fast !== P.fast && P.videos.length) {
-    // Swap every view to the other copy at the same moment of the run, and keep playing if it was.
-    const m = P.videos[P.main], at = m && m.duration ? m.currentTime / m.duration : 0, playing = !!m && !m.paused;
-    P.fast = fast;
-    eachVideo(v => {
-      v.addEventListener('loadedmetadata', () => { v.currentTime = at * v.duration; if (playing) v.play().catch(() => {}); }, { once: true });
-      v.src = fast ? fastSrc(v.dataset.src) : v.dataset.src;
-    });
+  P.sets.slow.forEach(v => { v.defaultPlaybackRate = v.playbackRate = Math.min(times, 160) / 10; });
+  P.sets.fast.forEach(v => { v.defaultPlaybackRate = v.playbackRate = fast ? times / FAST : 1; });
+  if (fast !== P.fast && P.sets.fast.length) {
+    const from = P.videos, to = fast ? P.sets.fast : P.sets.slow, m = from[P.main], token = ++P.swap;
+    const at = m && m.duration ? m.currentTime / m.duration : 0, playing = !!m && !m.paused;
+    P.fast = fast; P.videos = to; let left = to.length;
+    const show = () => {
+      if (token !== P.swap || left < 0) return; left = -1;
+      $('player-views').classList.toggle('fast', fast); from.forEach(v => v.pause());
+      if (playing) to.forEach(v => v.play().catch(() => {}));
+    };
+    const place = v => { v.addEventListener('seeked', () => { if (--left === 0) show(); }, { once: true }); v.currentTime = at * v.duration; };
+    to.forEach(v => { if (v.readyState >= 1 && v.duration) place(v); else v.addEventListener('loadedmetadata', () => place(v), { once: true }); });
+    setTimeout(show, 5000); // never wait longer than this for a slow copy
   }
-  eachVideo(v => { v.defaultPlaybackRate = v.playbackRate = fast ? times / FAST : times / 10; });
   document.querySelectorAll('#player-views .speed').forEach(s => { s.textContent = `${times}× real time`; });
   document.querySelectorAll('#player-speed .chip').forEach(b => b.setAttribute('aria-pressed', +b.dataset.speed === times));
 }
@@ -664,25 +671,31 @@ function viewLabels() {
   });
 }
 function buildViews(sources) {
-  const box = $('player-views'); box.innerHTML = ''; box.classList.toggle('single', sources.length === 1); P.videos = []; P.main = 0; P.fast = false;
+  const box = $('player-views'); box.innerHTML = ''; box.classList.toggle('single', sources.length === 1); box.classList.remove('fast');
+  P.sets = { slow: [], fast: [] }; P.videos = P.sets.slow; P.main = 0; P.fast = false; P.swap++;
   const seek = $('player-seek'); seek.value = 0; seek.style.setProperty('--p', '0%'); $('player-time').textContent = '0:00';
-  sources.forEach(([label, src, posterUrl], i) => {
+  sources.forEach(([label, src, posterUrl, quick], i) => {
     const frame = el('button', `view loading${i === 0 ? ' main' : ''}`); frame.type = 'button';
-    const v = el('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.disablePictureInPicture = true;
-    if (posterUrl) v.poster = posterUrl;
-    v.src = src; v.dataset.src = src;
-    // Each view shimmers until it can play; the play button follows the main view.
-    v.addEventListener('canplay', () => frame.classList.remove('loading'), { once: true });
-    v.addEventListener('playing', () => { if (P.videos[P.main] === v) playIcon(true); });
-    v.addEventListener('pause', () => { if (P.videos[P.main] === v) playIcon(false); });
-    v.addEventListener('ended', () => { eachVideo(x => x.pause()); if (P.videos[P.main] === v) playIcon(false); });
-    frame.append(v, el('span', 'chip view-tag', label), el('span', 'chip speed', ''));
+    const make = (url, cls) => {
+      const v = el('video', cls); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.disablePictureInPicture = true;
+      v.src = url;
+      // Each view shimmers until it can play; the play button follows the main view.
+      v.addEventListener('canplay', () => frame.classList.remove('loading'), { once: true });
+      v.addEventListener('playing', () => { if (P.videos[P.main] === v) playIcon(true); });
+      v.addEventListener('pause', () => { if (P.videos[P.main] === v) playIcon(false); });
+      v.addEventListener('ended', () => { if (!P.videos.includes(v)) return; eachVideo(x => x.pause()); if (P.videos[P.main] === v) playIcon(false); });
+      return v;
+    };
+    const v = make(src, ''); if (posterUrl) v.poster = posterUrl;
+    frame.append(v); P.sets.slow.push(v);
+    if (quick) { const q = make(quick, 'alt'); frame.append(q); P.sets.fast.push(q); }
+    frame.append(el('span', 'chip view-tag', label), el('span', 'chip speed', ''));
     frame.addEventListener('click', () => {
       if (i === P.main) return togglePlay();
       box.querySelectorAll('.view').forEach((f, j) => f.classList.toggle('main', j === i)); P.main = i;
-      playIcon(!v.paused && v.readyState > 2); viewLabels();
+      const c = P.videos[i]; playIcon(!c.paused && c.readyState > 2); viewLabels();
     });
-    box.append(frame); P.videos.push(v);
+    box.append(frame);
   });
   viewLabels(); playIcon(false);
 }
@@ -699,7 +712,7 @@ function openRun(set, task) {
   p.className = `player t-${typeOf(task)}`;
   $('player-title').innerHTML = `<i></i>${nice(task)}` + (finished !== null ? ` ${statusChip(finished, 'flat')}` : '');
   $('player-sub').innerHTML = [teamHTML(set), facts(task), o && o.hours != null ? workText(o.hours) : '', `${clock(r.seconds)} of video`].filter(Boolean).join(' · ');
-  buildViews(D.media.views.map(view => [view, video(set, task, view), view === 'side' ? '' : poster(set, task, view)]));
+  buildViews(D.media.views.map(view => [view, video(set, task, view), view === 'side' ? '' : poster(set, task, view), fastSrc(video(set, task, view))]));
   $('player-speed').hidden = false; $('player-compare').hidden = false;
   $('player-speed').innerHTML = SPEEDS.map(s => `<button class="chip" type="button" data-speed="${s}">${s}×</button>`).join('');
   $('player-speed').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => setSpeed(+b.dataset.speed)));
@@ -733,9 +746,9 @@ function playerControls() {
   const close = () => {
     if (!p.open || p.classList.contains('is-leaving')) return;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    clearInterval(P.timer); eachVideo(v => v.pause());
+    clearInterval(P.timer); allVideos().forEach(v => v.pause());
     leave(p).then(() => {
-      eachVideo(v => { v.removeAttribute('src'); v.load(); }); $('player-views').innerHTML = '';
+      allVideos().forEach(v => { v.removeAttribute('src'); v.load(); }); $('player-views').innerHTML = '';
       p.classList.remove('is-leaving'); if (p.open) p.close();
       document.querySelectorAll('.cell.cur').forEach(c => c.classList.remove('cur'));
       // Back to the card (or square) that opened the player
