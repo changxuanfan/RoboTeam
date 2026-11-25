@@ -190,43 +190,46 @@ function clipVideo(src, posterUrl, label) {
 }
 
 /* ---------- the hero film ----------
-   A hero-only loop (a "hero" entry in film.json: the hall to the grid, joined by a cross-fade)
-   plays with loop on. Until it is published, the 30 s loop plays only its footage window: just
-   before the end card it dips to the poster, which shows the frame the window starts on, and
-   starts the window again. With reduced motion only the poster shows. */
-const LOOP_WINDOW = [6.2, 26.6];
+   The whole film plays large and silent in the hero once the page has loaded and while it is on
+   screen. A white bar (play, a progress bar to drag, the time, full screen) shows on hover and on
+   focus, and stays while paused. With reduced motion the poster shows until someone presses play. */
 function film() {
-  const f = D.media.film, box = $('film'); if (!f) return;
-  const base = mediaUrl(f.base), wide = box.clientWidth * (devicePixelRatio || 1) > 1400;
-  if (f.film) {
-    const label = f.film.seconds ? `Watch the film · ${clock(f.film.seconds)}` : 'Watch the film';
-    const open = () => openFilm(base + f.film.video, base + f.film.poster);
-    $('watch-film').querySelector('span').textContent = label;
-    $('watch-film').addEventListener('click', open);
-    $('film-play').setAttribute('aria-label', label); $('film-play').addEventListener('click', open);
-  } else { $('watch-film').hidden = true; $('film-play').hidden = true; }
-  if (!motionOK()) return;
-  const begin = hero => {
-    const clip = hero || f.loop; if (!clip) return;
-    const v = el('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('aria-hidden', 'true');
-    v.src = base + (wide || !clip.small ? clip.video : clip.small);
-    v.addEventListener('playing', () => v.classList.add('ready'), { once: true });
-    if (hero) v.loop = true;
-    else {
-      const [from, to] = LOOP_WINDOW; let dip = false;
-      v.addEventListener('loadedmetadata', () => { v.currentTime = from; }, { once: true });
-      v.addEventListener('seeked', () => { if (dip) { dip = false; v.classList.add('ready'); } });
-      // Checked on every frame where the browser allows it, and on timeupdate as a backup (frame callbacks pause in background tabs).
-      const check = () => { if (!dip && v.currentTime >= to) { dip = true; v.classList.remove('ready'); setTimeout(() => { v.currentTime = from; }, 340); } };
-      const frame = () => { check(); v.requestVideoFrameCallback(frame); };
-      if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(frame);
-      v.addEventListener('timeupdate', check);
-    }
-    box.querySelector('.film-poster').after(v); onScreen.observe(v);
+  const f = D.media.film, box = $('film'); if (!f || !f.film) return;
+  const base = mediaUrl(f.base), bar = $('film-bar'), seek = $('fb-seek'), time = $('fb-time'), play = $('fb-play');
+  const total = f.film.seconds || 0;
+  box.querySelector('.film-poster').src = base + f.film.poster;
+  const v = el('video'); v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'metadata';
+  v.setAttribute('aria-label', 'The RoboTeam film, silent'); v.poster = base + f.film.poster;
+  v.addEventListener('playing', () => v.classList.add('ready'), { once: true });
+  box.querySelector('.film-poster').after(v); bar.hidden = false;
+  let dragging = false, wanted = motionOK();
+  const show = () => {
+    const d = v.duration || total, t = v.currentTime || 0;
+    if (!dragging) seek.value = d ? Math.round(t / d * 1000) : 0;
+    seek.style.setProperty('--p', `${seek.value / 10}%`);
+    time.textContent = `${clock(t)} / ${clock(d)}`;
   };
-  const go = () => (f.hero ? Promise.resolve(f.hero) : load(base + 'film.json').then(j => j.hero || null, () => null)).then(begin);
-  const later = () => ('requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 1500 }) : setTimeout(go, 300));
-  if (document.readyState === 'complete') later(); else addEventListener('load', later, { once: true });
+  const state = () => { box.classList.toggle('paused', v.paused); play.setAttribute('aria-label', v.paused ? 'Play the film' : 'Pause the film'); };
+  v.addEventListener('timeupdate', show); v.addEventListener('loadedmetadata', show);
+  v.addEventListener('play', state); v.addEventListener('pause', state); state();
+  play.addEventListener('click', () => { wanted = v.paused; if (v.paused) { if (!v.src) v.src = base + f.film.video; v.play().catch(() => {}); } else v.pause(); });
+  seek.addEventListener('input', () => {
+    dragging = true; if (!v.src) v.src = base + f.film.video;
+    const d = v.duration || total; v.currentTime = seek.value / 1000 * d; show();
+  });
+  seek.addEventListener('change', () => { dragging = false; show(); });
+  $('fb-full').addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else (box.requestFullscreen ? box.requestFullscreen() : v.webkitEnterFullscreen && v.webkitEnterFullscreen());
+  });
+  v.addEventListener('click', () => play.click());
+  // Start only after the page has loaded, and only while the film is on screen.
+  const watch = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting && wanted) { if (!v.src) v.src = base + f.film.video; v.play().catch(() => {}); }
+    else if (!e.isIntersecting && !v.paused) v.pause();
+  }), { threshold: .25 });
+  const later = () => watch.observe(box);
+  if (document.readyState === 'complete') setTimeout(later, 200); else addEventListener('load', () => setTimeout(later, 200), { once: true });
 }
 
 function clips() {
@@ -576,7 +579,7 @@ function library({ fade = false, scroll = true } = {}) {
     head.setAttribute('data-reveal', '');
     const grid = el('div', 'vgrid');
     list.forEach((task, i) => {
-      const card = runCard(set, task, { mark: F.status === 'all', type: F.job === 'all' });
+      const card = runCard(set, task, { type: F.job === 'all' });
       card.setAttribute('data-reveal', ''); card.style.setProperty('--i', i % cols); grid.append(card);
     });
     if (soon.length) grid.append(el('div', 'rest', `<b><span class="soon">${WORDS.soon}</span>${soon.length} more ${soon.length === 1 ? 'video' : 'videos'}</b><ul>${soon.map(t => `<li class="t-${typeOf(t)}"><i></i>${F.job === 'all' ? `${cap(typeOf(t))} · ` : ''}${short(t)}</li>`).join('')}</ul>`));
@@ -1205,14 +1208,14 @@ function chartProgress(F, box) {
     [['both', 'Both'], ['gpt-6.1-sol', mname('gpt-6.1-sol'), 'vio'], ['opus-5.5', mname('opus-5.5'), 's1']].map(([k, n, c]) => `<button type="button" data-v="${k}" aria-pressed="${k === pickProgress}">${c ? `<i class="sw f-${c}"></i>` : ''}${n}</button>`).join('') +
     `</div><p class="run-info">${hint}</p></div><div class="small-multiples" data-stagger data-show="${pickProgress}"></div>`;
   const grid = box.querySelector('.small-multiples'), info = box.querySelector('.run-info');
-  const cols = grid.clientWidth >= 960 ? 4 : grid.clientWidth >= 480 ? 2 : 1, gap = 24, W = Math.floor((grid.clientWidth - gap * (cols - 1)) / cols);
-  const H = Math.round(Math.min(210, Math.max(160, W * 0.68))), L = 32, R = 8, T = 8, B = 24;
+  const cols = grid.clientWidth >= 300 ? 2 : 1, gap = grid.clientWidth >= 600 ? 28 : 14, W = Math.floor((grid.clientWidth - gap * (cols - 1)) / cols);
+  const H = Math.round(Math.min(240, Math.max(160, W * 0.5))), L = 32, R = 8, T = 8, B = 24;
   grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
   TYPES.forEach(([type, typeName]) => {
     const runs = F.timelines.filter(r => typeOf(r.task) === type), most = Math.max(...runs.map(r => r.steps), 1);
     const X = h => L + Math.min(h, 24) / 24 * (W - L - R), Y = v => T + (1 - v / most) * (H - T - B);
     let g = '';
-    [0, 6, 12, 18, 24].forEach(h => { g += `<line class="grid" x1="${X(h)}" x2="${X(h)}" y1="${T}" y2="${H - B}"/>` + txt(X(h), H - B + 17, h ? `${h} h` : '0', '', 'middle'); });
+    (W < 220 ? [0, 12, 24] : [0, 6, 12, 18, 24]).forEach(h => { g += `<line class="grid" x1="${X(h)}" x2="${X(h)}" y1="${T}" y2="${H - B}"/>` + txt(X(h), H - B + 17, h ? `${h} h` : '0', '', 'middle'); });
     g += `<line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>` + txt(L - 8, Y(most) + 4, most, '', 'end');
     // gpt-6.1-sol last, so its violet lines sit on top
     runs.slice().sort((a, b) => (a.set === 'gpt-6.1-sol') - (b.set === 'gpt-6.1-sol')).forEach(r => {

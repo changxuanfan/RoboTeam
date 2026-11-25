@@ -18,8 +18,8 @@
 <link rel="preload" href="assets/fonts/space-grotesk-bold.woff2" as="font" type="font/woff2" crossorigin>
 <script>try{var t=localStorage.getItem('roboteam-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}if('IntersectionObserver'in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('reveal')</script>
 <link rel="preload" as="image" href="https://changxuanfan.github.io/RoboTeam-media/film/roboteam-hero.webp" fetchpriority="high">
-<link rel="stylesheet" href="assets/css/site.css?v=20261126c">
-<script src="assets/js/site.js?v=20261126c" defer></script>
+<link rel="stylesheet" href="assets/css/site.css?v=20261126d">
+<script src="assets/js/site.js?v=20261126d" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -47,15 +47,20 @@
     <p class="kicker">Benchmark · Real time · Cameras only</p>
     <h1 id="hero-title">AI teams run a factory hall of robot arms.</h1>
   </div>
-  <div class="film" id="film">
-    <img class="film-poster" src="https://changxuanfan.github.io/RoboTeam-media/film/roboteam-hero.webp" alt="The factory hall seen from above, with the four jobs on their tables" width="1280" height="720" fetchpriority="high">
-    <button class="film-play" type="button" id="film-play" aria-label="Watch the film"><span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.8v10.4l8.4-5.2z"/></svg>Watch the film</span></button>
-  </div>
   <div class="hero-body">
     <p class="lede">They see only through cameras, the hall never waits for them, and every run is on video.</p>
     <div class="cta">
-      <button class="btn primary" type="button" id="watch-film"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.8v10.4l8.4-5.2z"/></svg><span>Watch the film · 1:44</span></button>
-      <a class="btn" href="#results">See the results <span class="arr" aria-hidden="true">→</span></a>
+      <a class="btn primary" href="#results">See the results <span class="arr" aria-hidden="true">→</span></a>
+      <a class="btn" href="#videos">Watch every run</a>
+    </div>
+  </div>
+  <div class="film" id="film">
+    <img class="film-poster" src="https://changxuanfan.github.io/RoboTeam-media/film/roboteam-film.webp" alt="The RoboTeam film: the factory hall, the four jobs, how the agents work and how six AI teams compare" width="1280" height="720" fetchpriority="high">
+    <div class="film-bar" id="film-bar" hidden>
+      <button class="fb-play" type="button" id="fb-play" aria-label="Play the film"><svg class="i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.8v10.4l8.4-5.2z"/></svg><svg class="i-pause" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h3v10H4zM9 3h3v10H9z"/></svg></button>
+      <input class="fb-seek" id="fb-seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Position in the film">
+      <span class="fb-time" id="fb-time">0:00 / 1:44</span>
+      <button class="fb-full" type="button" id="fb-full" aria-label="Full screen"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg></button>
     </div>
   </div>
 </section>
@@ -93,10 +98,10 @@
     <p class="chapter-lede">Each job comes in three team sizes and three levels: 36 tasks in all. Each clip is a real run at 300× real time. Click it to watch the whole run.</p>
   </div>
   <div class="cards jobs" id="job-cards" data-stagger>
-    <article class="job t-transport" data-type="transport" data-clip="transport-sort" data-reveal><div class="clip"></div><div class="job-text"><h3>Transport</h3><p>Deliver every item to its place on the right board, handing items from arm to arm.</p><dl class="job-meta"><dt>Arms</dt><dd><span class="chip flat" title="Small team">4</span><span class="chip flat" title="Medium team">8</span><span class="chip flat" title="Large team">12</span></dd><dt>Levels</dt><dd><ol class="steps"><li>Flat</li><li>Sockets</li><li>Sprung</li></ol></dd></dl><button class="more" type="button" aria-expanded="false" aria-controls="nine">See all nine tasks</button></div></article>
-    <article class="job t-mosaic" data-type="mosaic" data-clip="mosaic-build" data-reveal><div class="clip"></div><div class="job-text"><h3>Mosaic</h3><p>Build a reference picture with colored cubes, the right color in every cell.</p><dl class="job-meta"><dt>Arms</dt><dd><span class="chip flat" title="Small team">4</span><span class="chip flat" title="Medium team">6</span><span class="chip flat" title="Large team">8</span></dd><dt>Levels</dt><dd><ol class="steps"><li>Pockets</li><li>Lines</li><li>No grid</li></ol></dd></dl><button class="more" type="button" aria-expanded="false" aria-controls="nine">See all nine tasks</button></div></article>
-    <article class="job t-relay" data-type="relay" data-clip="relay-carry" data-reveal><div class="clip"></div><div class="job-text"><h3>Relay</h3><p>Carry long timbers to the goal. Each needs two arms and must change hands in the air.</p><dl class="job-meta"><dt>Arms</dt><dd><span class="chip flat" title="Small team">8</span><span class="chip flat" title="Medium team">12</span><span class="chip flat" title="Large team">16</span></dd><dt>Levels</dt><dd><ol class="steps"><li>Straight</li><li>Curved</li><li>Hinged</li></ol></dd></dl><button class="more" type="button" aria-expanded="false" aria-controls="nine">See all nine tasks</button></div></article>
-    <article class="job t-dial" data-type="dial" data-clip="dial-search" data-reveal><div class="clip"></div><div class="job-text"><h3>Dial</h3><p>Find a hidden code by turning spring-loaded knobs and holding them all at once.</p><dl class="job-meta"><dt>Arms</dt><dd><span class="chip flat" title="Small team">4–8</span><span class="chip flat" title="Medium team">6–12</span><span class="chip flat" title="Large team">8–16</span></dd><dt>Levels</dt><dd><ol class="steps"><li>Table</li><li>Lifted</li><li>Crank</li></ol></dd></dl><button class="more" type="button" aria-expanded="false" aria-controls="nine">See all nine tasks</button></div></article>
+    <article class="job t-transport" data-type="transport" data-clip="transport-sort" data-reveal><div class="clip"></div><div class="job-text"><h3>Transport</h3><p>Deliver every item to its board, passing it from arm to arm.</p><dl class="job-meta"><dt>Arms</dt><dd><span class="chip flat" title="Small team">4</span><span class="chip flat" title="Medium team">8</span><span class="chip flat" title="Large team">12</span></dd><dt>Levels</dt><dd><ol class="steps"><li>Flat</li><li>Sockets</li><li>Sprung</li></ol></dd></dl><button class="more" type="button" aria-expanded="false" aria-controls="nine">See all nine tasks</button></div></article>
+    <article class="job t-mosaic" data-type="mosaic" data-clip="mosaic-build" data-reveal><div class="clip"></div><div class="job-text"><h3>Mosaic</h3><p>Build a picture from colored cubes, one in every cell.</p><dl class="job-meta"><dt>Arms</dt><dd><span class="chip flat" title="Small team">4</span><span class="chip flat" title="Medium team">6</span><span class="chip flat" title="Large team">8</span></dd><dt>Levels</dt><dd><ol class="steps"><li>Pockets</li><li>Lines</li><li>No grid</li></ol></dd></dl><button class="more" type="button" aria-expanded="false" aria-controls="nine">See all nine tasks</button></div></article>
+    <article class="job t-relay" data-type="relay" data-clip="relay-carry" data-reveal><div class="clip"></div><div class="job-text"><h3>Relay</h3><p>Carry long timbers that need two arms and change hands in the air.</p><dl class="job-meta"><dt>Arms</dt><dd><span class="chip flat" title="Small team">8</span><span class="chip flat" title="Medium team">12</span><span class="chip flat" title="Large team">16</span></dd><dt>Levels</dt><dd><ol class="steps"><li>Straight</li><li>Curved</li><li>Hinged</li></ol></dd></dl><button class="more" type="button" aria-expanded="false" aria-controls="nine">See all nine tasks</button></div></article>
+    <article class="job t-dial" data-type="dial" data-clip="dial-search" data-reveal><div class="clip"></div><div class="job-text"><h3>Dial</h3><p>Turn spring-loaded knobs to find a hidden code, and hold them all.</p><dl class="job-meta"><dt>Arms</dt><dd><span class="chip flat" title="Small team">4–8</span><span class="chip flat" title="Medium team">6–12</span><span class="chip flat" title="Large team">8–16</span></dd><dt>Levels</dt><dd><ol class="steps"><li>Table</li><li>Lifted</li><li>Crank</li></ol></dd></dl><button class="more" type="button" aria-expanded="false" aria-controls="nine">See all nine tasks</button></div></article>
   </div>
   <div class="nine" id="nine" hidden></div>
 </section>
