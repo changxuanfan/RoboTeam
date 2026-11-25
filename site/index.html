@@ -32,7 +32,7 @@
     <a href="#videos" data-view="videos">Videos</a>
   </nav>
   <div class="rail-links">
-    <a href="https://arxiv.org/abs/2611.22138">Paper</a>
+    <a class="rl-paper" href="https://arxiv.org/abs/2611.22138">Paper</a>
     <a href="https://github.com/changxuanfan/RoboTeam">Code</a>
     <button class="rail-btn" type="button" data-cite>Cite</button>
     <button class="theme" type="button" id="theme" aria-label="Switch to dark theme" aria-pressed="false"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
@@ -203,23 +203,23 @@
 
 <!-- ===================== Videos ===================== -->
 <div class="page" id="videos" data-view="videos" hidden>
-<section class="chapter" aria-labelledby="videos-title">
+<section class="chapter vids" aria-labelledby="videos-title">
   <div class="chapter-head" data-reveal>
     <p class="kicker">Videos</p>
     <h2 id="videos-title">Every run, on video.</h2>
-    <p class="chapter-lede">Three cameras for every run, at ten times real time. Pick a result, a team or a job.</p>
+    <p class="chapter-lede">Three cameras on one clock for every run, at ten times real time.</p>
   </div>
-  <div class="with-side">
-    <aside class="filters" id="filters">
-      <div class="chips" id="filter-status" role="group" aria-label="Result"></div>
-      <div class="chips" id="filter-team" role="group" aria-label="Team"></div>
-      <div class="chips" id="filter-job" role="group" aria-label="Job"></div>
-    </aside>
-    <div class="side-body">
-      <p class="count" id="count" aria-live="polite"></p>
-      <div id="library"></div>
-    </div>
+  <nav class="jumps" id="jumps" aria-label="Teams" data-stagger></nav>
+  <div class="vbar-mark" id="vbar-mark" aria-hidden="true"></div>
+  <div class="vbar" id="filters">
+    <div class="seg" id="filter-status" role="group" aria-label="Result"></div>
+    <div class="chips" id="filter-job" role="group" aria-label="Job"></div>
+    <div class="chips" id="filter-team" role="group" aria-label="Team"></div>
+    <button class="fbtn" type="button" id="open-team" aria-haspopup="dialog" aria-pressed="false">Team<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg></button>
+    <button class="fbtn" type="button" id="open-job" aria-haspopup="dialog" aria-pressed="false">Job<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg></button>
   </div>
+  <p class="count" id="count" aria-live="polite"></p>
+  <div id="library"></div>
 </section>
 </div>
 </main>
@@ -262,21 +262,30 @@
   </div>
 </dialog>
 
-<dialog class="player" id="player" aria-label="Video player">
+<dialog class="player" id="player" aria-label="Video player" tabindex="-1">
+<div class="player-in" id="player-in">
   <div class="player-top">
     <div><h3 id="player-title"></h3><p class="player-sub" id="player-sub"></p></div>
     <button class="close" type="button" id="player-close" aria-label="Close">✕</button>
   </div>
   <div class="views" id="player-views"></div>
   <div class="controls">
-    <button class="play-btn" type="button" id="player-play" aria-label="Play or pause"></button>
+    <button class="play-btn" type="button" id="player-play" aria-label="Play"></button>
     <input class="seek" type="range" id="player-seek" min="0" max="1000" value="0" aria-label="Position">
     <span class="time" id="player-time">0:00</span>
+    <button class="icon-btn" type="button" id="player-full" aria-label="Full screen" title="Full screen"><svg class="grow" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg><svg class="shrink" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5"/></svg></button>
   </div>
   <div class="player-row">
     <div class="chips" id="player-speed" role="group" aria-label="Speed"></div>
-    <div class="chips compare" id="player-compare" role="group" aria-label="Same job, other team"></div>
+    <div class="chips compare" id="player-compare" role="group" aria-label="Same task"></div>
+    <p class="keys" aria-hidden="true"><kbd>Space</kbd><span>play</span><kbd>←</kbd><kbd>→</kbd><span>5 s</span><kbd>F</kbd><span>full screen</span><kbd>Esc</kbd><span>close</span></p>
   </div>
+</div>
+</dialog>
+
+<dialog class="sheet" id="fsheet" aria-labelledby="fsheet-title">
+  <div class="sheet-head"><h3 id="fsheet-title">Team</h3><button class="close" type="button" id="fsheet-close" aria-label="Close">✕</button></div>
+  <div class="chips" id="fsheet-chips" role="group" aria-labelledby="fsheet-title"></div>
 </dialog>
 </body>
 </html>
