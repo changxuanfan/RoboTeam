@@ -195,7 +195,7 @@ function clipVideo(src, posterUrl, label) {
    focus, and stays while paused. With reduced motion the poster shows until someone presses play. */
 function film() {
   const f = D.media.film, box = $('film'); if (!f || !f.film) return;
-  const base = mediaUrl(f.base), bar = $('film-bar'), seek = $('fb-seek'), time = $('fb-time'), play = $('fb-play');
+  const base = mediaUrl(f.base), at = u => /^https?:/.test(u) ? u : base + u, bar = $('film-bar'), seek = $('fb-seek'), time = $('fb-time'), play = $('fb-play');
   const total = f.film.seconds || 0;
   box.querySelector('.film-poster').src = base + f.film.poster;
   const v = el('video'); v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'metadata';
@@ -212,9 +212,9 @@ function film() {
   const state = () => { box.classList.toggle('paused', v.paused); play.setAttribute('aria-label', v.paused ? 'Play the film' : 'Pause the film'); };
   v.addEventListener('timeupdate', show); v.addEventListener('loadedmetadata', show);
   v.addEventListener('play', state); v.addEventListener('pause', state); state();
-  play.addEventListener('click', () => { wanted = v.paused; if (v.paused) { if (!v.src) v.src = base + f.film.video; v.play().catch(() => {}); } else v.pause(); });
+  play.addEventListener('click', () => { wanted = v.paused; if (v.paused) { if (!v.src) v.src = at(f.film.video); v.play().catch(() => {}); } else v.pause(); });
   seek.addEventListener('input', () => {
-    dragging = true; if (!v.src) v.src = base + f.film.video;
+    dragging = true; if (!v.src) v.src = at(f.film.video);
     const d = v.duration || total; v.currentTime = seek.value / 1000 * d; show();
   });
   seek.addEventListener('change', () => { dragging = false; show(); });
@@ -225,7 +225,7 @@ function film() {
   v.addEventListener('click', () => play.click());
   // Start only after the page has loaded, and only while the film is on screen.
   const watch = new IntersectionObserver(es => es.forEach(e => {
-    if (e.isIntersecting && wanted) { if (!v.src) v.src = base + f.film.video; v.play().catch(() => {}); }
+    if (e.isIntersecting && wanted) { if (!v.src) v.src = at(f.film.video); v.play().catch(() => {}); }
     else if (!e.isIntersecting && !v.paused) v.pause();
   }), { threshold: .25 });
   const later = () => watch.observe(box);
