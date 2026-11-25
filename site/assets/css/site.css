@@ -72,6 +72,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 .kicker{margin:0;font:500 12px/1.4 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
 .model{font-family:var(--mono);font-weight:500;letter-spacing:0;white-space:nowrap}
 .tnum{font-variant-numeric:tabular-nums}
+.nw{white-space:nowrap}
 
 /* Chips. Info: a white pill with mono text and the chip shadow (speed, run length, camera, which
    run is shown). Finished: violet with a check. Not finished: white with an outline. "flat" drops
@@ -691,13 +692,14 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .chart-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px}
 .chart-foot{margin:0;font:400 12.5px/1.5 var(--sans);color:var(--dim);max-width:86ch}
 .aside{margin:40px 0 0;font-size:14.5px;color:var(--dim)}
-.aside a{font-weight:600}
+.aside a{font-weight:600;white-space:nowrap}
 
 /* Team design: a row per design with its drawing, its score, and hours and tokens on shared scales */
 .teams{display:grid;--stagger:.4s}
 .teams-head,.team-row{display:grid;grid-template-columns:minmax(250px,1.1fr) 56px minmax(0,1fr) minmax(0,1fr);column-gap:32px;align-items:center}
 .teams-head{padding:0 0 10px}
 .teams-head>.kicker:nth-child(2){justify-self:end}
+.teams-head>.kicker{text-wrap:balance}
 .team-row{padding:12px 0;border-top:1px solid var(--line);cursor:default;transition:opacity var(--t-hover) var(--ease)}
 .teams:has(.team-row:hover) .team-row:not(:hover){opacity:.42}
 .team-id{display:flex;align-items:center;gap:16px;min-width:0}

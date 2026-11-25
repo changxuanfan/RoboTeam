@@ -18,8 +18,8 @@
 <link rel="preload" href="assets/fonts/space-grotesk-bold.woff2" as="font" type="font/woff2" crossorigin>
 <script>try{var t=localStorage.getItem('roboteam-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}if('IntersectionObserver'in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('reveal')</script>
 <link rel="preload" as="image" href="https://changxuanfan.github.io/RoboTeam-media/film/roboteam-hero.webp" fetchpriority="high">
-<link rel="stylesheet" href="assets/css/site.css?v=20261126a">
-<script src="assets/js/site.js?v=20261126a" defer></script>
+<link rel="stylesheet" href="assets/css/site.css?v=20261126b">
+<script src="assets/js/site.js?v=20261126b" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -125,7 +125,7 @@
 <span class="walk-n" aria-hidden="true">3</span>
 <div class="walk-text"><p class="walk-k">Act</p><h3>One command, one arm</h3><p>Each move is one call to the robot tool. The call can ask for a fresh picture when the move ends.</p></div>
 <div class="walk-ev exchange">
-<div class="call" data-reveal><span class="from">The agent sends</span><code><span class="k">move</span> arm <b>A</b> to (−0.107, −0.973, 0.95) m at 0.12 m/s, then show camera A_front</code></div>
+<div class="call" data-reveal><span class="from">The agent sends</span><code><span class="k">move</span> arm <b>A</b> to (−0.107, −0.973, 0.95)&nbsp;m at 0.12&nbsp;m/s, then show camera A_front</code></div>
 <svg class="arrow" viewBox="0 0 30 12" aria-hidden="true" data-reveal="grow-x" style="--i:1;--stagger:.2s"><path d="M1 6h26M22 1.5 27.5 6 22 10.5"/></svg>
 <div class="reply ok" data-reveal="right" style="--i:1;--stagger:.4s"><span class="from">The robot tool answers</span><p>Completed, with a fresh picture from A_front</p><img class="reply-pic" src="https://changxuanfan.github.io/RoboTeam-media/findings/run-camera.webp" alt="" width="960" height="600" loading="lazy"></div>
 </div>
@@ -134,9 +134,9 @@
 <span class="walk-n" aria-hidden="true">4</span>
 <div class="walk-text"><p class="walk-k">Check</p><h3>Notice, and retry</h3><p>Later another helper grasps with arm C. The gripper closes at 0.065&nbsp;m, not the 0.06&nbsp;m expected. Nothing says what went wrong: the agent looks at the pictures and tries again.</p></div>
 <div class="walk-ev exchange">
-<div class="call" data-reveal><span class="from">The agent sends</span><code><span class="k">grasp</span> with arm <b>C</b>, expecting 0.06 m, then show C_front and C_side</code></div>
+<div class="call" data-reveal><span class="from">The agent sends</span><code><span class="k">grasp</span> with arm <b>C</b>, expecting 0.06&nbsp;m, then show C_front and C_side</code></div>
 <svg class="arrow" viewBox="0 0 30 12" aria-hidden="true" data-reveal="grow-x" style="--i:1;--stagger:.2s"><path d="M1 6h26M22 1.5 27.5 6 22 10.5"/></svg>
-<div class="reply bad" data-reveal="right" style="--i:1;--stagger:.4s"><span class="from">The robot tool answers</span><p>Grasp stopped outside expected object-width tolerance</p></div>
+<div class="reply bad" data-reveal="right" style="--i:1;--stagger:.4s"><span class="from">The robot tool answers</span><p>Grasp stopped outside expected <span class="nw">object-width</span> tolerance</p></div>
 </div>
 </li>
 </ol>
