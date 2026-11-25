@@ -27,6 +27,36 @@ const REFERENCE = 'oracle';
 const SPEEDS = [10, 20, 50, 100, 500, 1500]; // times real time; the videos themselves are 10x
 // 500x plays its own copy of each video (every 50th frame of the 10x one) at normal speed, which stays smooth; 1500x plays that copy 3 times as fast
 const FAST = 500, FAST_STEP = 50, fastSrc = src => src.replace(/\.mp4$/, '-500x.mp4');
+// Hugging Face answers every request for a file with a redirect to a signed CDN address (about a
+// second each time, and it is never cached). direct() asks once, remembers the CDN address until
+// shortly before it expires, and falls back to the plain address on any failure.
+const DIRECT = new Map();
+function direct(url) {
+  if (!/^https:\/\/huggingface\.co\//.test(url)) return Promise.resolve(url);
+  const hit = DIRECT.get(url); if (hit && hit.until > Date.now()) return hit.p;
+  const p = fetch(url, { method: 'HEAD' }).then(r => {
+    if (!r.ok || !r.url || r.url === url) throw new Error('no redirect');
+    const exp = +(new URL(r.url).searchParams.get('Expires') || 0) * 1000;
+    DIRECT.set(url, { p: Promise.resolve(r.url), until: exp ? exp - 5 * 60 * 1000 : Date.now() + 10 * 60 * 1000 });
+    return r.url;
+  }).catch(() => { DIRECT.delete(url); return url; });
+  DIRECT.set(url, { p, until: Date.now() + 10 * 60 * 1000 });
+  return p;
+}
+// Plays `url` in `v` through its CDN address; if that address fails (for example once it expires),
+// goes back to the plain address at the same moment.
+function setVideoSrc(v, url) {
+  v.dataset.src = url;
+  direct(url).then(u => {
+    if (v.dataset.src !== url) return; v.src = u;
+    if (u === url) return;
+    v.addEventListener('error', () => {
+      if (v.dataset.src !== url) return;
+      const t = v.currentTime, playing = !v.paused; DIRECT.delete(url); v.src = url;
+      v.addEventListener('loadedmetadata', () => { v.currentTime = t; if (playing) v.play().catch(() => {}); }, { once: true });
+    }, { once: true });
+  });
+}
 
 const $ = id => document.getElementById(id);
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
@@ -205,6 +235,8 @@ function film() {
   v.addEventListener('playing', () => v.classList.add('ready'), { once: true });
   box.querySelector('.film-poster').after(v); bar.hidden = false;
   let dragging = false, wanted = motionOK();
+  // the film's CDN address is asked for once the page has loaded; play waits for the file if it is not there yet
+  const load = () => { if (v.dataset.src) return; setVideoSrc(v, at(f.film.video)); v.addEventListener('loadedmetadata', () => { if (wanted) v.play().catch(() => {}); }, { once: true }); };
   const show = () => {
     const d = v.duration || total, t = v.currentTime || 0;
     if (!dragging) seek.value = d ? Math.round(t / d * 1000) : 0;
@@ -214,9 +246,9 @@ function film() {
   const state = () => { box.classList.toggle('paused', v.paused); play.setAttribute('aria-label', v.paused ? 'Play the film' : 'Pause the film'); };
   v.addEventListener('timeupdate', show); v.addEventListener('loadedmetadata', show);
   v.addEventListener('play', state); v.addEventListener('pause', state); state();
-  play.addEventListener('click', () => { wanted = v.paused; if (v.paused) { if (!v.src) v.src = at(f.film.video); v.play().catch(() => {}); } else v.pause(); });
+  play.addEventListener('click', () => { wanted = v.paused; if (v.paused) { load(); v.play().catch(() => {}); } else v.pause(); });
   seek.addEventListener('input', () => {
-    dragging = true; if (!v.src) v.src = at(f.film.video);
+    dragging = true; load();
     const d = v.duration || total; v.currentTime = seek.value / 1000 * d; show();
   });
   seek.addEventListener('change', () => { dragging = false; show(); });
@@ -227,10 +259,10 @@ function film() {
   v.addEventListener('click', () => play.click());
   // Start only after the page has loaded, and only while the film is on screen.
   const watch = new IntersectionObserver(es => es.forEach(e => {
-    if (e.isIntersecting && wanted) { if (!v.src) v.src = at(f.film.video); v.play().catch(() => {}); }
+    if (e.isIntersecting && wanted) { load(); v.play().catch(() => {}); }
     else if (!e.isIntersecting && !v.paused) v.pause();
   }), { threshold: .25 });
-  const later = () => watch.observe(box);
+  const later = () => { direct(at(f.film.video)); watch.observe(box); };
   if (document.readyState === 'complete') setTimeout(later, 200); else addEventListener('load', () => setTimeout(later, 200), { once: true });
 }
 
@@ -430,14 +462,16 @@ const PEEK = { card: null, v: null, timer: 0 };
 function peekLater(card, set, task, e) {
   clearTimeout(PEEK.timer);
   if (e.pointerType !== 'mouse' || !mouseOK.matches || stillMQ.matches) return;
+  direct(fastSrc(video(set, task, 'front'))); // start asking for its address now
   PEEK.timer = setTimeout(() => peekStart(card, set, task), 250);
 }
 function peekStart(card, set, task) {
   peekStop();
   const thumb = card.querySelector('.thumb');
-  const v = el('video', 'peek'); v.muted = true; v.playsInline = true; v.preload = 'none'; v.disablePictureInPicture = true; v.loop = true;
-  v.setAttribute('aria-hidden', 'true'); v.src = fastSrc(video(set, task, 'front'));
+  const v = el('video', 'peek'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.disablePictureInPicture = true; v.loop = true;
+  v.setAttribute('aria-hidden', 'true'); setVideoSrc(v, fastSrc(video(set, task, 'front')));
   v.addEventListener('playing', () => v.classList.add('on'), { once: true });
+  v.addEventListener('loadeddata', () => { if (PEEK.v === v) v.play().catch(() => {}); }, { once: true });
   thumb.insertBefore(v, thumb.querySelector('.chip'));
   PEEK.card = card; PEEK.v = v; v.play().catch(() => {});
 }
@@ -678,7 +712,7 @@ function buildViews(sources) {
     const frame = el('button', `view loading${i === 0 ? ' main' : ''}`); frame.type = 'button';
     const make = (url, cls) => {
       const v = el('video', cls); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.disablePictureInPicture = true;
-      v.src = url;
+      setVideoSrc(v, url);
       // Each view shimmers until it can play; the play button follows the main view.
       v.addEventListener('canplay', () => frame.classList.remove('loading'), { once: true });
       v.addEventListener('playing', () => { if (P.videos[P.main] === v) playIcon(true); });
