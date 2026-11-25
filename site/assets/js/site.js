@@ -128,14 +128,14 @@ function film() {
   const f = D.media.film, box = $('film'); if (!f || !f.loop) return;
   // The 720p file is sharp enough unless the box is wider than about 1400 device pixels.
   const base = mediaUrl(f.base), wide = box.clientWidth * (devicePixelRatio || 1) > 1400;
-  // The poster is the hall seen from above, 5.5 s into the loop; the first play starts there.
+  // The poster is the hall seen from above with the four jobs marked, 6.3 s into the loop; the first play starts there.
   // The loop is fetched only once the page has loaded, so it never slows the page down.
   const poster = box.querySelector('.film-poster');
   if (override) { poster.src = mediaUrl(poster.getAttribute('src')); $('how-camera').src = mediaUrl($('how-camera').getAttribute('src')); }
   const begin = () => {
     const v = el('video'); v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('aria-label', 'The RoboTeam film');
     v.src = base + (wide || !f.loop.small ? f.loop.video : f.loop.small);
-    v.addEventListener('loadedmetadata', () => { v.currentTime = 5.4; }, { once: true });
+    v.addEventListener('loadedmetadata', () => { v.currentTime = 6.2; }, { once: true });
     v.addEventListener('playing', () => v.classList.add('ready'), { once: true });
     box.append(v); onScreen.observe(v);
   };
