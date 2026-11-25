@@ -190,7 +190,7 @@ function showView(name) {
   current = name;
   VIEWS.forEach(v => { $(v).hidden = v !== name; });
   document.querySelectorAll('#nav a').forEach(a => { const on = a.dataset.view === name; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  document.title = name === 'overview' ? 'RoboTeam — AI teams running a factory hall of robot arms' : `${cap(name)} · RoboTeam`;
+  document.title = name === 'overview' ? 'RoboTeam: Benchmarking Vision-Based Multi-Agent Control of Many Robot Arms in Real Time' : `${cap(name)} · RoboTeam`;
   if (!shown[name]) { shown[name] = true; (onFirstShow[name] || (() => {}))(); }
   drawCharts(name);
 }

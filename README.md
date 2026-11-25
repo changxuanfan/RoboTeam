@@ -9,6 +9,8 @@
 </a>
 </h1>
 
+### RoboTeam: Benchmarking Vision-Based Multi-Agent Control of Many Robot Arms in Real Time
+
 **Teams of AI agents run a factory hall of robot arms, in real time, from camera images alone.**
 
 <a href="https://arxiv.org/abs/2611.22138"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/button-paper-dark.svg"><img src="docs/media/readme/button-paper-light.svg" alt="Paper: arXiv 2611.22138" height="36"></picture></a>&nbsp;
