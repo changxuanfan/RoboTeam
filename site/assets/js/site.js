@@ -21,7 +21,7 @@ const TEAMS = {
   'qwen3.8-flash': ['qwen3.8-flash', 'in Codex'],
   'deepseek-v4.1-flash': ['deepseek-v4.1-flash', 'in Codex'],
   'glm-5.3-flash': ['glm-5.3-flash', 'in Codex'],
-  oracle: ['Oracle', 'gpt-6.1-sol, told where every object is'],
+  oracle: ['Reference', 'the same AI, given the position of every object'],
 };
 const REFERENCE = 'oracle';
 const SPEEDS = [10, 20, 50, 100]; // times real time; the videos themselves are 10x
@@ -88,7 +88,7 @@ function chrome() {
   const cite = $('cite');
   document.querySelectorAll('[data-cite]').forEach(b => b.addEventListener('click', () => cite.showModal()));
   $('cite-close').addEventListener('click', () => cite.close());
-  cite.addEventListener('click', e => { if (e.target === cite) cite.close(); });
+  cite.addEventListener('click', e => { if (outside(cite, e)) cite.close(); });
 }
 
 /* ---------- entrances ----------
@@ -107,7 +107,7 @@ function reveal(scope = document) {
   revealer = revealer || new IntersectionObserver(entries => entries.forEach(en => {
     if (!en.isIntersecting) return;
     en.target.classList.add('is-in'); revealer.unobserve(en.target);
-  }), { rootMargin: '0px 0px -8% 0px' });
+  }), { rootMargin: '0px 0px -40px 0px' });
   items.forEach(e => revealer.observe(e));
 }
 // Once its entrance has played an element drops the animation, so showing its tab again does not replay it.
@@ -236,7 +236,7 @@ function clips() {
   document.querySelectorAll('.job[data-clip]').forEach(job => {
     const clip = byKey[job.dataset.clip]; if (!clip) return;
     const frame = job.querySelector('.clip'); frame.append(clipVideo(base + clip.video, base + clip.poster, clip.caption)); frame.insertAdjacentHTML('beforeend', speedTag(clip));
-    frame.insertAdjacentHTML('beforeend', `<span class="chip shown">${teamName(clip.set)} · ${short(clip.task)}</span>`);
+    job.querySelector('.job-text').insertAdjacentHTML('afterbegin', `<p class="clip-of"><span class="model">${teamName(clip.set)}</span> · ${short(clip.task)}</p>`);
     if (run(clip.set, clip.task)) { frame.classList.add('opens'); frame.title = 'Open the whole run'; frame.addEventListener('click', () => openRun(clip.set, clip.task)); }
   });
 }
@@ -254,7 +254,7 @@ function numbers(results) {
 // squares dim, and each team's count is for that slice.
 const SLICE = { mode: 'all', size: 'small', level: '1' };
 const inSlice = task => { const [, size, level] = task.split('-'); return SLICE.mode === 'all' || (SLICE.mode === 'size' ? size === SLICE.size : level === `l${SLICE.level}`); };
-const rowName = set => (set === REFERENCE ? ['Reference', 'The same AI, given the position of every object'] : TEAMS[set] || [set, '']);
+const rowName = set => TEAMS[set] || [set, ''];
 
 function boardRow(set) {
   const [label, setup] = rowName(set), reference = set === REFERENCE;
@@ -329,7 +329,7 @@ function tip(anchor, set, task) {
 const COLS = () => (innerWidth >= 1000 ? 4 : innerWidth >= 600 ? 3 : 2);
 const mouseOK = matchMedia('(hover: hover) and (pointer: fine)');
 const stillMQ = matchMedia('(prefers-reduced-motion: reduce)');
-const teamHTML = set => (set === REFERENCE ? 'Oracle' : `<span class="model">${teamName(set)}</span>`);
+const teamHTML = set => (set === REFERENCE ? teamName(set) : `<span class="model">${teamName(set)}</span>`);
 
 function runCard(set, task, { mark = true, type = true, team = false } = {}) {
   const r = run(set, task), finished = done(set, task), o = outcome(set, task), job = cap(typeOf(task));
@@ -356,7 +356,7 @@ const playOnce = (() => {
     if (!e.isIntersecting) return;
     const n = e.target; io.unobserve(n); n.classList.add('play');
     setTimeout(() => n.classList.replace('play', 'played'), +n.dataset.playMs || 2000);
-  }), { rootMargin: '0px 0px -12% 0px' }) : null;
+  }), { rootMargin: '0px 0px -40px 0px' }) : null;
   return (n, ms) => {
     if (n.classList.contains('play') || n.classList.contains('played')) return;
     if (!motionOK() || !io) { n.classList.add('played'); return; }
@@ -374,7 +374,7 @@ function glance() {
   const known = !!D.outcomes, count = set => D.tasks.filter(t => done(set, t)).length;
   const head = `<div class="tz-head" aria-hidden="true"><span></span><span class="tz-strip">${TYPES.map(([k, n]) => `<span class="t-${k}"><i></i>${n}</span>`).join('')}</span><span></span></div>`;
   const row = ([set, tone], r) => {
-    const who = set === REFERENCE ? `<b>Oracle<span class="tag">Reference</span></b><small>the same AI, given the position of every object</small>` : `<b class="model">${teamName(set)}</b><small>${TEAMS[set][1]}</small>`;
+    const who = `<b${set === REFERENCE ? '' : ' class="model"'}>${teamName(set)}</b><small>${TEAMS[set][1]}</small>`;
     let k = 0;
     const cells = TYPES.map(([type]) => `<span class="tz-grp">${SIZES.flatMap(size => [1, 2, 3].map(l => `${type}-${size}-l${l}`)).map(task =>
       `<button type="button" class="tz-cell${done(set, task) ? ' d' : ''}" style="--k:${k++}" data-set="${set}" data-task="${task}" aria-label="${teamName(set)}, ${nice(task)}: ${stateText(set, task) || WORDS.soon}"></button>`).join('')}</span>`).join('');
@@ -451,7 +451,7 @@ function jumps() {
     const n = D.outcomes ? D.tasks.filter(t => done(set, t)).length : null;
     const a = el('a', `jump${set === REFERENCE ? ' ref' : ''}`); a.href = `#team-${set}`; a.dataset.set = set; a.setAttribute('data-reveal', '');
     a.setAttribute('aria-label', `${teamName(set)}${n === null ? '' : `, ${n} of 36 tasks finished`}. Go to its videos`);
-    a.innerHTML = `<span class="jump-name">${set === REFERENCE ? 'Oracle<span class="tag">Reference</span>' : teamHTML(set)}</span>${strip(set)}` +
+    a.innerHTML = `<span class="jump-name">${teamHTML(set)}</span>${strip(set)}` +
       (n === null ? '' : `<span class="jump-score"><b>${n}</b> of 36</span>`);
     a.addEventListener('click', e => { e.preventDefault(); jumpTo(set); });
     box.append(a);
@@ -563,8 +563,8 @@ function library({ fade = false, scroll = true } = {}) {
     const all = list.length + soon.length, ref = set === REFERENCE, fold = F.team === 'all' && !OPEN.has(set) && all > cols;
     const section = el('section', `team${ref ? ' ref' : ''}${fold ? ' folded' : ''}`); section.id = `team-${set}`;
     const finished = D.outcomes ? D.tasks.filter(t => done(set, t)).length : null;
-    const sub = ref ? 'The same AI, given the position of every object' : (TEAMS[set] || [])[1];
-    const head = el('div', 'team-head', `<h3>${ref ? 'Oracle<span class="tag">Reference</span>' : teamHTML(set)}</h3>` +
+    const sub = (TEAMS[set] || [])[1];
+    const head = el('div', 'team-head', `<h3>${teamHTML(set)}</h3>` +
       `<span class="team-sub">${sub ? `${sub} · ` : ''}${list.length} ${list.length === 1 ? 'video' : 'videos'}</span>` +
       (finished === null ? '' : `<span class="team-score"><b>${finished}</b> of 36 finished</span>`));
     head.setAttribute('data-reveal', '');
@@ -998,47 +998,81 @@ function barRows(rows, { max = 100, head = '', cls = '', from = 0 } = {}) {
     `</span><span class="bv">${r.text}</span></div>`).join('')}</div>`;
 }
 
-// Seeing: the same AI with the position of every object, with cameras, with 128 × 80 pictures, without code.
+// Seeing: the same AI given every position, with sharp pictures, with 128 × 80 pictures and without code.
+// Rows, spot, enlarged pixel and words match the README's figure.
+const VISION = [['oracle', 'Reference: given every position', 'soft', 'ref'], ['adaptive', 'Sharp pictures and its own code', 'vio', 'lead'],
+  ['low-resolution', 'Pictures of 128 × 80', 's2', ''], ['robot-tool-only', 'No code, robot tool only', 's2', '']];
 function chartVision(F, box) {
   const V = Object.fromEntries(F.vision.map(v => [v.key, v])), f = F.vision_facts;
   setText('f-vision', 'Seeing', 'Seeing is the hard part.',
-    `Told where every object is, the same AI finishes all ${V.oracle.completed} tasks; from its cameras, ${V.adaptive.completed}. At 128\u00a0×\u00a080 pixels one pixel covers about ${f.pixel_mm}\u00a0mm, more than twice the ${f.tolerance_mm}\u00a0mm it has for placing a cube, and it finishes ${V['low-resolution'].completed}.`,
-    [`${V.oracle.completed}\u2009→\u2009${V.adaptive.completed}`, 'tasks finished once it must see for itself']);
-  const name = { oracle: 'Given every position', adaptive: 'Cameras, 1280\u00a0×\u00a0800', 'low-resolution': 'Cameras, 128\u00a0×\u00a080', 'robot-tool-only': 'Cameras, no own code' };
-  const why = { oracle: 'Reference: the same AI, given the position of every object instead of pictures.', adaptive: 'Sharp camera pictures, and it may write its own code.', 'low-resolution': 'Every picture shrunk to 128 × 80 pixels.', 'robot-tool-only': 'Sharp pictures, but no code of its own: only the robot tool.' };
-  const rows = F.vision.map(v => ({ label: name[v.key] || v.label, value: v.completed, text: v.completed,
-    fill: v.key === 'oracle' ? 'soft' : v.key === 'adaptive' ? 'vio' : 's2', cls: v.key === 'oracle' ? 'ref' : v.key === 'adaptive' ? 'lead' : '',
-    tip: tipLines(name[v.key] || v.label, [['Tasks finished', `${v.completed} of 36`], ['Grasps that fail', pct(v.grasp_fail)]], `<p class="tw">${why[v.key] || ''}</p>`, `${mname('gpt-6.1-sol')}, Adaptive team. ${SOURCE}.`) }));
-  box.innerHTML = `<p class="chart-cap kicker">Tasks finished, of 36</p>${barRows(rows, { max: 36 })}${zoomFigure(f)}`;
-  zoomDrag(box.querySelector('.zoom'));
+    `Given the position of every object, the same AI finishes all ${V.oracle.completed} tasks; from its cameras, ${V.adaptive.completed}. At 128 × 80 pixels one pixel covers about ${f.pixel_mm} mm, more than twice the ${f.tolerance_mm} mm it has for placing a cube, and it finishes ${V['low-resolution'].completed}.`,
+    [`${V.oracle.completed} → ${V.adaptive.completed}`, 'tasks finished once it must see for itself']);
+  const why = { oracle: 'The same AI, given the position of every object instead of pictures.', adaptive: 'Sharp camera pictures, and it may write its own code.', 'low-resolution': 'Every picture shrunk to 128 × 80 pixels.', 'robot-tool-only': 'Sharp pictures, but no code of its own: only the robot tool.' };
+  const rows = VISION.filter(([key]) => V[key]).map(([key, label, fill, cls], i) => {
+    const v = V[key], tip = tipLines(label, [['Tasks finished', `${v.completed} of 36`], ['Grasps that fail', pct(v.grasp_fail)]], `<p class="tw">${why[key]}</p>`, `${mname('gpt-6.1-sol')}, Adaptive team. ${SOURCE}.`);
+    return `<div class="vrow${cls ? ` ${cls}` : ''}" data-reveal="fade" style="--i:${i}" ${tipAt(tip)}><span class="vl">${label}</span>` +
+      `<span class="bt"><i class="bf anchor f-${fill}" data-reveal="grow-x" style="width:${(100 * v.completed / 36).toFixed(2)}%"></i></span>` +
+      `<span class="bv">${v.completed}</span><span class="bv">${pct(v.grasp_fail)}</span></div>`;
+  }).join('');
+  box.innerHTML = `<div class="vbars"><span class="kicker">Finished</span><span class="kicker vg">Grasps fail</span>${rows}</div>${zoomFigure(f)}`;
+  zoomSetup(box.querySelector('.zoom'));
 }
-// The same spot of one camera picture at 1280 × 800 and at 128 × 80, magnified so that one pixel of
-// the small picture is 20 px wide; the bar is the room an agent has for placing a cube.
-const ZOOM = 2; // CSS px per pixel of the 1280 × 800 picture
+// The same spot of one camera picture at 1280 × 800 and at 128 × 80: a board and three red cubes.
+// SPOT is the left, top, columns and rows of the spot in pixels of the 128 × 80 picture. The outlined
+// pixel (PICK, inside the spot) is shown enlarged under each view: 100 sharp pixels against one colour.
+// Dragging moves the picture under both views in whole pixels of the small picture.
+const SPOT = [42, 29, 44, 28], PICK = [4, 25], LOUPE = 64, CONE = 18;
 function zoomFigure(f) {
-  const base = mediaUrl(MEDIA + 'findings/'), bar = (10 * ZOOM * f.tolerance_mm / f.pixel_mm).toFixed(1);
-  const view = (file, res, low) => `<div class="zoom-view${low ? ' low' : ''}"><img src="${base}${file}" alt="" draggable="false" loading="lazy" decoding="async">` +
-    `<span class="chip view-tag">${res}</span><span class="chip scale"><i style="width:${bar}px"></i>${f.tolerance_mm}\u00a0mm</span></div>`;
-  return `<figure class="zoom" data-reveal="up" tabindex="0" aria-label="One camera picture at 1280 by 800 and at 128 by 80 pixels, magnified on the same spot. Drag or use the arrow keys to look around.">` +
-    view('camera-full.webp', '1280\u00a0×\u00a0800') + view('camera-128x80.png', '128\u00a0×\u00a080', true) +
-    `<figcaption>The same spot in both pictures, magnified. The bar is ${f.tolerance_mm}\u00a0mm. Drag to look around.</figcaption></figure>`;
+  const base = mediaUrl(MEDIA + 'findings/'), bar = (LOUPE * f.tolerance_mm / f.pixel_mm).toFixed(1);
+  const view = (file, res, low, words) => `<div class="zv${low ? ' low' : ''}"><p class="kicker">${res}</p>` +
+    `<div class="zv-pic"><div class="zoom-view"><img src="${base}${file}" alt="" draggable="false" decoding="async"><span class="zmark"></span></div>` +
+    `<svg class="cone" aria-hidden="true"><path/></svg></div>` +
+    `<div class="zl"><span class="loupe"><canvas width="${low ? 1 : 10}" height="${low ? 1 : 10}"></canvas><i style="width:${bar}px"></i></span><span class="zw">${words}</span></div></div>`;
+  return `<figure class="zoom" data-reveal="up" tabindex="0" aria-label="The same spot of one camera picture, a board and three red cubes, at 1280 by 800 and at 128 by 80 pixels. One pixel of the small picture covers 100 pixels of the sharp one, about ${f.pixel_mm} mm, more than twice the ${f.tolerance_mm} mm a cube may be off. Drag or use the arrow keys to look around.">` +
+    view('camera-sharp.webp', '1280 × 800', false, `100 pixels<br>≈ ${f.pixel_mm / 10} mm each`) +
+    view('camera-128x80.png', '128 × 80', true, `one pixel<br>≈ ${f.pixel_mm} mm`) +
+    `<p class="zkey"><i style="width:${bar}px"></i>${f.tolerance_mm} mm, the most a cube may be off</p>` +
+    '<figcaption>Drag either picture, or use the arrow keys, to look around.</figcaption></figure>';
 }
-function zoomDrag(fig) {
-  let x = 640, y = 381, last = null; // the red cube in front of arm A
-  const views = [...fig.querySelectorAll('.zoom-view')];
-  const set = () => {
-    const r = views[0].getBoundingClientRect(), hw = r.width / (2 * ZOOM), hh = r.height / (2 * ZOOM);
-    if (r.width) { x = Math.min(Math.max(x, hw), 1280 - hw); y = Math.min(Math.max(y, hh), 800 - hh); }
-    fig.style.setProperty('--zx', x.toFixed(1)); fig.style.setProperty('--zy', y.toFixed(1));
+function zoomSetup(fig) {
+  const [, , cols, rows] = SPOT, views = [...fig.querySelectorAll('.zoom-view')], imgs = views.map(v => v.querySelector('img'));
+  const cans = [...fig.querySelectorAll('.loupe canvas')];
+  let x = SPOT[0], y = SPOT[1], fx = x, fy = y, s = 0, last = null;
+  // Each loupe shows the outlined pixel: the sharp picture box-filtered to 10 × 10 (2560 × 1600 → 1280 × 800), the small one as it is.
+  const loupes = () => cans.forEach((c, j) => {
+    const img = imgs[j]; if (!img.complete || !img.naturalWidth) return;
+    const k = img.naturalWidth / 128, ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = k > c.width; ctx.imageSmoothingQuality = 'low';
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, (x + PICK[0]) * k, (y + PICK[1]) * k, k, k, 0, 0, c.width, c.height);
+  });
+  const place = () => {
+    x = Math.min(Math.max(Math.round(fx), 0), 128 - cols); y = Math.min(Math.max(Math.round(fy), 0), 80 - rows);
+    fig.style.setProperty('--zx', x); fig.style.setProperty('--zy', y); loupes();
+  };
+  // The cone runs from the outlined pixel down to the loupe under the view.
+  const layout = () => {
+    const w = views[0].getBoundingClientRect().width; if (!w || Math.abs(w / cols - s) < 0.01) return;
+    s = w / cols; fig.style.setProperty('--s', `${s.toFixed(3)}px`);
+    const top = (PICK[1] + 1) * s, h = (rows - PICK[1] - 1) * s + CONE, wide = Math.max(LOUPE, (PICK[0] + 1) * s);
+    fig.querySelectorAll('.cone').forEach(c => {
+      c.setAttribute('width', wide); c.setAttribute('height', h.toFixed(1)); c.setAttribute('viewBox', `0 0 ${wide} ${h.toFixed(1)}`); c.style.top = `${top.toFixed(1)}px`;
+      c.querySelector('path').setAttribute('d', `M${(PICK[0] * s).toFixed(1)} 0L0 ${h.toFixed(1)}M${((PICK[0] + 1) * s).toFixed(1)} 0L${LOUPE} ${h.toFixed(1)}`);
+    });
   };
   views.forEach(v => {
-    v.addEventListener('pointerdown', e => { if (e.button) return; last = [e.clientX, e.clientY]; v.setPointerCapture(e.pointerId); fig.classList.add('grabbing'); });
-    v.addEventListener('pointermove', e => { if (!last) return; x -= (e.clientX - last[0]) / ZOOM; y -= (e.clientY - last[1]) / ZOOM; last = [e.clientX, e.clientY]; set(); });
+    v.addEventListener('pointerdown', e => { if (e.button) return; last = [e.clientX, e.clientY]; fx = x; fy = y; v.setPointerCapture(e.pointerId); fig.classList.add('grabbing'); });
+    v.addEventListener('pointermove', e => { if (!last || !s) return; fx -= (e.clientX - last[0]) / s; fy -= (e.clientY - last[1]) / s; last = [e.clientX, e.clientY]; place(); });
     const end = () => { last = null; fig.classList.remove('grabbing'); };
     v.addEventListener('pointerup', end); v.addEventListener('pointercancel', end);
   });
-  fig.addEventListener('keydown', e => { const d = { ArrowLeft: [-12, 0], ArrowRight: [12, 0], ArrowUp: [0, -12], ArrowDown: [0, 12] }[e.key]; if (!d) return; e.preventDefault(); x += d[0]; y += d[1]; set(); });
-  set();
+  fig.addEventListener('keydown', e => {
+    const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key]; if (!d) return;
+    e.preventDefault(); fx = x + d[0]; fy = y + d[1]; place();
+  });
+  imgs.forEach(i => i.addEventListener('load', loupes));
+  if ('ResizeObserver' in window) new ResizeObserver(layout).observe(views[0]);
+  layout(); place();
 }
 
 // Waiting: how each model's agents spend their time.
@@ -1212,7 +1246,7 @@ function nine() {
   const fill = type => {
     const name = TYPES.find(t => t[0] === type)[1];
     const head = SIZES.map(size => { const f = D.facts[`${type}-${size}-l1`] || {}; return `<div class="chd">${cap(size)} team<small>${arms(type, size)} arms · ${f.workload} ${UNIT[f.unit] || ''}</small></div>`; }).join('');
-    const cell = (size, level) => { const id = `${type}-${size}-l${level}`; return `<img loading="lazy" src="${base}${id}.webp" alt="${nice(id)} at its start" title="${nice(id)}" width="1280" height="800">`; };
+    const cell = (size, level) => { const id = `${type}-${size}-l${level}`; return `<img loading="lazy" src="${base}${id}.webp" srcset="${base}${id}.webp 1x, ${base}800/${id}.webp 2x" alt="${nice(id)} at its start" title="${nice(id)}" width="400" height="250">`; };
     box.className = `nine t-${type}`;
     box.innerHTML = `<div class="nine-head"><h3>${name}: three team sizes, three levels</h3><span class="src">Each task at its start, as the cameras see it.</span></div>` +
       `<div class="nine-grid"><span class="corner"></span>${head}${[1, 2, 3].map(l => { const f = D.facts[`${type}-small-l${l}`] || {}; return `<div class="rh">Level ${l}<b>${f.level_note || ''}</b></div>` + SIZES.map(size => cell(size, l)).join(''); }).join('')}</div>`;

@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoboTeam — AI teams running a factory hall of robot arms</title>
-<meta name="description" content="RoboTeam: teams of AI agents control 4 to 16 robot arms in real time, seeing the world only through cameras. 36 long jobs, and every run is on video.">
+<meta name="description" content="RoboTeam: teams of AI agents control 4 to 16 robot arms in real time, seeing the world only through cameras. 36 tasks, and every run is on video.">
 <meta property="og:title" content="RoboTeam">
-<meta property="og:description" content="Teams of AI agents control 4 to 16 robot arms in real time, seeing the world only through cameras. 36 long jobs, and every run is on video.">
+<meta property="og:description" content="Teams of AI agents control 4 to 16 robot arms in real time, seeing the world only through cameras. 36 tasks, and every run is on video.">
 <meta property="og:image" content="https://changxuanfan.github.io/RoboTeam/assets/img/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -14,13 +14,12 @@
 <meta name="theme-color" content="#f4f5f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#13161a" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" href="assets/fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/space-grotesk-bold.woff2" as="font" type="font/woff2" crossorigin>
 <script>try{var t=localStorage.getItem('roboteam-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}if('IntersectionObserver'in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('reveal')</script>
 <link rel="preload" as="image" href="https://changxuanfan.github.io/RoboTeam-media/film/roboteam-hero.webp" fetchpriority="high">
-<link rel="stylesheet" href="assets/css/site.css?v=20261125r">
-<script src="assets/js/site.js?v=20261125r" defer></script>
+<link rel="stylesheet" href="assets/css/site.css?v=20261126a">
+<script src="assets/js/site.js?v=20261126a" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -55,7 +54,7 @@
   <div class="hero-body">
     <p class="lede">They see only through cameras, the hall never waits for them, and every run is on video.</p>
     <div class="cta">
-      <button class="btn primary" type="button" id="watch-film"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.8v10.4l8.4-5.2z"/></svg><span>Watch the film · 1:43</span></button>
+      <button class="btn primary" type="button" id="watch-film"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.8v10.4l8.4-5.2z"/></svg><span>Watch the film · 1:44</span></button>
       <a class="btn" href="#results">See the results <span class="arr" aria-hidden="true">→</span></a>
     </div>
   </div>
@@ -77,8 +76,8 @@
   <div class="new-grid">
     <ul class="points" data-stagger>
       <li data-reveal><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></svg></span><div><b>Up to 16 arms, up to 24 hours</b><p>Teams of 4 to 16 arms share one task, and one run can take a full day of work.</p></div></li>
-      <li data-reveal><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2.2"/></svg></span><div><b>The clock never stops</b><p>The hall runs in real time and does not wait while an agent thinks. A run ends when the agents say the task is done, or after 24 hours of work.</p></div></li>
-      <li data-reveal><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3.5 8.5h3l1.6-2.5h7.8l1.6 2.5h3v10h-17z"/><circle cx="12" cy="13.2" r="3.2"/></svg></span><div><b>Cameras only, no shortcuts</b><p>No object positions and no depth: the agents measure the world from pictures. When they say they are done, an evaluator they cannot reach checks the world itself.</p></div></li>
+      <li data-reveal><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2.2"/></svg></span><div><b>The clock never stops</b><p>The hall runs in real time and does not wait while an agent thinks. A run ends when the agents say they have finished, or after 24 hours of work.</p></div></li>
+      <li data-reveal><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3.5 8.5h3l1.6-2.5h7.8l1.6 2.5h3v10h-17z"/><circle cx="12" cy="13.2" r="3.2"/></svg></span><div><b>Cameras only, no shortcuts</b><p>No object positions and no depth: the agents measure the world from pictures. When they say they have finished, an evaluator they cannot reach checks the world itself.</p></div></li>
     </ul>
     <figure class="panel wn" id="chart-compare" data-reveal>
       <figcaption class="wn-cap"><b>Only RoboTeam has 16 arms and runs of up to 24 hours.</b><span>The benchmarks compared in the paper. Point at one for details.</span></figcaption>
@@ -152,8 +151,8 @@
 </section>
 
 <section class="chapter next" aria-label="Where to go next" data-stagger>
-  <a class="go" href="#results" data-reveal><span class="go-text"><span class="kicker">Results</span><b>Who finished what, and six things the runs show <span class="arr" aria-hidden="true">→</span></b><span class="go-sub">Every attempt of every team on one board, and charts in plain words.</span></span><span class="go-thumb board-thumb" id="go-board" aria-hidden="true"></span></a>
-  <a class="go" href="#videos" data-reveal><span class="go-text"><span class="kicker">Videos</span><b>Watch every run from three cameras <span class="arr" aria-hidden="true">→</span></b><span class="go-sub">218 runs of six AI teams and the Oracle, at 10 to 100 times real time.</span></span><span class="go-thumb mosaic-thumb" id="go-mosaic" aria-hidden="true"></span></a>
+  <a class="go" href="#results" data-reveal><span class="go-text"><span class="kicker">Results</span><b>Who finished what, and five things the runs show <span class="arr" aria-hidden="true">→</span></b><span class="go-sub">Every attempt of every team on one board, and charts in plain words.</span></span><span class="go-thumb board-thumb" id="go-board" aria-hidden="true"></span></a>
+  <a class="go" href="#videos" data-reveal><span class="go-text"><span class="kicker">Videos</span><b>Watch every run from three cameras <span class="arr" aria-hidden="true">→</span></b><span class="go-sub">218 runs of six AI teams and the Reference, at 10 to 100 times real time.</span></span><span class="go-thumb mosaic-thumb" id="go-mosaic" aria-hidden="true"></span></a>
 </section>
 </div>
 
@@ -190,7 +189,7 @@
           </div>
         </div>
         <div class="legend">
-          <span><i class="cell done"></i>Finished</span><span><i class="cell"></i>Not finished</span><span><i class="cell none"></i>Video coming soon</span>
+          <span><i class="cell done"></i>Finished</span><span><i class="cell"></i>Not finished</span><span><i class="cell none"></i>Coming soon</span>
           <span class="legend-note">Each group of three: Levels 1, 2, 3</span>
         </div>
       </div>
@@ -245,7 +244,7 @@
   <div class="foot-in">
     <div class="foot-run">
       <span class="kicker">Run it yourself</span>
-      <code>git clone https://github.com/changxuanfan/RoboTeam.git</code>
+      <code>git clone https://github.com/changxuanfan/<wbr>RoboTeam.git</code>
       <a href="https://github.com/changxuanfan/RoboTeam/blob/main/docs/getting-started.md">Getting started guide →</a>
     </div>
     <div class="foot-links">

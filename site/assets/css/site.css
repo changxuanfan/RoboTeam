@@ -2,6 +2,18 @@
    data-theme on <html>). The film, this page and the README share one set of colors, type,
    shadows, radii and motion: one violet accent, task colors only for task identity, white
    cards and chips on a paper ground. */
+/* Fonts, served with the page: IBM Plex Sans for reading, Space Grotesk Bold for titles and numbers,
+   JetBrains Mono Medium for labels and code. Each face covers a weight range, so no text is drawn in a
+   synthetic bold. The arrows, ≈ and ✕ that Plex lacks come from the JetBrains Mono file, at each Plex weight. */
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/ibm-plex-sans-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:500;font-display:swap;src:url(../fonts/ibm-plex-sans-latin-500-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:600 700;font-display:swap;src:url(../fonts/ibm-plex-sans-latin-600-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/jetbrains-mono-medium.woff2) format("woff2");unicode-range:U+2190,U+2192,U+2194-2199,U+2248,U+2713,U+2715}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:500;font-display:swap;src:url(../fonts/jetbrains-mono-medium.woff2) format("woff2");unicode-range:U+2190,U+2192,U+2194-2199,U+2248,U+2713,U+2715}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:600 700;font-display:swap;src:url(../fonts/jetbrains-mono-medium.woff2) format("woff2");unicode-range:U+2190,U+2192,U+2194-2199,U+2248,U+2713,U+2715}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:600 700;font-display:swap;src:url(../fonts/space-grotesk-bold.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:400 600;font-display:swap;src:url(../fonts/jetbrains-mono-medium.woff2) format("woff2")}
+
 :root,[data-theme="light"]{
   --paper:#f4f5f6;--card:#ffffff;--ink:#15181c;--ink2:#3b4148;--dim:#69717c;--line:#d3d6db;
   --vio:#6a4fd1;--vio-soft:#cfc5f5;--vio-tint:#f1eefc;--vio-ink:#3c2c8f;--on-vio:#ffffff;
@@ -64,7 +76,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 /* Chips. Info: a white pill with mono text and the chip shadow (speed, run length, camera, which
    run is shown). Finished: violet with a check. Not finished: white with an outline. "flat" drops
    the shadow where a chip sits in a line of text. */
-.chip,.speed,.shown,.len,.view-tag,.compare:not(.chips) span{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:var(--r-chip);background:var(--card);color:var(--ink2);font:500 12px/1 var(--mono);letter-spacing:.01em;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:middle;box-shadow:var(--sh-chip),inset 0 0 0 1px var(--ring)}
+.chip,.speed,.len,.view-tag{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:var(--r-chip);background:var(--card);color:var(--ink2);font:500 12px/1 var(--mono);letter-spacing:.01em;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:middle;box-shadow:var(--sh-chip),inset 0 0 0 1px var(--ring)}
 .chip.fin{background:var(--vio);color:var(--on-vio);box-shadow:var(--sh-chip)}
 .chip.fin::before{content:"";width:10px;height:10px;margin-left:-1px;flex:none;background:currentColor;-webkit-mask:var(--i-check) center/contain no-repeat;mask:var(--i-check) center/contain no-repeat}
 .chip.not{box-shadow:var(--sh-chip),inset 0 0 0 1.5px var(--s2)}
@@ -72,7 +84,6 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 .chip.fin.flat{box-shadow:none}
 .chip.not.flat{box-shadow:inset 0 0 0 1.5px var(--s2)}
 .speed{position:absolute;right:12px;top:12px;pointer-events:none}
-.shown{position:absolute;left:12px;bottom:12px;pointer-events:none}
 .view-tag{position:absolute;left:12px;top:12px;pointer-events:none}
 .soon{display:inline-flex;align-items:center;height:22px;padding:0 9px;border:1.5px dashed var(--s2);border-radius:var(--r-chip);font:500 12px/1 var(--mono);color:var(--ink2);white-space:nowrap;vertical-align:middle}
 /* Filter chips: the same pill as a toggle button */
@@ -83,8 +94,6 @@ button.chip[aria-pressed="true"]{background:var(--vio-tint);color:var(--vio-ink)
 button.chip[aria-pressed="true"]:hover{box-shadow:inset 0 0 0 1.5px var(--vio)}
 button.chip:disabled{opacity:.45;cursor:default;transform:none;color:var(--ink2);box-shadow:inset 0 0 0 1px var(--line)}
 .chip i{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
-.chip i.sq{border-radius:3px;background:none;box-shadow:inset 0 0 0 1.5px var(--s2)}
-.chip i.sq.done{background:var(--vio);box-shadow:none}
 .chip small{font:500 12px/1 var(--sans);color:var(--dim);font-variant-numeric:tabular-nums}
 button.chip[aria-pressed="true"] small{color:inherit;opacity:.78}
 
@@ -103,8 +112,8 @@ a:hover .arr,button:hover .arr{transform:translateX(4px)}
 
 /* Cards: a white face with a hairline. A card that opens something lifts 2 px on hover. */
 .card{position:relative;display:grid;align-content:start;min-width:0;overflow:hidden;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);color:var(--ink);text-align:left;transition:transform var(--t-hover) var(--ease),box-shadow var(--t-hover) var(--ease)}
-:is(a,button).card:hover,.card.opens:hover,.go:hover,.link-list a:hover{transform:translateY(-2px);box-shadow:var(--sh-plate);text-decoration:none}
-:is(a,button).card:active,.card.opens:active,.go:active,.link-list a:active{transform:none;box-shadow:var(--sh-chip)}
+:is(a,button).card:hover,.card.opens:hover,.go:hover{transform:translateY(-2px);box-shadow:var(--sh-plate);text-decoration:none}
+:is(a,button).card:active,.card.opens:active,.go:active{transform:none;box-shadow:var(--sh-chip)}
 
 /* Notes: a violet-tinted call-out. stem-up, -down, -left or -right draws a stem to what it points
    at; --stem sets its length and --stem-at its place along the edge. */
@@ -118,8 +127,8 @@ a:hover .arr,button:hover .arr{transform:translateX(4px)}
 
 /* Pictures and video: one radius, and a 1 px LINE edge in dark mode */
 .media{position:relative;overflow:hidden;border-radius:var(--r-media);background:var(--video)}
-.media,.film,.view,.compare:not(.chips){outline:1px solid var(--ring);outline-offset:-1px}
-:is(.media,.film,.view,.compare):focus-visible{outline:2px solid var(--vio);outline-offset:2px}
+.media,.film,.view{outline:1px solid var(--ring);outline-offset:-1px}
+:is(.media,.film,.view):focus-visible{outline:2px solid var(--vio);outline-offset:2px}
 
 /* Entrances play once, the first time an element comes into view (site.js adds .is-in, then
    .rv-done so a tab switch never replays them). data-reveal="" slides 14 px from the left, "up"
@@ -185,7 +194,6 @@ a:hover .arr,button:hover .arr{transform:translateX(4px)}
 
 /* Charts: one panel per finding, drawn as SVG in the theme's colors */
 .panel{margin:0;border:1px solid var(--line);border-radius:var(--r-card);padding:18px 18px 14px;background:var(--card);display:grid;gap:10px;align-content:start;min-width:0}
-.panel-cap{margin:0;font:600 13px var(--sans);color:var(--ink2)}
 .panel h3{font-size:20px;line-height:1.25}
 .panel .say{margin:0;font-size:14.5px;color:var(--ink2);max-width:62ch}
 .src{margin:0;font:400 12.5px/1.55 var(--sans);color:var(--dim)}
@@ -214,8 +222,6 @@ a:hover .arr,button:hover .arr{transform:translateX(4px)}
 .small-multiples{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
 @media (max-width:980px){.small-multiples{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:560px){.small-multiples{grid-template-columns:1fr}}
-.scroll-x{overflow-x:auto;margin-inline:-4px;padding-inline:4px}
-.scroll-x .chart{min-width:560px}
 /* A segmented switch: a recessed well with the chosen option raised, like the page tabs */
 .seg{display:inline-flex;flex-wrap:nowrap;gap:2px;padding:3px;border-radius:10px;background:var(--well);box-shadow:inset 0 0 0 1px var(--line);max-width:100%;overflow-x:auto;scrollbar-width:none}
 .seg::-webkit-scrollbar{display:none}
@@ -253,23 +259,37 @@ a:hover .arr,button:hover .arr{transform:translateX(4px)}
 .levels .bars{grid-template-columns:62px minmax(0,1fr) 2ch}
 
 /* Seeing: the same spot at 1280 × 800 and at 128 × 80, dragged together */
-.zoom{margin:6px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:10px;outline:0}
-.zoom figcaption{grid-column:1/-1;font:400 12.5px/1.5 var(--sans);color:var(--dim)}
-.zoom-view{position:relative;aspect-ratio:16/10;overflow:hidden;border-radius:var(--r-media);background:var(--well);cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none;outline:1px solid var(--ring);outline-offset:-1px}
+.vbars{display:grid;grid-template-columns:minmax(0,48fr) minmax(0,10fr) minmax(0,42fr);column-gap:12px;row-gap:12px;--stagger:.4s}
+.vbars>.kicker{grid-column:1/3;margin:0}
+.vbars>.vg{grid-column:3;justify-self:end}
+.vrow{grid-column:1/-1;display:grid;grid-template-columns:subgrid;row-gap:6px;align-items:center;cursor:default;transition:opacity var(--t-hover) var(--ease)}
+.vbars:has(.vrow:hover) .vrow:not(:hover){opacity:.42}
+.vl{grid-column:1/-1;font:500 14px/1.25 var(--sans);color:var(--ink2)}
+.vrow .bv{font:600 15px/1 var(--display)}
+.vrow.ref .vl,.vrow.ref .bv{color:var(--vio-ink)}
+.vrow.lead .vl,.vrow.lead .bv{color:var(--vio)}
+.vrow.ref{border-radius:4px;background:var(--vio-tint);box-shadow:0 0 0 6px var(--vio-tint)}
+.zoom{margin:10px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;outline:0}
+.zv .kicker{margin:0 0 8px}
+.zv-pic{position:relative}
+.zoom-view{position:relative;aspect-ratio:44/28;overflow:hidden;border-radius:var(--r-media);background:var(--well);cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none;outline:1px solid var(--ring);outline-offset:-1px}
 .zoom.grabbing .zoom-view{cursor:grabbing}
-.zoom-view img{position:absolute;left:calc(50% - var(--zx,640) * 2px);top:calc(50% - var(--zy,381) * 2px);width:2560px;height:1600px;max-width:none;pointer-events:none}
-.zoom-view.low img{image-rendering:pixelated}
-.zoom-view .view-tag{left:10px;top:10px}
-.zoom .scale{position:absolute;left:10px;bottom:10px;gap:7px;pointer-events:none}
-.zoom .scale i{height:4px;border-radius:1px;background:var(--vio)}
+.zoom-view img{position:absolute;left:calc(var(--s,6px) * var(--zx,42) * -1);top:calc(var(--s,6px) * var(--zy,29) * -1);width:calc(var(--s,6px) * 128);height:calc(var(--s,6px) * 80);max-width:none;pointer-events:none}
+.zv.low img,.loupe canvas{image-rendering:pixelated}
+.zmark{position:absolute;left:calc(var(--s,6px) * 4);top:calc(var(--s,6px) * 25);width:var(--s,6px);height:var(--s,6px);border:1.5px solid var(--vio);box-shadow:0 0 0 1px #fff;pointer-events:none}
+.cone{position:absolute;left:0;overflow:visible;pointer-events:none}
+.cone path{fill:none;stroke:var(--vio);stroke-width:1.25}
+.zl{display:flex;align-items:center;gap:14px;margin-top:18px}
+.loupe{position:relative;flex:none;width:64px;height:64px;border-radius:4px;overflow:hidden;background:var(--well)}
+.loupe canvas{display:block;width:100%;height:100%}
+.loupe::after{content:"";position:absolute;inset:0;border-radius:4px;box-shadow:inset 0 0 0 1.5px var(--vio)}
+.loupe i{position:absolute;left:6px;bottom:7px;height:6px;border-radius:1.5px;background:var(--vio);box-shadow:0 0 0 1px #fff}
+.zw{font:500 14px/1.4 var(--sans);color:var(--ink2)}
+.zkey{grid-column:1/-1;margin:2px 0 0;display:flex;align-items:center;gap:12px;font:500 14px/1.4 var(--sans);color:var(--ink2)}
+.zkey i{flex:none;height:6px;border-radius:1.5px;background:var(--vio)}
+.zoom figcaption{grid-column:1/-1;margin-top:-6px;font:400 12.5px/1.5 var(--sans);color:var(--dim)}
 .zoom:focus-visible .zoom-view{outline:2px solid var(--vio);outline-offset:2px}
-@container (max-width:430px){.zoom{grid-template-columns:1fr}}
-.facts2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.fact{border-radius:10px;padding:12px 14px;background:var(--bg2);display:grid;gap:6px}
-.fact b{font:700 30px/1 var(--display)}
-.fact span{font-size:13px;color:var(--ink2)}
-.meter{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
-.meter i{display:block;height:100%;background:var(--c,var(--ink))}
+@container (max-width:479px){.zoom{grid-template-columns:minmax(0,1fr);row-gap:20px}}
 
 /* Results: three numbers, the switch, then the board of squares */
 .big{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin:4px 0 40px}
@@ -387,7 +407,6 @@ button.cell:hover,.cell.cur{transform:scale(1.3)}
 .jump.ref{background:var(--vio-tint);border-color:var(--vio-soft)}
 .jump-name{grid-area:name;display:flex;align-items:center;min-width:0;height:22px;font:600 15px/1 var(--display);white-space:nowrap}
 .jump-name .model{font:500 14px/1 var(--mono);overflow:hidden;text-overflow:ellipsis}
-.jump-name .tag{margin-left:8px}
 .jump-score{grid-area:score;font:400 13px/1 var(--sans);color:var(--dim);white-space:nowrap}
 .jump-score b{margin-right:3px;font:600 18px/1 var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
 .jump.ref .jump-score b{color:var(--vio-ink)}
@@ -520,17 +539,12 @@ button.cell:hover,.cell.cur{transform:scale(1.3)}
 .empty{color:var(--dim);padding:18px 0}
 .empty .link-btn{margin-left:6px;color:var(--vio);font-size:inherit}
 @media (max-width:599px){.rest{grid-column:1/-1}}
-/* Get started */
-.start-grid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:18px}
-@media (max-width:860px){.start-grid{grid-template-columns:1fr}}
+/* The citation box: code on a white card with a copy button */
 .code-card{position:relative;min-width:0}
 pre{margin:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;font:400 12px/1.65 var(--mono);overflow-x:auto;color:var(--ink2);height:100%}
 .copy{position:absolute;right:10px;top:10px;height:28px;padding:0 10px;font:500 12px/1 var(--mono);border-radius:8px;background:var(--card);color:var(--ink2);box-shadow:inset 0 0 0 1px var(--line);transition:box-shadow var(--t-hover) var(--ease),color var(--t-hover) var(--ease)}
 .copy:hover{color:var(--ink);box-shadow:inset 0 0 0 1px var(--s2)}
 .copy:active{transform:scale(.97)}
-.link-list{list-style:none;margin:22px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
-.link-list a{display:flex;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-btn);background:var(--card);color:var(--ink);font-weight:600;transition:transform var(--t-hover) var(--ease),box-shadow var(--t-hover) var(--ease)}
-.link-list span{font:500 12.5px var(--sans);color:var(--dim)}
 .foot{max-width:var(--max);margin:auto;padding:22px var(--gutter) 40px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;font-size:13px;color:var(--dim)}
 
 /* The player: three cameras on one clock */
@@ -621,7 +635,7 @@ pre{margin:0;background:var(--card);border:1px solid var(--line);border-radius:1
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition:none!important}
-  :is(a,button).card:hover,.card.opens:hover,.go:hover,.link-list a:hover,.btn.primary:hover,a:hover .arr,button:hover .arr{transform:none}
+  :is(a,button).card:hover,.card.opens:hover,.go:hover,.btn.primary:hover,a:hover .arr,button:hover .arr{transform:none}
 }
 
 /* ---------- three views ---------- */
@@ -733,7 +747,7 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .foot{max-width:var(--max);margin:clamp(40px,6vw,64px) auto 0;padding:26px var(--gutter) 36px;border-top:1px solid var(--line);display:grid;gap:14px}
 .foot-in{display:flex;flex-wrap:wrap;gap:14px 28px;justify-content:space-between;align-items:center}
 .foot-run{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;min-width:0}
-.foot-run code{font:400 12.5px var(--mono);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:5px 9px;color:var(--ink2);overflow-wrap:anywhere}
+.foot-run code{display:inline-block;max-width:100%;font:500 12.5px/1.5 var(--mono);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:4px 9px;color:var(--ink2);overflow-wrap:normal}
 .foot-run a{font-size:14px;font-weight:600}
 .foot-links{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:14px}
 .foot-links a{color:var(--ink2)}
@@ -892,6 +906,8 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .job .clip video{transition:transform var(--t-move) var(--ease-move)}
 .job .clip.opens:hover video{transform:scale(1.03)}
 .job-text{display:flex;flex-direction:column;gap:12px;flex:1;padding:16px 18px 18px}
+.job .clip-of{margin:-2px 0 -4px;font:400 13px/1.4 var(--sans);color:var(--dim);text-wrap:balance}
+.job .clip-of .model{font:500 12.5px var(--mono);color:var(--ink2)}
 .job h3{font-size:22px;line-height:1.15}
 .job p{margin:0;font-size:15px;line-height:1.5;color:var(--ink2)}
 .job-meta{margin:2px 0 0;display:grid;gap:7px}
@@ -914,7 +930,7 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .nine-grid .chd small{display:block;margin-top:2px;font:400 12.5px var(--sans);color:var(--dim)}
 .nine-grid .rh{font:500 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
 .nine-grid .rh b{display:block;margin-top:5px;font:600 14px/1.35 var(--sans);letter-spacing:0;text-transform:none;color:var(--ink)}
-.nine-grid img{display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;border-radius:8px;background:var(--well);outline:1px solid var(--ring);outline-offset:-1px}
+.nine-grid img{display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;border-radius:var(--r-media);background:var(--well);outline:1px solid var(--ring);outline-offset:-1px}
 @media (max-width:640px){.nine{padding:18px 14px 14px}.nine-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.nine-grid .corner{display:none}.nine-grid .rh{grid-column:1/-1;margin-top:6px}}
 
 /* How a run works: four steps of one real run */
