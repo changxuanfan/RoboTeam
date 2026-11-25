@@ -565,7 +565,7 @@ function library({ fade = false, scroll = true } = {}) {
     const finished = D.outcomes ? D.tasks.filter(t => done(set, t)).length : null;
     const sub = (TEAMS[set] || [])[1];
     const head = el('div', 'team-head', `<h3>${teamHTML(set)}</h3>` +
-      `<span class="team-sub">${sub ? `${sub} · ` : ''}${list.length} ${list.length === 1 ? 'video' : 'videos'}</span>` +
+      `<span class="team-sub">${sub ? `${sub} · ` : ''}${list.length}\u00a0${list.length === 1 ? 'video' : 'videos'}</span>` +
       (finished === null ? '' : `<span class="team-score"><b>${finished}</b> of 36 finished</span>`));
     head.setAttribute('data-reveal', '');
     const grid = el('div', 'vgrid');

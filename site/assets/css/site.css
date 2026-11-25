@@ -70,7 +70,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 /* ---------- shared components ---------- */
 /* Short upper-case labels; model names; numbers that are compared */
 .kicker{margin:0;font:500 12px/1.4 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
-.model{font-family:var(--mono);font-weight:500;letter-spacing:0}
+.model{font-family:var(--mono);font-weight:500;letter-spacing:0;white-space:nowrap}
 .tnum{font-variant-numeric:tabular-nums}
 
 /* Chips. Info: a white pill with mono text and the chip shadow (speed, run length, camera, which
