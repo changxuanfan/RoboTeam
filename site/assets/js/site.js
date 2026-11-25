@@ -665,8 +665,8 @@ function chartSystems(F, box) {
   const call = { 'single-agent': ['hours', `${timeX}× the time`], hierarchical: ['tokens', `${tokX}× the tokens`] };
   const measure = (key, m, v, vmax, text, i) => {
     const w = 100 * v / vmax, note = call[key] && call[key][0] === m ? call[key][1] : '';
-    return `<div class="team-m"><span class="ml">${m === 'hours' ? 'Hours' : 'Tokens read'}</span><span class="bt bare"><i class="bf f-${key === 'adaptive' ? 'vio' : 's2'}" data-reveal="grow-x" style="width:${w.toFixed(2)}%"></i></span><span class="bv">${text}</span>` +
-      (note ? `<p class="note stem-up callout" data-reveal="up" style="--i:${i + 0.75};margin-right:${(100 - w).toFixed(2)}%">${note}</p>` : '') + '</div>';
+    return `<div class="team-m${note ? ' has-note' : ''}"><span class="ml">${m === 'hours' ? 'Hours' : 'Tokens read'}</span><span class="bt bare"><i class="bf f-${key === 'adaptive' ? 'vio' : 's2'}" data-reveal="grow-x" style="width:${w.toFixed(2)}%"></i>` +
+      (note ? `<span class="note stem-up callout" data-reveal="up" style="--i:${i + 0.75};right:${(100 - w).toFixed(2)}%">${note}</span>` : '') + `</span><span class="bv">${text}</span></div>`;
   };
   const rows = DESIGNS.map(([key, name, line], i) => {
     const s = S[key];

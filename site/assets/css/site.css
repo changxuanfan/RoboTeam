@@ -590,7 +590,9 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .team-m{display:grid;grid-template-columns:minmax(0,1fr) 7ch;column-gap:12px;align-items:center}
 .team-m .bv{min-width:0}
 .ml{display:none}
-.callout{grid-column:1;grid-row:2;justify-self:end;margin:10px 0 0;padding:4px 10px;font-size:13px;white-space:nowrap;--stem:10px;--stem-at:calc(100% - 16px)}
+/* A call-out hangs under the end of its bar, so every row keeps its bars on one line */
+.callout{position:absolute;top:calc(100% + 9px);padding:3px 9px;font-size:12.5px;line-height:1.4;white-space:nowrap;--stem:9px;--stem-at:calc(100% - 14px)}
+.team-row{padding:14px 0}
 @container (max-width:640px){
   .teams-head{display:none}
   .team-row{grid-template-columns:minmax(0,1fr);row-gap:10px;padding:14px 0}
@@ -598,7 +600,7 @@ p,li,dd,small,figcaption{text-wrap:pretty}
   .team-fin,.team-m{justify-self:stretch;display:grid;grid-template-columns:104px minmax(0,1fr) 7ch;column-gap:10px;align-items:center}
   .ml{display:block;font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
   .team-fin b{grid-column:2}
-  .callout{grid-column:2}
+  .team-m.has-note{margin-bottom:36px}
 }
 
 /* Explore every run: the progress of each run, one small chart per job */
