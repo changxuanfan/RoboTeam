@@ -111,9 +111,17 @@ Earlier benchmarks test agents in a simpler world in three ways. RoboTeam remove
 ## How a run works
 
 <table><tr>
-<td width="44%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#how"><img src="docs/media/readme/camera.webp" alt="Arm A's front camera at the start of a Transport run: cubes, boards and arms on a wooden table" width="100%"></a><br><sub>What an agent sees: one arm's camera.</sub></td>
-<td valign="top"><b>1 · See.</b> Fixed cameras send pictures. No positions, no depth.<br><br><b>2 · Decide.</b> AI agents split the work and write their own code.<br><br><b>3 · Act.</b> One robot tool moves the arms, one command at a time.<br><br><sub>The clock never stops: a run ends when the agents say they are done, or after 24 hours. A team is a Single agent, Hierarchical, Decentralized or Adaptive (the default). <a href="docs/benchmark/rules.md#a-run-in-six-steps">Rules of a run</a></sub></td>
+<td width="52%" valign="middle"><a href="https://changxuanfan.github.io/RoboTeam/#how"><img src="docs/media/readme/camera.webp" alt="Arm A's front camera at the start of a Transport run: cubes, boards and arms on a wooden table" width="100%"></a><br><sub>One arm's camera, as the agent sees it</sub></td>
+<td width="48%" valign="middle">
+<b>① See</b><br><sub>Fixed cameras send pictures. No positions, no depth.</sub><br><br>
+<b>② Decide</b><br><sub>AI agents split the work and write their own code.</sub><br><br>
+<b>③ Act</b><br><sub>One robot tool moves the arms, one command at a time.</sub>
+</td>
 </tr></table>
+
+The clock never stops: a run ends when the agents say they are done, or after 24 hours. A team
+runs as a Single agent, Hierarchical, Decentralized or Adaptive (the default). The
+[rules of a run](docs/benchmark/rules.md#a-run-in-six-steps) give the details.
 
 ## What we found
 
