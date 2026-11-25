@@ -48,7 +48,7 @@ tokens read, the text a model reads, which sets the cost.
 </tr></table>
 <table><tr>
 <td width="50%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#task=relay-medium-l3&amp;set=gpt-6.1-sol"><img src="docs/media/readme/relay.webp" alt="Twelve arms pass timbers from arm to arm, at 300 times real time" width="100%"></a><br><b>Relay</b><br>Carry long timbers to the goal. It takes at least two arms to carry one, and each timber must change hands in the air at least once.<br><sub><b>Arms</b> 8, 12, 16 &nbsp;·&nbsp; <b>Levels</b> straight → curved with a hanging weight → hinged with a hanging weight</sub><br><sub>Shown: gpt-6.1-sol, 12 arms, 3 hinged timbers</sub></td>
-<td width="50%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-large-l3&amp;set=gpt-6.1-sol"><img src="docs/media/readme/dial.webp" alt="Sixteen arms turn eight cranks to find a code, at 300 times real time" width="100%"></a><br><b>Dial</b><br>Find a hidden code by turning spring-loaded knobs and holding them all at once. The only hint is a display of the best try so far.<br><sub><b>Arms</b> 4 to 16 &nbsp;·&nbsp; <b>Levels</b> knobs on the table → modules held in the air → cranks</sub><br><sub>Shown: gpt-6.1-sol, 16 arms, 8 dials</sub></td>
+<td width="50%" valign="top"><a href="https://changxuanfan.github.io/RoboTeam/#task=dial-large-l3&amp;set=gpt-6.1-sol"><img src="docs/media/readme/dial.webp" alt="Sixteen arms turn eight cranks to find a code, at 300 times real time" width="100%"></a><br><b>Dial</b><br>Find a hidden code by turning spring-loaded knobs and holding them all at once. The only hint is a display of the best try so far.<br><sub><b>Arms</b> 4 to 16 &nbsp;·&nbsp; <b>Levels</b> knobs on the table → modules held in the air → cranks</sub><br><sub>Shown: gpt-6.1-sol, 16 arms, 8 cranks</sub></td>
 </tr></table>
 
 Each clip opens its whole run on the project page. The [task guide](docs/tasks/README.md) shows
@@ -56,15 +56,16 @@ all 36 tasks.
 
 ## Watch whole runs
 
-Whole runs at 10× real time. The [project page](https://changxuanfan.github.io/RoboTeam/#videos)
-has the runs of every model, from three cameras.
+Whole runs at 10× real time, with idle stretches cut. The
+[project page](https://changxuanfan.github.io/RoboTeam/#videos) has the runs of every model,
+from three cameras.
 
 <table><tr>
 <td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/85ab5c04-a60b-4e3f-b364-105a6b39f723" controls muted width="100%"></video><!-- video:transport-1 --><br><sub><b>Transport</b> · opus-5.5 · 12 arms, items set into sockets · 10×, 11:20</sub></td>
-<td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/804f16ac-984b-4a7b-98ef-41f686ad29ca" controls muted width="100%"></video><!-- video:mosaic-1 --><br><sub><b>Mosaic</b> · opus-5.5 · 6 arms, 162 cubes, no grid on the table · 10×, 8:57</sub></td>
+<td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/804f16ac-984b-4a7b-98ef-41f686ad29ca" controls muted width="100%"></video><!-- video:mosaic-1 --><br><sub><b>Mosaic</b> · opus-5.5 · 6 arms, 162 cubes, no grid on the table · 10×, 8:56</sub></td>
 </tr></table>
 <table><tr>
-<td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/de8afa7e-a1fb-46e8-9eb6-75f3715b8780" controls muted width="100%"></video><!-- video:relay-2 --><br><sub><b>Relay</b> · opus-5.5 · 12 arms, curved timbers with a hanging weight · 10×, 3:52</sub></td>
+<td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/de8afa7e-a1fb-46e8-9eb6-75f3715b8780" controls muted width="100%"></video><!-- video:relay-2 --><br><sub><b>Relay</b> · opus-5.5 · 12 arms, curved timbers with a hanging weight · 10×, 3:51</sub></td>
 <td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/b61e48bd-bd4d-4192-b86e-6c07c43f6ab8" controls muted width="100%"></video><!-- video:dial-1 --><br><sub><b>Dial</b> · gpt-6.1-sol · 16 arms, 8 cranks held in the air · 10×, 4:31</sub></td>
 </tr></table>
 
@@ -74,12 +75,12 @@ has the runs of every model, from three cameras.
 &nbsp;
 
 <table><tr>
-<td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/06263096-6cc7-4c47-96ba-8815f376f2f5" controls muted width="100%"></video><!-- video:transport-2 --><br><sub><b>Transport</b> · gpt-6.1-sol · 8 arms, items set into sockets · 10×, 9:03</sub></td>
+<td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/06263096-6cc7-4c47-96ba-8815f376f2f5" controls muted width="100%"></video><!-- video:transport-2 --><br><sub><b>Transport</b> · gpt-6.1-sol · 8 arms, items set into sockets · 10×, 9:02</sub></td>
 <td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/edf6dfaf-4797-4478-b983-82612114b3a5" controls muted width="100%"></video><!-- video:mosaic-2 --><br><sub><b>Mosaic</b> · gpt-6.1-sol · 4 arms, 72 cubes, no grid on the table · 10×, 5:55</sub></td>
 </tr></table>
 <table><tr>
-<td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/c3e1f49b-aec6-4eaa-abc4-3014f60ad030" controls muted width="100%"></video><!-- video:relay-1 --><br><sub><b>Relay</b> · gpt-6.1-sol · 16 arms, straight timbers · 10×, 2:15</sub></td>
-<td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/6b6cfcf8-25e7-4227-8b83-9539a6f82f1d" controls muted width="100%"></video><!-- video:dial-2 --><br><sub><b>Dial</b> · opus-5.5 · 12 arms, 6 cranks held in the air · 10×, 1:47</sub></td>
+<td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/c3e1f49b-aec6-4eaa-abc4-3014f60ad030" controls muted width="100%"></video><!-- video:relay-1 --><br><sub><b>Relay</b> · gpt-6.1-sol · 16 arms, straight timbers · 10×, 2:14</sub></td>
+<td width="50%" valign="top"><video src="https://github.com/user-attachments/assets/6b6cfcf8-25e7-4227-8b83-9539a6f82f1d" controls muted width="100%"></video><!-- video:dial-2 --><br><sub><b>Dial</b> · opus-5.5 · 12 arms, 6 cranks held in the air · 10×, 1:46</sub></td>
 </tr></table>
 
 </details>
@@ -162,16 +163,16 @@ tokens of a Single agent, and a Single agent takes 2× the time of Decentralized
 - [The arms mostly wait.](https://changxuanfan.github.io/RoboTeam/#f-time) In one recorded run,
   at least one agent is thinking 90% of the time, but at least one arm moves only 43% of it.
 - [Failing and trying again is normal.](https://changxuanfan.github.io/RoboTeam/#f-failure)
-  Every Relay step of gpt-6.1-sol fails at least once, yet it finishes 8 of the 9 Relay tasks.
+  In a typical Relay task of gpt-6.1-sol, every step fails at least once, yet it finishes 8 of
+  the 9 Relay tasks.
 - [A bigger team is harder than a harder level.](https://changxuanfan.github.io/RoboTeam/#f-levels)
   By level, gpt-6.1-sol finishes 9, 9 and 10 of 12 tasks; by team size, 11, 10 and 7.
-- [Spending more does not buy success.](https://changxuanfan.github.io/RoboTeam/#f-systems)
-  deepseek-v4.1-flash read 25.0 billion tokens and finished 1 task; gpt-6.1-sol read 27.0
-  billion and finished 28.
 
-No model or team design is yet fast, cheap and reliable at once. Every chart, with each run to
-open, is in the [project page's results](https://changxuanfan.github.io/RoboTeam/#results), and
-every condition and number in the [paper](https://arxiv.org/abs/2611.22138).
+Spending more does not buy success: deepseek-v4.1-flash read 25.0 billion tokens and finished
+1 task, while gpt-6.1-sol read 27.0 billion and finished 28. No model or team design is yet
+fast, cheap and reliable at once. Every chart, with each run to open, is in the
+[project page's results](https://changxuanfan.github.io/RoboTeam/#results), and every condition
+and number in the [paper](https://arxiv.org/abs/2611.22138).
 
 ## Quick start
 
