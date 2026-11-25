@@ -237,7 +237,13 @@ function clips() {
     const clip = byKey[job.dataset.clip]; if (!clip) return;
     const frame = job.querySelector('.clip'); frame.append(clipVideo(base + clip.video, base + clip.poster, clip.caption)); frame.insertAdjacentHTML('beforeend', speedTag(clip));
     job.querySelector('.job-text').insertAdjacentHTML('afterbegin', `<p class="clip-of"><span class="model">${teamName(clip.set)}</span> · ${short(clip.task)}</p>`);
-    if (run(clip.set, clip.task)) { frame.classList.add('opens'); frame.title = 'Open the whole run'; frame.addEventListener('click', () => openRun(clip.set, clip.task)); }
+    if (run(clip.set, clip.task)) {
+      const open = () => openRun(clip.set, clip.task);
+      frame.classList.add('opens'); frame.title = 'Open the whole run'; frame.tabIndex = 0; frame.setAttribute('role', 'button');
+      frame.setAttribute('aria-label', `Open the whole run: ${cap(typeOf(clip.task))} · ${short(clip.task)}`);
+      frame.addEventListener('click', open);
+      frame.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    }
   });
 }
 
@@ -560,7 +566,7 @@ function library({ fade = false, scroll = true } = {}) {
     const soon = F.status === 'yes' ? [] : tasks.filter(t => !run(set, t));
     if (!list.length && !soon.length) return;
     shown += list.length;
-    const all = list.length + soon.length, ref = set === REFERENCE, fold = F.team === 'all' && !OPEN.has(set) && all > cols;
+    const ref = set === REFERENCE, fold = F.team === 'all' && !OPEN.has(set) && list.length > cols;
     const section = el('section', `team${ref ? ' ref' : ''}${fold ? ' folded' : ''}`); section.id = `team-${set}`;
     const finished = D.outcomes ? D.tasks.filter(t => done(set, t)).length : null;
     const sub = (TEAMS[set] || [])[1];
@@ -576,8 +582,8 @@ function library({ fade = false, scroll = true } = {}) {
     if (soon.length) grid.append(el('div', 'rest', `<b><span class="soon">${WORDS.soon}</span>${soon.length} more ${soon.length === 1 ? 'video' : 'videos'}</b><ul>${soon.map(t => `<li class="t-${typeOf(t)}"><i></i>${F.job === 'all' ? `${cap(typeOf(t))} · ` : ''}${short(t)}</li>`).join('')}</ul>`));
     section.append(head, grid);
     if (fold) {
-      const row = el('div', 'more-row'), more = el('button', 'btn more', `Show all ${all}<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg>`);
-      more.type = 'button'; more.setAttribute('aria-label', `Show all ${all} of ${teamName(set)}`);
+      const row = el('div', 'more-row'), more = el('button', 'btn more', `Show all ${list.length} videos<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg>`);
+      more.type = 'button'; more.setAttribute('aria-label', `Show all ${list.length} videos of ${teamName(set)}`);
       more.addEventListener('click', () => {
         OPEN.add(set); section.classList.remove('folded'); row.remove();
         const next = grid.children[cols]; if (next) next.focus({ preventScroll: true });
@@ -821,7 +827,9 @@ const benches = F => F.benchmarks.rows.map(([name, arms, multi, real, vision, mi
 const armsText = a => `${a} arm${a === 1 ? '' : 's'}`;
 const lenText = b => runLength(b.minutes, b.approx).replace(/ /g, ' ');
 const benchNote = b => tipLines(b.name, [['Robot arms', b.arms], ['One run lasts', lenText(b)], ['Cameras only', yesNo(b.vision)], ['Never pauses', yesNo(b.real)], ['Several agents', yesNo(b.multi)]]);
-const pileNote = bs => `<b>${bs.length} benchmarks in this spot</b><div class="wn-nl">${bs.map(b => `<span>${b.name}</span><span>${armsText(b.arms)} · ${lenText(b)}</span>`).join('')}</div>`;
+const WN_PROPS = [['vision', 'cameras only'], ['real', 'never pauses'], ['multi', 'several agents']];
+const propsText = b => WN_PROPS.filter(([k]) => b[k] !== 'no').map(([k, n]) => (b[k] === 'partly' ? `${n} (partly)` : n).replace(/ /g, '\u00a0')).join(' · ');
+const pileNote = bs => `<b>${bs.length} benchmarks in this spot</b><div class="wn-nl">${bs.map(b => `<span>${b.name}</span><span>${armsText(b.arms)} · ${lenText(b)}${propsText(b) ? `<small>${propsText(b)}</small>` : ''}</span>`).join('')}</div>`;
 const px = v => Math.round(v) + 0.5;
 const f1 = v => (Math.round(v * 10) / 10).toString();
 let WN_UNITS = [], wnOn = null;
@@ -887,15 +895,14 @@ function chartCompare(F, box) {
   };
   const beside = p => [p.x + r + 6, p.y - lh / 2], over = p => [p.x - 3, p.y - r - 5 - lh], under = p => [p.x - 3, p.y + r + 5];
 
-  // "6× longer": from the longest run of the others to 24 h, on that benchmark's row. Its name sits
-  // on the line when there is room; otherwise over or under its dot, and the line starts at the dot.
+  // "6× longer": from the longest run of the others to 24 h, on that benchmark's row. The line starts
+  // at its dot, with a tick at each end; the name sits over the dot (or under it).
   const fp = pts.find(p => p.b === far), ny = fp.y;
   const dimW = (em, rest) => textWidth(`${em} `, WN_FONT.em) + textWidth(rest, WN_FONT.name);
   const e6 = `${Math.round(us.minutes / far.minutes)}×`, e4 = `${Math.round(us.arms / most.arms)}×`, w6 = dimW(e6, 'longer'), w4 = dimW(e4, 'the arms');
-  const onLine = UX - (beside(fp)[0] + textWidth(far.name, WN_FONT.name) + 10) >= w6 + 56 && placeName(fp, [beside(fp)]);
-  const xs = onLine ? onLine.x1 + 8 : fp.x + r + 5, hm = (xs + UX) / 2;
-  const line = [bx(xs, ny - 4, UX + 1, ny + 4), bx(UX - 2, ny - 8, UX + 2, ny + 8)];
-  if (!onLine) placeName(fp, [over(fp), under(fp)], line);
+  const xs = px(fp.x + r + 5), hm = (xs + UX) / 2;
+  const line = [bx(xs, ny - 4, UX + 1, ny + 4), bx(xs - 2, ny - 6.5, xs + 2, ny + 6.5), bx(UX - 2, ny - 8, UX + 2, ny + 8)];
+  placeName(fp, [over(fp), under(fp)], line);
 
   // The most arms of the others always has its name; on a phone it sits over the dot, inside the corner.
   const mp = pts.find(p => p.b === most), mostLab = placeName(mp, compact ? [over(mp), beside(mp)] : [beside(mp), over(mp)], line);
@@ -909,8 +916,8 @@ function chartCompare(F, box) {
   const hb = y => bx(hm - w6 / 2 - 6, y - 8, hm + w6 / 2 + 6, y + 8);
   const hy = [ny, ny + 13, ny - 13].find((y, i) => free(hb(y), i ? line : [])) ?? ny;
   take(hb(hy), true); line.forEach(a => take(a));
-  const hPath = (hy === ny ? `M${f1(xs)} ${px(ny)}H${f1(hm - w6 / 2 - 7)}M${f1(hm + w6 / 2 + 7)} ${px(ny)}H${px(UX)}` : `M${f1(xs)} ${px(ny)}H${px(UX)}`) +
-    `M${px(UX)} ${px(ny) - 6}V${px(ny) + 6}`;
+  const hPath = (hy === ny ? `M${xs} ${px(ny)}H${f1(hm - w6 / 2 - 7)}M${f1(hm + w6 / 2 + 7)} ${px(ny)}H${px(UX)}` : `M${xs} ${px(ny)}H${px(UX)}`) +
+    `M${xs} ${px(ny) - 6}V${px(ny) + 6}M${px(UX)} ${px(ny) - 6}V${px(ny) + 6}`;
 
   // "4× the arms": from the most arms of the others up to RoboTeam, along 24 h; the words sit in a gap in the line.
   const yb = Y(most.arms), yt = UY + HALO + 4, vb = y => bx(UX - w4 / 2 - 6, y - 10, UX + w4 / 2 + 6, y + 10), vmid = (yb + yt) / 2;
@@ -1120,7 +1127,7 @@ function chartTime(F, box) {
 function chartFailure(F, box) {
   const f = F.failure_by_type, P = f.median_atomic_failure_pct;
   const relayDone = D.outcomes ? D.tasks.filter(t => typeOf(t) === 'relay' && done(f.set, t)).length : 8;
-  setText('f-failure', 'Retrying', 'Failing and retrying is normal.', `A grasp slips or a handover misses, and the agents see it in the pictures and try again. In a typical Relay task every handover fails at least once, yet ${relayDone} of the 9 Relay tasks are finished.`, [`${P.relay}%`, 'of Relay handovers fail at least once']);
+  setText('f-failure', 'Retrying', 'Failing and retrying is normal.', `A grasp slips or a handover misses, and the agents see it in the pictures and try again. In a typical Relay task every step fails at least once, yet ${relayDone} of the 9 Relay tasks are finished.`, [`${P.relay}%`, 'of steps fail at least once in a typical Relay task']);
   const steps = f.median_steps_note || {};
   const rows = TYPES.map(([type, name]) => ({ label: `<i class="dot t-${type}"></i>${name}`, value: P[type], text: `${P[type]}%`, fill: type === 'relay' ? 'vio' : 's2', cls: type === 'relay' ? 'lead' : '',
     tip: tipLines(name, [['Steps that fail at least once', `${P[type]}%`]].concat(steps[type] ? [['Steps in a typical task', `about ${steps[type]}`]] : []), '', `Typical task of ${mname(f.set)}, Adaptive team. ${SOURCE}.`) }));
@@ -1169,7 +1176,7 @@ function chartSystems(F, box) {
   const S = Object.fromEntries(F.systems.map(s => [s.key, s])), fin = F.systems.map(s => s.completed);
   const hMax = Math.max(...F.systems.map(s => s.total_hours)), tMax = Math.max(...F.systems.map(s => s.input_tokens_b));
   const timeX = Math.round(S['single-agent'].total_hours / S.decentralized.total_hours), tokX = Math.round(S.hierarchical.input_tokens_b / S['single-agent'].input_tokens_b);
-  setText('f-systems', 'Team design', 'Same score, very different bill.', `However the agents are organized, they finish ${Math.min(...fin)} to ${Math.max(...fin)} of the 36 tasks. A single agent takes ${timeX}× the time of a decentralized team, and a hierarchical team reads ${tokX}× the tokens of a single agent.`, [`${tokX}×`, 'the tokens for nearly the same score']);
+  setText('f-systems', 'Team design', 'Same score, very different bill.', `However the agents are organized, they finish ${Math.min(...fin)} to ${Math.max(...fin)} of the 36 tasks. A single agent takes ${timeX}× the time of a decentralized team. A hierarchical team reads ${tokX}× the tokens of a single agent. Tokens read are the text a model reads, which sets the cost.`, [`${tokX}×`, 'the tokens for nearly the same score']);
   const call = { 'single-agent': ['hours', `${timeX}× the time`], hierarchical: ['tokens', `${tokX}× the tokens`] };
   const measure = (key, m, v, vmax, text, i) => {
     const w = 100 * v / vmax, note = call[key] && call[key][0] === m ? call[key][1] : '';
@@ -1186,7 +1193,7 @@ function chartSystems(F, box) {
       measure(key, 'hours', s.total_hours, hMax, `${s.total_hours.toFixed(1)}\u00a0h`, i) + measure(key, 'tokens', s.input_tokens_b, tMax, `${s.input_tokens_b.toFixed(1)}\u00a0B`, i) + '</div>';
   }).join('');
   box.innerHTML = `<div class="teams"><div class="teams-head" aria-hidden="true"><span></span><span class="kicker">Finished</span><span class="kicker">Hours, all 36 tasks</span><span class="kicker">Tokens read, all tasks</span></div>${rows}</div>` +
-    `<p class="chart-foot">Tokens read: the text a model reads, which sets the cost (B is billions). Each team is ${mname('gpt-6.1-sol')} on all 36 tasks; hours count unfinished tasks up to the cutoff.</p>`;
+    `<p class="chart-foot">B is billions. Each team is ${mname('gpt-6.1-sol')} on all 36 tasks; hours count unfinished tasks up to the cutoff.</p>`;
 }
 
 // Explore every run: the steps each run finished over its hours, one small chart per job.

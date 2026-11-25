@@ -84,7 +84,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 .chip.flat{box-shadow:inset 0 0 0 1px var(--ring)}
 .chip.fin.flat{box-shadow:none}
 .chip.not.flat{box-shadow:inset 0 0 0 1.5px var(--s2)}
-.speed{position:absolute;right:12px;top:12px;pointer-events:none}
+.speed{position:absolute;right:12px;top:12px;pointer-events:none;text-transform:uppercase;letter-spacing:.12em}
 .view-tag{position:absolute;left:12px;top:12px;pointer-events:none}
 .soon{display:inline-flex;align-items:center;height:22px;padding:0 9px;border:1.5px dashed var(--s2);border-radius:var(--r-chip);font:500 12px/1 var(--mono);color:var(--ink2);white-space:nowrap;vertical-align:middle}
 /* Filter chips: the same pill as a toggle button */
@@ -159,8 +159,8 @@ a:hover .arr,button:hover .arr{transform:translateX(4px)}
 /* Top bar: the name, the sections, the theme */
 .rail{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:20px;height:64px;padding:0 var(--gutter);
   background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:saturate(1.4) blur(12px);border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:center;gap:10px;color:var(--ink);font:700 17px var(--display);flex:none}
-.brand:hover{text-decoration:none}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);font:700 17px var(--display);flex:none;transition:opacity var(--t-hover) var(--ease)}
+.brand:hover{text-decoration:none;opacity:.8}
 .brand-mark{width:22px;height:22px;flex:none}
 .rail nav{display:flex;gap:4px;margin:0 auto;padding:4px;border-radius:12px;background:var(--card2);border:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
 .rail nav::-webkit-scrollbar{display:none}
@@ -410,7 +410,7 @@ button.cell:hover,.cell.cur{transform:scale(1.3)}
 .jump-name .model{font:500 14px/1 var(--mono);overflow:hidden;text-overflow:ellipsis}
 .jump-score{grid-area:score;font:400 13px/1 var(--sans);color:var(--dim);white-space:nowrap}
 .jump-score b{margin-right:3px;font:600 18px/1 var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
-.jump.ref .jump-score b{color:var(--vio-ink)}
+.jump.ref .jump-score,.jump.ref .jump-score b{color:var(--vio-ink)}
 .strip{grid-area:strip;display:flex;gap:9px}
 .blk{display:grid;grid-template-columns:repeat(3,7px);gap:2px;transition:opacity var(--t-state) var(--ease)}
 .blk i,.jump-key i{display:block;width:7px;height:7px;border-radius:2px;box-shadow:inset 0 0 0 1.25px var(--c);transition:opacity var(--t-state) var(--ease)}
@@ -655,8 +655,9 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .toc a:hover{color:var(--ink);background:color-mix(in srgb,var(--well) 70%,transparent);text-decoration:none}
 .toc a.on{color:var(--ink)}
 .toc a.on::before{transform:none}
-.toc-body .chapter{border-top:0;padding-left:clamp(12px,2vw,28px)}
-.toc-body .chapter + .chapter{border-top:1px solid var(--line)}
+/* The rule between chapters spans the text column, like the rules between findings */
+.toc-body .chapter{--pl:clamp(12px,2vw,28px);border-top:0;padding-left:var(--pl)}
+.toc-body .chapter + .chapter{background:linear-gradient(var(--line),var(--line)) var(--pl) 0/calc(100% - var(--pl) - var(--gutter)) 1px no-repeat}
 @media (max-width:1100px){
   .with-toc{grid-template-columns:minmax(0,1fr);padding-left:0}
   .toc{position:sticky;top:64px;z-index:15;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;border:0;border-bottom:1px solid var(--line);padding:4px var(--gutter);background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px)}
@@ -665,7 +666,7 @@ p,li,dd,small,figcaption{text-wrap:pretty}
   .toc a::before{left:10px;right:10px;top:auto;bottom:0;width:auto;height:2px;transform:scaleX(0)}
   .toc{transition:transform .25s var(--ease),opacity .2s}
   .toc.tuck{transform:translateY(-100%);opacity:0;pointer-events:none}
-  .toc-body .chapter{padding-left:var(--gutter)}
+  .toc-body .chapter{--pl:var(--gutter)}
 }
 
 /* Findings: a claim, one number and two sentences beside one chart on a white panel */
@@ -801,7 +802,7 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .stats{max-width:var(--max);margin:0 auto;padding:0 var(--gutter) clamp(44px,6vw,72px);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:clamp(16px,3vw,36px);row-gap:28px}
 .stat{display:grid;align-content:start;gap:10px;padding-top:18px;border-top:1px solid var(--line)}
 .stat b{display:flex;align-items:baseline;gap:.22em;font:700 clamp(36px,4.2vw,52px)/.95 var(--display);letter-spacing:-.025em;color:var(--ink);font-variant-numeric:proportional-nums;white-space:nowrap}
-.stat b small{font:500 clamp(15px,1.5vw,18px)/1 var(--display);letter-spacing:0;color:var(--dim)}
+.stat b small{font:500 clamp(15px,1.5vw,18px)/1 var(--sans);letter-spacing:0;color:var(--dim)}
 .stat.best b{color:var(--vio)}
 #stat-best{display:inline-block;min-width:1.18em}
 .stat>span{font-size:15px;line-height:1.45;color:var(--ink2);max-width:24ch;text-wrap:balance}
@@ -854,6 +855,7 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .wn-nl{display:grid;grid-template-columns:auto auto;column-gap:18px;margin-top:3px;font:400 12.5px/1.55 var(--sans)}
 .wn-nl span:nth-child(odd){font-weight:600}
 .wn-nl span:nth-child(even){white-space:nowrap}
+.wn-nl small{display:block;margin-bottom:3px;font:400 12px/1.4 var(--sans);white-space:normal;opacity:.85}
 
 /* Drawn things enter once, when their container first comes into view (playOnce in site.js) */
 .reveal .pl:not(.play):not(.played) :is(.an,.tz-cell){opacity:0}
@@ -892,6 +894,7 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .job .clip{border-radius:0}
 .job .clip video{transition:transform var(--t-move) var(--ease-move)}
 .job .clip.opens:hover video{transform:scale(1.03)}
+.job .clip.opens:focus-visible{outline:2px solid var(--vio);outline-offset:-3px}
 .job-text{display:flex;flex-direction:column;gap:12px;flex:1;padding:16px 18px 18px}
 .job .clip-of{margin:-2px 0 -4px;font:400 13px/1.4 var(--sans);color:var(--dim);text-wrap:balance}
 .job .clip-of .model{font:500 12.5px var(--mono);color:var(--ink2)}
@@ -929,7 +932,7 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .walk-text h3{font-size:22px;line-height:1.2}
 .walk-text p:last-child{margin:0;font-size:15px;color:var(--ink2);max-width:44ch}
 .walk-ev{min-width:0}
-.cam{margin:0;display:grid;gap:10px;max-width:440px}
+.cam{margin:0;display:grid;gap:10px}
 .cam-box{position:relative;aspect-ratio:16/10;border-radius:var(--r-media);overflow:hidden;background:var(--well);box-shadow:var(--sh-chip);outline:1px solid var(--ring);outline-offset:-1px}
 .cam-box img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cam-b{opacity:0;transition:opacity .6s var(--ease-move)}
@@ -987,7 +990,7 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .tz-n{display:flex;align-items:baseline;justify-content:flex-end;gap:6px;font-variant-numeric:tabular-nums}
 .tz-n b{font:700 28px/1 var(--display);color:var(--ink2);--d:calc(var(--r) * .4s + .5s)}
 .tz-row.vio .tz-n b{color:var(--vio)}
-.tz-row.ref .tz-n b{color:var(--vio-ink)}
+.tz-row.ref .tz-n b,.tz-row.ref .tz-n span{color:var(--vio-ink)}
 .tz-n span{font-size:13px;color:var(--dim)}
 .tz-foot{margin:14px 0 0;font-size:12.5px;color:var(--dim)}
 .pl.play .tz-cell{animation:ov-pop .3s var(--ease) both;animation-delay:calc(var(--r) * .4s + var(--k) * 16ms)}
@@ -1000,7 +1003,7 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .go-text{display:grid;gap:6px;align-content:center;min-width:0}
 .go b{font:700 20px/1.25 var(--display);letter-spacing:-.012em;text-wrap:balance}
 .go b .arr{color:var(--vio)}
-.go-sub{font-size:14px;line-height:1.5;color:var(--ink2)}
+.go-sub{font-size:14px;line-height:1.5;color:var(--ink2);text-wrap:pretty}
 .go-thumb{width:clamp(104px,15vw,184px);aspect-ratio:16/10;border-radius:8px;overflow:hidden;background:var(--well);outline:1px solid var(--ring);outline-offset:-1px}
 .mosaic-thumb{display:grid;grid-template-columns:1fr 1fr;gap:2px}
 .mosaic-thumb img{width:100%;height:100%;object-fit:cover;transition:transform var(--t-move) var(--ease-move)}
@@ -1025,3 +1028,12 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .mini-head span{margin-left:auto;font:400 12px/1.2 var(--sans);color:var(--dim)}
 .model-focus [data-model]{transition:opacity .15s}
 .model-focus [data-model]:not(.m-hot){opacity:.3}
+
+/* Pressed: every link and button answers a press (CONTRACT section 6). Transforms only with motion on. */
+:where(a,.link-btn,.rail-btn,.more-link,button.who){transition:opacity .1s var(--ease)}
+:is(a:not(.btn):not(.card):not(.go):not(.jump),.link-btn,.rail-btn,button.more,.more-link,button.who):active{opacity:.7}
+.wn .wn-u:active .ring{opacity:1}
+@media (prefers-reduced-motion:no-preference){
+  :is(button.cell,.tz-cell):active{transform:scale(.9)}
+  .job .clip.opens:active video{transform:scale(1.01)}
+}
