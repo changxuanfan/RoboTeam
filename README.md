@@ -110,14 +110,12 @@ Earlier benchmarks test agents in a simpler world in three ways. RoboTeam remove
 
 ## How a run works
 
-<table><tr>
-<td width="52%" valign="middle"><a href="https://changxuanfan.github.io/RoboTeam/#how"><img src="docs/media/readme/camera.webp" alt="Arm A's front camera at the start of a Transport run: cubes, boards and arms on a wooden table" width="100%"></a><br><sub>One arm's camera, as the agent sees it</sub></td>
-<td width="48%" valign="middle">
-<b>① See</b><br><sub>Fixed cameras send pictures. No positions, no depth.</sub><br><br>
-<b>② Decide</b><br><sub>AI agents split the work and write their own code.</sub><br><br>
-<b>③ Act</b><br><sub>One robot tool moves the arms, one command at a time.</sub>
-</td>
-</tr></table>
+<a href="https://changxuanfan.github.io/RoboTeam/#how">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/how-dark.svg">
+<img src="docs/media/readme/how-light.svg" alt="How a run works. Arm A's front camera, as the agent sees it. 1, See: fixed cameras send pictures, with no positions and no depth. 2, Decide: AI agents split the work and write their own code. 3, Act: one robot tool moves the arms, one command at a time." width="100%">
+</picture>
+</a>
 
 The clock never stops: a run ends when the agents say they are done, or after 24 hours. A team
 runs one of four agent systems: single-agent, hierarchical, decentralized or adaptive (the
