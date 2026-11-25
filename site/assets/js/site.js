@@ -508,182 +508,215 @@ function bindTips(root) {
 const yesNo = v => (v === 'yes' ? 'Yes' : v === 'partly' ? 'Partly' : 'No');
 const runLength = (minutes, approx) => { const t = minutes >= 60 ? `${Math.round(minutes / 60)} h` : minutes >= 1 ? `${Math.round(minutes)} min` : `${Math.round(minutes * 60)} s`; return (approx ? `${approx} ` : '') + t; };
 
-/* ---------- What is new: RoboTeam next to the benchmarks in the paper ----------
-   Two versions for review: ?whatsnew=a (the default) plots arms against run length; ?whatsnew=b
-   lines the benchmarks up on two strips beside a checklist. Both are drawn at the width they are
-   shown, play their entrance once and show a benchmark's details on hover or tap. */
-const WN = (new URLSearchParams(location.search).get('whatsnew') || 'a').toLowerCase() === 'b' ? 'b' : 'a';
-const WN_TIPS = [];
+/* ---------- What is new: RoboTeam next to the ten other benchmarks of the paper ----------
+   Robot arms (0 to 20) against how long one run can last (0 to 30 h), both on plain linear axes.
+   The others share one small corner; RoboTeam stands alone, far up and far right. Drawn at the
+   width it is shown; the entrance plays once. Pointing at, focusing or tapping a dot shows its
+   note, and where dots pile up the note lists every benchmark in the pile. The README draws the
+   same chart by the same rules (readme-draft-tools/findings_figures.py, compare()). */
+const WN_FAMOUS = ['PARTNR', 'RoboTwin']; // named as well where they fit; never on phones
+const WN_FONT = { name: '500 13px "IBM Plex Sans", system-ui, sans-serif', em: '700 13px "IBM Plex Sans", system-ui, sans-serif',
+  mono: '500 12px "JetBrains Mono", ui-monospace, monospace' };
 const textWidth = (() => { let c = null; return (s, font) => { c = c || document.createElement('canvas').getContext('2d'); c.font = font; return c.measureText(s).width; }; })();
-const NAME_FONT = '500 12.5px "IBM Plex Sans", system-ui, sans-serif', NOTE_FONT = '500 13px "IBM Plex Sans", system-ui, sans-serif';
-const GLYPH = {
-  cam: '<path d="M1.3 3.8h2.1l1-1.5h3.2l1 1.5h2.1v6H1.3z"/><circle cx="6" cy="6.7" r="1.7"/>',
-  clock: '<circle cx="6" cy="6" r="4.5"/><path d="M6 3.5V6l1.7 1.1"/>',
-};
-const glyph = (k, x, y) => `<g class="gl" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">${GLYPH[k]}</g>`;
-const glyphKey = (k, label) => `<span><svg class="gl-k" viewBox="0 0 12 12" aria-hidden="true">${GLYPH[k]}</svg>${label}</span>`;
 const benches = F => F.benchmarks.rows.map(([name, arms, multi, real, vision, minutes, approx, group]) => ({ name, arms, multi, real, vision, minutes, approx, group, ours: group === 'ours' }));
-const benchTip = b => tipLines(b.name, [['Robot arms', b.arms], ['One run lasts', runLength(b.minutes, b.approx)], ['Cameras only', yesNo(b.vision)], ['Never pauses', yesNo(b.real)], ['Several agents', yesNo(b.multi)]],
-  b.ours ? '' : `<div class="tl"><span>${b.group === 'policy' ? 'Tests trained robot policies' : 'Tests AI agents'}</span><span></span></div>`);
+const armsText = a => `${a} arm${a === 1 ? '' : 's'}`;
+const lenText = b => runLength(b.minutes, b.approx).replace(/ /g, ' ');
+const benchNote = b => tipLines(b.name, [['Robot arms', b.arms], ['One run lasts', lenText(b)], ['Cameras only', yesNo(b.vision)], ['Never pauses', yesNo(b.real)], ['Several agents', yesNo(b.multi)]]);
+const pileNote = bs => `<b>${bs.length} benchmarks in this spot</b><div class="wn-nl">${bs.map(b => `<span>${b.name}</span><span>${armsText(b.arms)} · ${lenText(b)}</span>`).join('')}</div>`;
 const px = v => Math.round(v) + 0.5;
-const note = (x, y, em, rest, anchor, d) => txt(x, y, `<tspan class="em">${em}</tspan> ${rest}`, 'dim-t an', anchor, `style="--d:${d}s"`);
+const f1 = v => (Math.round(v * 10) / 10).toString();
+let WN_UNITS = [], wnOn = null;
+
+/* A note with a stem to what it describes: the page's note look (CONTRACT §5). The Results tab has
+   the same showNote(); when the two meet, keep one copy. hideTip() closes it. */
+function showNote(html, anchor, cls = '') {
+  const t = $('tip'); t.className = `tip${cls ? ` ${cls}` : ''}`; t.innerHTML = html; t.hidden = false;
+  const a = anchor.getBoundingClientRect(), w = t.offsetWidth, h = t.offsetHeight;
+  const bar = document.querySelector('.rail'), minTop = (bar ? bar.getBoundingClientRect().bottom : 0) + 8;
+  const ax = a.left + a.width / 2, left = Math.round(Math.min(Math.max(8, ax - w / 2), innerWidth - w - 8));
+  let top = a.top - h - 12; const below = top < minTop; if (below) top = a.bottom + 12;
+  t.style.left = `${left}px`; t.style.top = `${Math.round(top)}px`;
+  t.style.setProperty('--sx', `${Math.round(Math.min(Math.max(14, ax - left), w - 14))}px`);
+  t.classList.toggle('below', below);
+}
 
 function chartCompare(F, box) {
-  const rows = benches(F), fig = box.closest('.wn');
-  WN_TIPS.length = 0; rows.forEach(b => WN_TIPS.push(benchTip(b)));
+  const fig = box.closest('.wn'), rows = benches(F);
   // Labels are placed with measured text widths, so draw again once the fonts are in.
   if (document.fonts && document.fonts.status !== 'loaded' && !fig.dataset.fontWait) {
     fig.dataset.fontWait = '1'; document.fonts.ready.then(() => { delete drawnAt['chart-compare']; drawCharts(current); });
   }
-  (WN === 'b' ? whatsNewB : whatsNewA)(rows, box);
-  wnBind(fig); playOnce(fig, WN === 'b' ? 2700 : 2200);
-}
+  wnSet(fig, null);
+  const W = Math.max(280, Math.floor(box.clientWidth)), compact = W < 440;
+  const H = Math.round(compact ? W * 1.12 : Math.min(W * 0.76, 540));
+  const r = compact ? 4 : 4.5, UR = compact ? 8 : 9, HALO = 2 * UR, pad = compact ? 9 : 12, lh = 16;
+  const L = 36, R = compact ? 16 : 20, T = 38, B = 52;
+  const X = h => L + h / 30 * (W - L - R), Y = a => T + (20 - a) / 20 * (H - T - B), y0 = Y(0);
+  const others = rows.filter(b => !b.ours), us = rows.find(b => b.ours);
+  const most = others.reduce((a, b) => (b.arms > a.arms ? b : a)), far = others.reduce((a, b) => (b.minutes > a.minutes ? b : a));
 
-// A: arms (0-16) against run length (6 s to 24 h, log). The others sit in one soft region; RoboTeam lands last, far up and right.
-function whatsNewA(rows, box) {
-  const W = Math.max(280, Math.floor(box.clientWidth)), compact = W < 540;
-  const H = compact ? 360 : Math.round(Math.min(450, Math.max(380, W * 0.66)));
-  const L = 30, R = compact ? 18 : 24, T = compact ? 42 : 46, B = 46;
-  const lg = Math.log10, x0 = lg(0.1) - (compact ? 0.13 : 0.26), x1 = lg(1440) + 0.03;
-  const X = m => L + (lg(m) - x0) / (x1 - x0) * (W - L - R), Y = a => T + (17 - a) / 17.7 * (H - T - B);
-  const r = compact ? 4.5 : 5.5, UR = compact ? 8 : 9.5, ui = rows.findIndex(b => b.ours), UX = X(1440), UY = Y(16), lh = 15;
-  const NUDGE = { EmbodiedBench: 0.87, VLABench: 1.15 }; // both "about 1 min" with one arm: side by side instead of on top of each other
-  let grid = '';
-  const xt = compact ? [[0.1, '6 s'], [1, '1 min'], [60, '1 h'], [1440, '24 h']] : [[0.1, '6 s'], [1, '1 min'], [10, '10 min'], [60, '1 h'], [1440, '24 h']];
-  xt.forEach(([m, l]) => { grid += `<line class="grid" x1="${px(X(m))}" x2="${px(X(m))}" y1="${T - 12}" y2="${H - B}"/>` + txt(X(m), H - B + 19, l, 'tick', 'middle'); });
-  [4, 8, 12, 16].forEach(a => { grid += `<line class="grid" x1="${L}" x2="${W - R}" y1="${px(Y(a))}" y2="${px(Y(a))}"/>` + txt(L - 9, Y(a) + 4, a, 'tick', 'end'); });
-  grid += `<line class="base" x1="${L}" x2="${W - R}" y1="${px(H - B)}" y2="${px(H - B)}"/>`;
-  grid += txt(L - 9 - 12, T - 26, 'Robot arms', 'axis-t', 'start') + txt(W - R, H - 5, 'How long one run can last →', 'axis-t', 'end');
-  // The others: a name beside each dot where it fits, never on top of a dot or another name.
-  const pts = rows.map((b, i) => ({ b, i })).filter(p => !p.b.ours).map(p => ({ ...p, x: X(p.b.minutes * (NUDGE[p.b.name] || 1)), y: Y(p.b.arms) }));
-  const taken = pts.map(p => ({ x0: p.x - r - 3, y0: p.y - r - 3, x1: p.x + r + 3, y1: p.y + r + 3 }));
-  taken.push({ x0: UX - 30, y0: UY - 30, x1: W, y1: UY + 30 });
-  const free = a => a.x0 >= L + 4 && a.x1 <= W - R + 4 && a.y0 >= Y(4.8) - 30 && a.y1 <= H - B - 3 && !taken.some(q => a.x0 < q.x1 && a.x1 > q.x0 && a.y0 < q.y1 && a.y1 > q.y0);
-  // A name never sits level with another dot close by, where it could be read as that dot's name.
-  const clear = (a, p) => pts.every(q => q === p || q.y < a.y0 - 3 || q.y > a.y1 + 3 || Math.max(a.x0 - q.x, q.x - a.x1) - r >= 22);
-  // Try the points in many orders and keep the placement that names the most of them, preferring names beside their dot.
-  // On a phone only the two nearest rivals get a name; the others show theirs on tap.
-  const named = compact ? ['RoboFactory', 'Embodied First Exam'] : null;
-  {
-    const fixed = taken.slice();
-    const cands = pts.map(p => {
-      if (named && !named.includes(p.b.name)) return [];
-      const tw = textWidth(p.b.name, NAME_FONT), w = tw + (p.b.vision === 'yes' ? 16 : 0) + (p.b.real === 'yes' ? 16 : 0);
-      return [[p.x + r + 6, p.y - lh / 2], [p.x - r - 6 - w, p.y - lh / 2], [p.x - w / 2, p.y - r - 4 - lh], [p.x - w / 2, p.y + r + 3],
-        [p.x + r - 1, p.y - r - 2 - lh], [p.x - r + 1 - w, p.y - r - 2 - lh], [p.x + r - 1, p.y + r + 1], [p.x - r + 1 - w, p.y + r + 1]].map(([x, y]) => ({ x, y, w, tw }));
-    });
-    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    const idx = pts.map((p, i) => i), orders = [idx, [...idx].sort((a, b) => pts[a].x - pts[b].x), [...idx].sort((a, b) => pts[b].x - pts[a].x)];
-    for (let n = 0; n < 60; n++) orders.push([...idx].sort(() => rnd() - 0.5));
-    let best = null;
-    orders.forEach(order => {
-      taken.length = 0; taken.push(...fixed); const pick = []; let score = 0;
-      order.forEach(i => { const k = cands[i].findIndex(c => { const a = { x0: c.x - 3, y0: c.y, x1: c.x + c.w + 3, y1: c.y + lh }; return free(a) && clear(a, pts[i]); });
-        if (k < 0) return; const c = cands[i][k]; pick[i] = c; taken.push({ x0: c.x - 3, y0: c.y, x1: c.x + c.w + 3, y1: c.y + lh }); score += 100 - (k > 1 ? 3 + k : k); });
-      if (!best || score > best.score) best = { score, pick };
-    });
-    pts.forEach((p, i) => { if (best.pick[i]) p.lab = best.pick[i]; });
-  }
-  let ex0 = Infinity, ey0 = Infinity, ex1 = -Infinity, ey1 = -Infinity;
-  const grow = (a, b, c, d) => { ex0 = Math.min(ex0, a); ey0 = Math.min(ey0, b); ex1 = Math.max(ex1, c); ey1 = Math.max(ey1, d); };
-  pts.forEach(p => { grow(p.x - r, p.y - r, p.x + r, p.y + r); if (p.lab) grow(p.lab.x, p.lab.y, p.lab.x + p.lab.w, p.lab.y + lh); });
-  const pad = compact ? 9 : 13, rg = { x: Math.max(L + 2, ex0 - pad), y: ey0 - pad, x2: Math.min(W - R, ex1 + pad), y2: Math.min(H - B - 4, ey1 + pad) };
-  const region = `<rect class="region" x="${rg.x.toFixed(1)}" y="${rg.y.toFixed(1)}" width="${(rg.x2 - rg.x).toFixed(1)}" height="${(rg.y2 - rg.y).toFixed(1)}" rx="14"/>` + txt(rg.x + 1, rg.y - 10, 'EVERY OTHER BENCHMARK', 'region-t', 'start');
-  const dots = [...pts].sort((a, b) => a.x - b.x).map((p, k) => {
-    const d = 0.3 + k * 0.07, c = `cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}"`;
-    let s = `<g class="wn-pt" data-b="${p.i}"><circle class="hit" ${c} r="${r + 8}"/><circle class="dot an pop" style="--d:${d.toFixed(2)}s" ${c} r="${r}"/>`;
-    if (p.lab) {
-      s += `<g class="an" style="--d:${(d + 0.12).toFixed(2)}s">` + txt(p.lab.x, p.lab.y + 11.5, p.b.name, 'nm');
-      let gx = p.lab.x + p.lab.tw + 5;
-      if (p.b.vision === 'yes') { s += glyph('cam', gx, p.lab.y + 1.5); gx += 16; }
-      if (p.b.real === 'yes') s += glyph('clock', gx, p.lab.y + 1.5);
-      s += '</g>';
+  // Equal arms and nearly equal run lengths would hide one another: each dot sits at least half a dot
+  // right of the one before, so a pile stays countable. The notes give the true values.
+  const pts = others.map(b => ({ b, x: X(b.minutes / 60), y: Y(b.arms) })).sort((p, q) => q.b.arms - p.b.arms || p.x - q.x);
+  pts.forEach((p, i) => { const q = pts[i - 1]; if (q && q.b.arms === p.b.arms && p.x < q.x + r) p.x = q.x + r; });
+  // Dots of one row that touch form a pile: one note, one focus stop.
+  const units = [];
+  pts.forEach(p => { const u = units[units.length - 1], q = u && u.pts[u.pts.length - 1];
+    if (q && q.b.arms === p.b.arms && p.x - q.x <= 2 * r + 2) u.pts.push(p); else units.push({ pts: [p], lab: [] }); });
+  const unitOf = p => units.find(u => u.pts.includes(p));
+  const UX = X(us.minutes / 60), UY = Y(us.arms), gx = X(0) - r - 3; // gx: the corner's left edge; the arm numbers sit left of it
+
+  // Everything placed so far, so that no text lands on a dot, a line or another text.
+  const taken = [], texts = [];
+  const bx = (x0, y0_, x1, y1) => ({ x0, y0: y0_, x1, y1 });
+  const hits = (a, q) => a.x0 < q.x1 && a.x1 > q.x0 && a.y0 < q.y1 && a.y1 > q.y0;
+  const free = (a, also = []) => a.x0 >= 0 && a.x1 <= W && a.y0 >= T - 8 && a.y1 <= y0 - 1 && ![...taken, ...also].some(q => hits(a, q));
+  const take = (a, text) => { taken.push(a); if (text) texts.push(a); return a; };
+  // A name is never level with another dot close by, where it could pass for that dot's name.
+  // (Dots of its own pile do not count: the pile has one note that names them all.)
+  const clear = (a, p) => { const own = unitOf(p).pts, cy = (a.y0 + a.y1) / 2;
+    return pts.every(q => own.includes(q) || Math.abs(q.y - cy) >= lh / 2 + r - 1 || Math.max(a.x0 - q.x, q.x - a.x1) - r >= 20); };
+  pts.forEach(p => take(bx(p.x - r - 1.5, p.y - r - 1.5, p.x + r + 1.5, p.y + r + 1.5)));
+  take(bx(UX - HALO, UY - HALO, UX + HALO, UY + HALO)); take(bx(0, T - 8, gx - 3, y0 + 4));
+
+  // RoboTeam's name and chip: left of its dot with the chip below it, or (when that does not fit,
+  // as on a phone) the name over the dot and the chip in three parts beside it.
+  const nameFont = `700 ${compact ? 19 : 22}px "Space Grotesk", system-ui, sans-serif`, LH = compact ? 24 : 28, nw = textWidth(us.name, nameFont) + 12;
+  const right = UX - HALO - 6, chipW = s => textWidth(s, WN_FONT.mono) + 20;
+  const facts = [`${us.arms} arms · ${Math.round(us.minutes / 60)} h`, 'cameras only', 'never pauses'];
+  const layouts = [{ chips: [facts.join(' · ')] }, { chips: [facts[0], facts.slice(1).join(' · ')] }, { chips: facts, over: true }];
+  layouts.forEach(l => { l.name = l.over ? [UX - nw / 2, UY - HALO - 2 - LH] : [right + 6 - nw, UY - LH / 2]; l.top = l.over ? UY - 11 : UY + LH / 2 + 8;
+    l.boxes = [bx(l.name[0], l.name[1], l.name[0] + nw, l.name[1] + LH), ...l.chips.map((c, i) => bx(right - chipW(c), l.top + i * 30, right, l.top + 22 + i * 30))]; });
+  const lay = layouts.find(l => l.boxes.every(a => free(a))) || layouts[2];
+  lay.boxes.forEach(a => take(a, true));
+
+  const placeName = (p, cands, also = []) => {
+    const w = textWidth(p.b.name, WN_FONT.name);
+    for (const [x, y] of cands) {
+      const a = bx(x - 2, y - 2, x + w + 2, y + lh + 2);
+      if (free(a, also) && clear(a, p)) { take(a, true); unitOf(p).lab.push({ name: p.b.name, x, y }); return a; }
     }
-    return s + '</g>';
-  }).join('');
-  // Two quiet dimensions from the next best (4 arms, 4 h) to RoboTeam, which lands last.
-  const nx = X(240), ny = Y(4), t = 1.15;
-  const chips = compact ? ['16 arms · 24 h', 'cameras only · never pauses'] : ['16 arms · 24 h · cameras only · never pauses'];
-  let fore = '';
-  if (!compact && rg.y - UY > 36) fore += `<line class="guide an grow-y" style="--d:${t}s" x1="${px(nx)}" x2="${px(nx)}" y1="${UY + 5}" y2="${rg.y.toFixed(1)}"/>`;
-  if (!compact && UX - rg.x2 > 20) fore += `<line class="guide an grow-x" style="--d:${t}s" x1="${rg.x2.toFixed(1)}" x2="${UX - 5}" y1="${px(ny)}" y2="${px(ny)}"/>`;
-  fore += `<path class="dim an grow-up" style="--d:${t + 0.1}s" d="M${px(UX) - 4} ${px(ny)}h8M${px(UX)} ${px(ny)}V${(UY + UR + 6).toFixed(1)}"/>`;
-  fore += `<path class="dim an grow-x" style="--d:${t + 0.1}s" d="M${px(nx)} ${px(UY) - 4}v8M${px(nx)} ${px(UY)}H${(UX - UR - 6).toFixed(1)}"/>`;
-  const span = UX - UR - 6 - nx, w6 = textWidth('6× longer', NOTE_FONT);
-  // The arms note sits halfway up its line, or under RoboTeam's chips when they reach that far (phones).
-  const y4 = Math.max((UY + ny) / 2 + 4, UY + 18 + 24 + 8 + chips.length * 30 + 18);
-  fore += note(UX - 10, y4, '4×', 'the arms', 'end', t + 0.35);
-  fore += span > w6 + 12 ? note(nx + span / 2, UY - 10, '6×', 'longer', 'middle', t + 0.35) : note(UX - UR - 8, UY - 10, '6×', 'longer', 'end', t + 0.35);
-  fore += `<g class="wn-pt us" data-b="${ui}"><circle class="halo an halo" style="--d:${t + 0.05}s" cx="${UX.toFixed(1)}" cy="${UY.toFixed(1)}" r="${(UR * 2.1).toFixed(1)}"/><circle class="ours an land" style="--d:${t + 0.05}s" cx="${UX.toFixed(1)}" cy="${UY.toFixed(1)}" r="${UR}"/><circle class="hit" cx="${UX.toFixed(1)}" cy="${UY.toFixed(1)}" r="${UR * 2.3}"/></g>`;
-  const over = `<div class="wn-us an rise" style="--d:${t + 0.35}s;right:${Math.round(W - UX + UR + 12)}px;top:${Math.round(UY + 18)}px"><b>RoboTeam</b>${chips.map(c => `<span class="chip">${c}</span>`).join('')}</div>`;
-  const label = 'Benchmarks by robot arms and run length. Every other benchmark has 1 to 4 arms and runs of at most 4 hours; RoboTeam has 16 arms and runs of up to 24 hours.';
-  box.innerHTML = `<div class="wn-plot" style="height:${H}px">${svg(W, H, `<g class="an">${grid}</g><g class="an" style="--d:.12s">${region}</g>${dots}${fore}`, label)}${over}</div>` +
-    `<div class="wn-key">${glyphKey('cam', 'Cameras only')}${glyphKey('clock', 'Never pauses')}<span class="src">From the paper’s comparison table</span></div>`;
-}
+    return null;
+  };
+  const beside = p => [p.x + r + 6, p.y - lh / 2], over = p => [p.x - 3, p.y - r - 5 - lh], under = p => [p.x - 3, p.y + r + 5];
 
-// B: two aligned strips (arms, run length) and a checklist where only RoboTeam ticks every row.
-function whatsNewB(rows, box) {
-  const W = Math.max(280, Math.floor(box.clientWidth)), compact = W < 540, side = W >= 860, LW = 350;
-  const SW = side ? W - LW - 44 : W, L = 2, R = compact ? 14 : 18;
-  const r = compact ? 4.5 : 5.5, step = 2 * r + 3, UR = compact ? 8 : 9.5, ui = rows.findIndex(b => b.ours), lg = Math.log10;
-  const x0 = L + 8, x1 = SW - R - UR;
-  const strips = [
-    { title: 'Robot arms on one task', X: a => x0 + (a - 1) / 15 * (x1 - x0), val: b => b.arms, ticks: [[1, '1'], [4, '4'], [8, '8'], [12, '12'], [16, '16']], from: 4, max: 16, em: '4×', rest: 'the arms', us: '16 arms' },
-    { title: 'How long one run can last', X: m => x0 + (lg(m) - lg(0.1)) / (lg(1440) - lg(0.1)) * (x1 - x0), val: b => b.minutes,
-      ticks: compact ? [[0.1, '6 s'], [1, '1 min'], [60, '1 h'], [240, '4 h'], [1440, '24 h']] : [[0.1, '6 s'], [1, '1 min'], [10, '10 min'], [60, '1 h'], [240, '4 h'], [1440, '24 h']], from: 240, max: 1440, em: '6×', rest: 'longer', us: '24 h' },
-  ];
-  let y = 0, g = '';
-  strips.forEach((s, si) => {
-    const t0 = 0.1 + si * 0.45;
-    const pts = rows.map((b, i) => ({ b, i, x: s.X(s.val(b)) })).filter(p => !p.b.ours).sort((a, b) => a.x - b.x);
-    const lv = []; pts.forEach(p => { let k = 0; while (lv.some(q => q.k === k && Math.abs(q.x - p.x) < step)) k++; p.k = k; lv.push(p); });
-    const levels = Math.max(...pts.map(p => p.k)) + 1;
-    const titleY = y + 14, base = titleY + 24 + (levels - 1) * step + r, axisY = base + UR + 9, tickY = axisY + 18, brY = tickY + 13, labY = brY + 18;
-    const ux = s.X(s.max), fx = s.X(s.from);
-    g += `<g class="an" style="--d:${t0}s">${txt(L, titleY, s.title, 'st-t')}${s.ticks.map(([v, l]) => `<line class="base" x1="${px(s.X(v))}" x2="${px(s.X(v))}" y1="${px(axisY)}" y2="${px(axisY) + 4}"/>` + txt(s.X(v), tickY, l, 'tick', 'middle')).join('')}</g>`;
-    g += `<line class="base an grow-x" style="--d:${t0}s" x1="${x0 - 8}" x2="${x1 + 8}" y1="${px(axisY)}" y2="${px(axisY)}"/>`;
-    g += pts.map((p, k) => { const c = `cx="${p.x.toFixed(1)}" cy="${(base - p.k * step).toFixed(1)}"`;
-      return `<g class="wn-pt" data-b="${p.i}"><circle class="hit" ${c} r="${r + 5}"/><circle class="dot an rise" style="--d:${(t0 + 0.12 + k * 0.05).toFixed(2)}s" ${c} r="${r}"/></g>`; }).join('');
-    const t1 = 1.25 + si * 0.1;
-    g += `<g class="wn-pt us" data-b="${ui}"><circle class="halo an halo" style="--d:${t1}s" cx="${ux.toFixed(1)}" cy="${base.toFixed(1)}" r="${(UR * 2).toFixed(1)}"/><circle class="ours an land" style="--d:${t1}s" cx="${ux.toFixed(1)}" cy="${base.toFixed(1)}" r="${UR}"/><circle class="hit" cx="${ux.toFixed(1)}" cy="${base.toFixed(1)}" r="${UR * 2.2}"/></g>`;
-    g += txt(ux + UR, base - UR * 2 - 8, s.us, 'us-t an rise', 'end', `style="--d:${t1 + 0.2}s"`);
-    g += `<path class="dim an grow-x" style="--d:${t1 + 0.15}s" d="M${px(fx)} ${px(brY) - 5}V${px(brY)}H${px(ux)}V${px(brY) - 5}"/>`;
-    const span = ux - fx, wn = textWidth(`${s.em} ${s.rest}`, NOTE_FONT);
-    g += span > wn + 6 ? note(fx + span / 2, labY, s.em, s.rest, 'middle', t1 + 0.35) : note(ux + 2, labY, s.em, s.rest, 'end', t1 + 0.35);
-    y = labY + 26;
+  // "6× longer": from the longest run of the others to 24 h, on that benchmark's row. Its name sits
+  // on the line when there is room; otherwise over or under its dot, and the line starts at the dot.
+  const fp = pts.find(p => p.b === far), ny = fp.y;
+  const dimW = (em, rest) => textWidth(`${em} `, WN_FONT.em) + textWidth(rest, WN_FONT.name);
+  const e6 = `${Math.round(us.minutes / far.minutes)}×`, e4 = `${Math.round(us.arms / most.arms)}×`, w6 = dimW(e6, 'longer'), w4 = dimW(e4, 'the arms');
+  const onLine = UX - (beside(fp)[0] + textWidth(far.name, WN_FONT.name) + 10) >= w6 + 56 && placeName(fp, [beside(fp)]);
+  const xs = onLine ? onLine.x1 + 8 : fp.x + r + 5, hm = (xs + UX) / 2;
+  const line = [bx(xs, ny - 4, UX + 1, ny + 4), bx(UX - 2, ny - 8, UX + 2, ny + 8)];
+  if (!onLine) placeName(fp, [over(fp), under(fp)], line);
+
+  // The most arms of the others always has its name; on a phone it sits over the dot, inside the corner.
+  const mp = pts.find(p => p.b === most), mostLab = placeName(mp, compact ? [over(mp), beside(mp)] : [beside(mp), over(mp)], line);
+  // The corner where every other benchmark sits: 0 to the longest run, 0 to the most arms.
+  let ry = Y(most.arms) - r - pad; if (mostLab && mostLab.y1 <= mp.y) ry = Math.min(ry, mostLab.y0 - 4);
+  const rg = { x0: gx, y0: ry, x1: X(far.minutes / 60) + r + pad };
+  const regionText = 'EVERY OTHER BENCHMARK', rw = textWidth(regionText, WN_FONT.mono) + 1.2 * (regionText.length - 1);
+  take(bx(rg.x0, rg.y0 - 21, rg.x0 + rw + 4, rg.y0 - 5), true);
+
+  // The words of "6× longer" sit in a gap in the line, else just under or over it.
+  const hb = y => bx(hm - w6 / 2 - 6, y - 8, hm + w6 / 2 + 6, y + 8);
+  const hy = [ny, ny + 13, ny - 13].find((y, i) => free(hb(y), i ? line : [])) ?? ny;
+  take(hb(hy), true); line.forEach(a => take(a));
+  const hPath = (hy === ny ? `M${f1(xs)} ${px(ny)}H${f1(hm - w6 / 2 - 7)}M${f1(hm + w6 / 2 + 7)} ${px(ny)}H${px(UX)}` : `M${f1(xs)} ${px(ny)}H${px(UX)}`) +
+    `M${px(UX)} ${px(ny) - 6}V${px(ny) + 6}`;
+
+  // "4× the arms": from the most arms of the others up to RoboTeam, along 24 h; the words sit in a gap in the line.
+  const yb = Y(most.arms), yt = UY + HALO + 4, vb = y => bx(UX - w4 / 2 - 6, y - 10, UX + w4 / 2 + 6, y + 10), vmid = (yb + yt) / 2;
+  let vm = vmid;
+  for (let k = 0; k <= 40; k++) { const y = vmid + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 3; if (y - 10 > yt + 6 && y + 10 < yb - 6 && free(vb(y))) { vm = y; break; } }
+  take(vb(vm), true); take(bx(UX - 6, yt, UX + 6, yb + 1));
+  const vPath = `M${px(UX) - 6} ${px(yb)}H${px(UX) + 6}M${px(UX)} ${px(yb)}V${f1(vm + 11)}M${px(UX)} ${f1(vm - 11)}V${f1(yt)}`;
+
+  // The famous two, only where they fit, never on a phone.
+  if (!compact) WN_FAMOUS.forEach(n => { const p = pts.find(q => q.b.name === n && q !== fp && q !== mp); if (p) placeName(p, [beside(p), over(p), under(p)]); });
+
+  // Light gridlines at the ticks only, cut where a text or a dimension line crosses them.
+  const cuts = [...texts, bx(UX - 1, yt - 2, UX + 1, yb + 8), bx(UX - 1, ny - 8, UX + 1, ny + 8)];
+  const segs = (a, b, gaps) => gaps.sort((p, q) => p[0] - q[0]).reduce((ss, [g0, g1]) =>
+    ss.flatMap(([s0, s1]) => (g1 <= s0 || g0 >= s1 ? [[s0, s1]] : [[s0, g0], [g1, s1]].filter(([c0, c1]) => c1 - c0 > 2))), [[a, b]]);
+  let grid = '';
+  [0, 6, 12, 18, 24, 30].forEach(h => { const x = X(h);
+    grid += segs(T, y0, cuts.filter(c => c.x0 - 2 < x && x < c.x1 + 2).map(c => [c.y0 - 2, c.y1 + 2])).map(([a, b]) => `M${px(x)} ${f1(a)}V${f1(b)}`).join(''); });
+  [4, 8, 12, 16, 20].forEach(a => { const y = Y(a);
+    grid += segs(rg.x0, W - R, cuts.filter(c => c.y0 - 2 < y && y < c.y1 + 2).map(c => [c.x0 - 2, c.x1 + 2])).map(([p, q]) => `M${f1(p)} ${px(y)}H${f1(q)}`).join(''); });
+  let axes = '';
+  [0, 4, 8, 12, 16, 20].forEach(a => { axes += txt(rg.x0 - 7, Y(a) + 4, a, 'tick', 'end'); });
+  [0, 6, 12, 18, 24, 30].forEach(h => { axes += txt(X(h), y0 + 20, `${h} h`, 'tick', 'middle'); });
+  axes += txt(0, 13, 'Robot arms on one task', 'axis-t') + txt(W - 2, H - 6, 'How long one run can last', 'axis-t', 'end');
+
+  const region = `<g class="an" style="--d:.12s"><rect class="region" x="${f1(rg.x0)}" y="${f1(rg.y0)}" width="${f1(rg.x1 - rg.x0)}" height="${f1(y0 - rg.y0)}" rx="10"/>` +
+    txt(rg.x0 + 1, rg.y0 - 9, regionText, 'region-t') + '</g>' + `<line class="base an" x1="${f1(rg.x0)}" x2="${W - R}" y1="${px(y0)}" y2="${px(y0)}"/>`;
+  const dims = `<path class="dim an grow-x" style="--d:1.45s" d="${hPath}"/><path class="dim an grow-up" style="--d:1.45s" d="${vPath}"/>` +
+    txt(hm, hy + 4.5, `<tspan class="em">${e6}</tspan> longer`, 'dim-t an', 'middle', 'style="--d:1.8s"') +
+    txt(UX, vm + 4.5, `<tspan class="em">${e4}</tspan> the arms`, 'dim-t an', 'middle', 'style="--d:1.8s"');
+
+  // The others enter in a short stagger from the corner outwards; RoboTeam lands last with its halo.
+  units.sort((a, b) => a.pts[0].x - b.pts[0].x || b.pts[0].y - a.pts[0].y);
+  const ring = (xa, xb, cy, rr) => (xa === xb ? `<circle class="ring" cx="${f1(xa)}" cy="${f1(cy)}" r="${rr + 4}"/>`
+    : `<rect class="ring" x="${f1(xa - rr - 4)}" y="${f1(cy - rr - 4)}" width="${f1(xb - xa + 2 * rr + 8)}" height="${2 * rr + 8}" rx="${rr + 4}"/>`);
+  let dots = '';
+  units.forEach((u, k) => {
+    const d = 0.3 + k * 0.06, xs_ = u.pts.map(p => p.x), bs = u.pts.map(p => p.b);
+    const say = bs.length > 1 ? `${bs.length} benchmarks: ${bs.map(b => `${b.name}, ${armsText(b.arms)}, ${lenText(b)}`).join('; ')}` : `${bs[0].name}: ${armsText(bs[0].arms)}, runs ${lenText(bs[0])}`;
+    dots += `<g class="wn-u" data-b="${k}" tabindex="0" role="img" aria-label="${say.replace(/ /g, ' ')}">` +
+      u.pts.map((p, j) => `<circle class="dot an pop" style="--d:${(d + j * 0.04).toFixed(2)}s" cx="${f1(p.x)}" cy="${f1(p.y)}" r="${r}"/>`).join('') +
+      u.lab.map(l => txt(l.x, l.y + 12, l.name, 'nm an', 'start', `style="--d:${(d + 0.16).toFixed(2)}s"`)).join('') +
+      ring(Math.min(...xs_), Math.max(...xs_), u.pts[0].y, r) + '</g>';
   });
-  const H = y - 8;
-  const props = [['vision', 'Cameras only'], ['real', 'Never pauses'], ['multi', 'Several agents']];
-  const score = b => props.reduce((n, [k]) => n + (b[k] === 'yes' ? 2 : b[k] === 'partly' ? 1 : 0), 0);
-  const order = rows.map((b, i) => i).filter(i => !rows[i].ours).sort((a, b) => score(rows[b]) - score(rows[a]) || rows[a].name.localeCompare(rows[b].name));
-  const pip = (i, v) => `<i class="pip ${v === 'yes' ? 'y' : v === 'partly' ? 'p' : 'n'}" data-b="${i}"></i>`;
-  // RoboTeam's column sits at the right edge, under its dots on the strips.
-  const tick = `<span class="ok" data-b="${ui}"></span>`;
-  const list = `<div class="wn-list" style="--us-col:${side ? 64 : Math.round((R + UR) * 2)}px"><div class="wn-lh"><span></span><span>The other ${order.length}</span><span class="us">RoboTeam</span></div>` +
-    props.map(([k, lab], j) => `<div class="wn-li an rise" style="--d:${(0.9 + j * 0.4).toFixed(1)}s"><span class="lab">${lab}</span><span class="pips">${order.map(i => pip(i, rows[i][k])).join('')}</span>${tick}</div>`).join('') +
-    `<div class="wn-li all an rise" style="--d:2.1s"><span class="lab">All three</span><span class="none">None of them</span>${tick}</div></div>`;
-  const label = 'Benchmarks on two strips: robot arms on one task, and how long one run can last. RoboTeam is far right on both, and the only one that is cameras only, never pauses and has several agents.';
-  box.innerHTML = `<div class="wn-b${side ? ' side' : ''}"><div class="wn-plot" style="height:${H}px">${svg(SW, H, g, label)}</div>${list}</div>` +
-    `<div class="wn-key"><span><i class="pip y"></i>Yes</span><span><i class="pip p"></i>Partly</span><span><i class="pip n"></i>No</span><span class="src">From the paper’s comparison table</span></div>`;
+  const uk = units.length, t = 1.05;
+  dots += `<g class="wn-u us" data-b="${uk}" tabindex="0" role="img" aria-label="${us.name}: ${us.arms} arms, runs ${lenText(us).replace(/ /g, ' ')}, cameras only, never pauses, several agents">` +
+    `<circle class="halo an halo" style="--d:${t}s" cx="${f1(UX)}" cy="${f1(UY)}" r="${HALO}"/><circle class="ours an land" style="--d:${t}s" cx="${f1(UX)}" cy="${f1(UY)}" r="${UR}"/>${ring(UX, UX, UY, UR)}</g>`;
+  WN_UNITS = [...units.map(u => ({ pts: u.pts.map(p => [p.x, p.y, r]), note: u.pts.length > 1 ? pileNote(u.pts.map(p => p.b)) : benchNote(u.pts[0].b) })),
+    { pts: [[UX, UY, HALO]], note: benchNote(us) }];
+
+  const nameAt = lay.over ? `left:${Math.round(lay.name[0])}px` : `right:${Math.round(W - right - 6)}px`;
+  const over_ = `<b class="wn-name an rise" data-b="${uk}" aria-hidden="true" style="${nameAt};top:${Math.round(lay.name[1])}px;--d:${t + 0.3}s">${us.name}</b>` +
+    `<div class="wn-chips" data-b="${uk}" aria-hidden="true" style="right:${Math.round(W - right)}px;top:${Math.round(lay.top)}px">` +
+    lay.chips.map((c, i) => `<span class="chip an rise" style="--d:${(t + 0.38 + i * 0.08).toFixed(2)}s">${c}</span>`).join('') + '</div>';
+  const label = `Benchmarks by robot arms and how long one run can last. Every other benchmark has 1 to ${most.arms} arms and runs of at most ${Math.round(far.minutes / 60)} hours; RoboTeam has ${us.arms} arms and runs of up to ${Math.round(us.minutes / 60)} hours.`;
+  box.innerHTML = `<div class="wn-plot${compact ? ' compact' : ''}" style="height:${H}px"><svg class="chart" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="group" aria-label="${label}">` +
+    `<g class="an"><path class="grid" d="${grid}"/>${axes}</g>${region}${dims}${dots}</svg>${over_}</div>`;
+  wnBind(fig); playOnce(fig, 2400);
 }
 
-// One benchmark at a time: point at a dot, a name or a checklist mark and everything about it lights up.
+// One dot or pile at a time: it grows a little, the rest dim, and its note opens above it.
+function wnSet(fig, k) {
+  if (k === wnOn) return; wnOn = k;
+  fig.classList.toggle('hl', k != null);
+  fig.querySelectorAll('[data-b]').forEach(e => e.classList.toggle('on', k != null && e.dataset.b === String(k)));
+  const s = fig.querySelector('svg.chart'); if (s) s.style.cursor = k != null ? 'pointer' : '';
+  if (k == null) { hideTip(); return; }
+  const g = fig.querySelector(`.wn-u[data-b="${k}"]`);
+  if (g && WN_UNITS[k]) showNote(WN_UNITS[k].note, g.querySelector('.ring'), 'chart-tip wn-tip');
+}
 function wnBind(fig) {
   if (fig.dataset.bound) return; fig.dataset.bound = '1';
-  const t = $('tip');
-  const mark = i => { fig.classList.toggle('hl', i != null); fig.querySelectorAll('[data-b]').forEach(e => e.classList.toggle('on', e.dataset.b === i)); };
-  const place = (x, y) => { const w = t.offsetWidth, h = t.offsetHeight; let l = x + 14, tp = y + 14;
-    if (l + w > innerWidth - 8) l = x - w - 14; if (tp + h > innerHeight - 8) tp = y - h - 14; t.style.left = `${Math.max(8, l)}px`; t.style.top = `${Math.max(8, tp)}px`; };
-  const show = (i, x, y) => { mark(i); t.className = 'tip chart-tip'; t.innerHTML = WN_TIPS[+i]; t.hidden = false; place(x, y); };
-  const hide = () => { if (fig.classList.contains('hl')) { mark(null); t.hidden = true; } };
-  const at = e => e.target.closest && e.target.closest('[data-b]');
-  fig.addEventListener('pointerover', e => { if (e.pointerType !== 'mouse') return; const g = at(e); if (g) show(g.dataset.b, e.clientX, e.clientY); });
-  fig.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' && fig.classList.contains('hl')) place(e.clientX, e.clientY); });
-  fig.addEventListener('pointerout', e => { if (e.pointerType !== 'mouse') return; const g = at(e), to = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest('[data-b]') : null;
-    if (g && (!to || to.dataset.b !== g.dataset.b)) hide(); });
-  fig.addEventListener('click', e => { const g = at(e); if (g) show(g.dataset.b, e.clientX, e.clientY); else hide(); });
-  document.addEventListener('pointerdown', e => { if (!fig.contains(e.target)) hide(); });
-  addEventListener('scroll', hide, { passive: true });
+  // The unit under the pointer: a dot or a name it touches, else the nearest dot within reach.
+  const at = (e, reach) => {
+    const g = e.target.closest && e.target.closest('.wn-u'); if (g && fig.contains(g)) return +g.dataset.b;
+    const s = fig.querySelector('svg.chart'); if (!s) return null;
+    const rc = s.getBoundingClientRect(), k = s.viewBox.baseVal.width / rc.width, x = (e.clientX - rc.left) * k, y = (e.clientY - rc.top) * k;
+    let best = null, dist = reach;
+    WN_UNITS.forEach((u, i) => u.pts.forEach(([ux, uy, ur]) => { const d = Math.hypot(ux - x, uy - y) - ur; if (d < dist) { dist = d; best = i; } }));
+    return best;
+  };
+  fig.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') wnSet(fig, at(e, 8)); });
+  fig.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') wnSet(fig, null); });
+  // A tap opens a dot's note, or closes it when it was open before the tap. Focus that a pointer
+  // causes is left to the pointer, so the order of focus and pointerup does not matter.
+  let downAt = 0, downOn = null;
+  fig.addEventListener('pointerdown', () => { downAt = performance.now(); downOn = wnOn; });
+  fig.addEventListener('pointerup', e => { if (e.pointerType === 'mouse') return; const k = at(e, 18); wnSet(fig, k === downOn ? null : k); });
+  fig.addEventListener('focusin', e => { if (performance.now() - downAt < 800) return; const g = e.target.closest('.wn-u'); if (g) wnSet(fig, +g.dataset.b); });
+  fig.addEventListener('focusout', e => { if (!e.relatedTarget || !fig.contains(e.relatedTarget)) wnSet(fig, null); });
+  fig.addEventListener('keydown', e => { if (e.key === 'Escape') wnSet(fig, null); });
+  document.addEventListener('pointerdown', e => { if (!fig.contains(e.target)) wnSet(fig, null); });
+  addEventListener('scroll', () => wnSet(fig, null), { passive: true });
 }
 
 let pickProgress = 'both';
