@@ -162,40 +162,57 @@
 <div class="with-toc">
   <nav class="toc" aria-label="On this page" id="toc">
     <a href="#scoreboard">Who finished what</a>
-    <a href="#f-progress">Every run</a>
     <a href="#f-vision">Seeing</a>
     <a href="#f-time">Waiting</a>
-    <a href="#f-systems">Team design</a>
-    <a href="#f-failure">Failures</a>
+    <a href="#f-failure">Retrying</a>
     <a href="#f-levels">Team size</a>
+    <a href="#f-systems">Team design</a>
+    <a href="#f-progress">Every run</a>
   </nav>
   <div class="toc-body">
     <section class="chapter" id="scoreboard" aria-labelledby="results-title">
       <div class="chapter-head" data-reveal>
         <p class="kicker">Results</p>
         <h2 id="results-title">Who finished what.</h2>
-        <p class="chapter-lede">Six AI teams tried the same 36 jobs. Each square is one attempt, and you can watch every one of them.</p>
+        <p class="chapter-lede">Six AI teams, seeing only through cameras, tried the same 36 tasks. Each square is one attempt; click it to watch the run.</p>
       </div>
-      <div class="big" id="big" aria-live="polite"></div>
-      <div class="board" id="board"></div>
-      <div class="legend"><span><i class="cell done"></i>Finished</span><span><i class="cell"></i>Not finished</span><span><i class="cell none"></i>Video coming soon</span><span class="legend-note">In each group of three, the squares are Levels 1, 2 and 3.</span></div>
+      <div class="big" id="big" data-stagger>
+        <div data-reveal><b><span class="vio" id="big-done">28</span><small>of 36</small></b><span>tasks finished by <span class="model">gpt-6.1-sol</span>, the best team</span></div>
+        <div data-reveal><b id="big-hours">3.5&nbsp;h</b><span>of work on a typical task</span></div>
+        <div data-reveal><b id="big-fail">34%</b><span>of its steps fail at least once and are tried again</span></div>
+      </div>
+      <div class="board-bar" data-reveal="fade">
+        <div class="board-ctl" id="board-ctl" data-mode="all">
+          <div class="seg" role="group" aria-label="Show on the board" data-key="mode"><button type="button" data-v="all" aria-pressed="true">All</button><button type="button" data-v="size" aria-pressed="false">By team size</button><button type="button" data-v="level" aria-pressed="false">By level</button></div>
+          <div class="sub-slot">
+            <div class="seg sub" role="group" aria-label="Team size" data-key="size" data-for="size"><button type="button" data-v="small" aria-pressed="true">Small</button><button type="button" data-v="medium" aria-pressed="false">Medium</button><button type="button" data-v="large" aria-pressed="false">Large</button></div>
+            <div class="seg sub" role="group" aria-label="Level" data-key="level" data-for="level"><button type="button" data-v="1" aria-pressed="true">Level 1</button><button type="button" data-v="2" aria-pressed="false">Level 2</button><button type="button" data-v="3" aria-pressed="false">Level 3</button></div>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i class="cell done"></i>Finished</span><span><i class="cell"></i>Not finished</span><span><i class="cell none"></i>Video coming soon</span>
+          <span class="legend-note">Each group of three: Levels 1, 2, 3</span>
+        </div>
+      </div>
+      <div class="board" id="board" data-reveal="fade"></div>
     </section>
 
     <section class="chapter" aria-labelledby="learned-title">
       <div class="chapter-head" data-reveal>
         <p class="kicker">What we learned</p>
-        <h2 id="learned-title">Six things the runs show.</h2>
-        <p class="chapter-lede">The best teams finish most jobs. How they get there, and where the others fall short, says more about AI in the physical world than the score alone.</p>
+        <h2 id="learned-title">Five things the runs show.</h2>
+        <p class="chapter-lede">The best team finishes most tasks. How it gets there, and where the others fall short, says more about AI in the physical world than the score alone.</p>
+        <p class="hint"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 1.6l9.6 5.3-4.2 1.2 2.5 4.4-1.8 1-2.5-4.4-3 3.1z"/></svg><span class="on-mouse">Point at a bar or a line for details. Click a line to watch that run.</span><span class="on-touch">Tap a bar for details, or a line to watch that run.</span></p>
       </div>
       <div class="findings">
-        <section class="finding wide" id="f-progress"><div class="f-text"></div><div class="f-chart"></div></section>
-        <section class="finding" id="f-vision"><div class="f-text"></div><div class="f-chart"></div></section>
-        <section class="finding" id="f-time"><div class="f-text"></div><div class="f-chart"></div></section>
-        <section class="finding" id="f-systems"><div class="f-text"></div><div class="f-chart"></div></section>
-        <section class="finding" id="f-failure"><div class="f-text"></div><div class="f-chart"></div></section>
-        <section class="finding" id="f-levels"><div class="f-text"></div><div class="f-chart"></div></section>
+        <section class="finding" id="f-vision"><div class="f-text" data-reveal></div><div class="f-chart"></div></section>
+        <section class="finding" id="f-time"><div class="f-text" data-reveal></div><div class="f-chart"></div></section>
+        <section class="finding" id="f-failure"><div class="f-text" data-reveal></div><div class="f-chart"></div></section>
+        <section class="finding" id="f-levels"><div class="f-text" data-reveal></div><div class="f-chart"></div></section>
+        <section class="finding wide" id="f-systems"><div class="f-text" data-reveal></div><div class="f-chart"></div></section>
+        <section class="finding wide" id="f-progress"><div class="f-text" data-reveal></div><div class="f-chart"></div></section>
       </div>
-      <p class="aside">These numbers come from the paper, which also compares the two coding-agent programs and more conditions. <a href="https://arxiv.org/abs/2611.22138">Read the paper</a>.</p>
+      <p class="aside">All numbers come from the paper, which also compares Codex with Claude Code and more conditions. <a href="https://arxiv.org/abs/2611.22138">Read the paper<span class="arr" aria-hidden="true">&nbsp;→</span></a></p>
     </section>
   </div>
 </div>

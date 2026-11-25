@@ -147,16 +147,31 @@ function route() {
   showView(view ? view.id : 'overview');
   if (target) setTimeout(() => target.scrollIntoView({ block: 'start', behavior: 'instant' }), 0);
 }
+/* The contents beside Results: the section read now is the one crossing a band 30% to 40% down the
+   window, and at the end of the page it is the last one. */
 function tocSpy() {
-  const links = [...document.querySelectorAll('#toc a')], parts = links.map(a => document.querySelector(a.getAttribute('href')));
-  const spy = () => {
-    if (current !== 'results') return;
-    let on = 0; parts.forEach((p, i) => { if (p.getBoundingClientRect().top < 160) on = i; });
-    links.forEach((a, i) => a.classList.toggle('on', i === on));
+  const toc = $('toc'), links = [...toc.querySelectorAll('a')], parts = links.map(a => document.querySelector(a.getAttribute('href')));
+  const live = new Set(); let on = -1;
+  const mark = i => {
+    if (i === on) return; on = i;
+    links.forEach((a, k) => { a.classList.toggle('on', k === i); if (k === i) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current'); });
+    // In the row of contents on narrow screens the current link stays in view.
+    if (toc.scrollWidth > toc.clientWidth + 1) { const a = links[i]; toc.scrollTo({ left: Math.max(0, a.offsetLeft - (toc.clientWidth - a.offsetWidth) / 2), behavior: motionOK() ? 'smooth' : 'auto' }); }
   };
-  addEventListener('scroll', spy, { passive: true }); spy();
+  const pick = () => {
+    if (current !== 'results') return;
+    const h = document.documentElement.scrollHeight;
+    if (h > innerHeight + 4 && scrollY + innerHeight >= h - 4) { mark(links.length - 1); return; }
+    let last = -1; parts.forEach((p, i) => { if (live.has(p)) last = i; });
+    if (last >= 0) mark(last);
+  };
+  const io = new IntersectionObserver(entries => { entries.forEach(e => (e.isIntersecting ? live.add(e.target) : live.delete(e.target))); pick(); }, { rootMargin: '-30% 0px -60% 0px' });
+  parts.forEach(p => p && io.observe(p));
+  addEventListener('scroll', pick, { passive: true });
+  links.forEach((a, i) => a.addEventListener('click', () => mark(i)));
+  mark(0);
   // On narrow screens the row of contents slides away while reading down and returns on the way up.
-  const toc = $('toc'); let lastY = scrollY;
+  let lastY = scrollY;
   addEventListener('scroll', () => { const y = scrollY; if (Math.abs(y - lastY) < 8) return; toc.classList.toggle('tuck', y > lastY && y > 300); lastY = y; }, { passive: true });
 }
 
@@ -224,24 +239,27 @@ function clips() {
   });
 }
 
-/* ---------- results: three numbers and the board of squares ---------- */
+/* ---------- Results: three numbers, then the board and its switch ---------- */
 function numbers(results) {
   const best = results.conditions.find(c => c.key === 'adaptive'); if (!best) return;
-  const items = [
-    ['transport', `${best.completed} / 36`, 'jobs finished by the best team'],
-    ['relay', `${best.median_hours.toFixed(1)} h`, 'of work for a typical job'],
-    ['dial', `${Math.round(best.atomic_failure * 100)}%`, 'of its steps fail at least once and are tried again'],
-  ];
-  $('big').innerHTML = items.map(([type, big, small]) => `<div class="t-${type}"><b>${big}</b><span>${small}</span></div>`).join('');
+  [['big-done', String(best.completed)], ['big-hours', `${best.median_hours.toFixed(1)}\u00a0h`], ['big-fail', `${Math.round(best.atomic_failure * 100)}%`]].forEach(([id, v]) => {
+    const e = $(id); if (!e || e.textContent === v) return;
+    e.textContent = v; if (motionOK()) e.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' });
+  });
 }
 
+// The switch above the board shows one slice of the 36 tasks, one team size or one level: the other
+// squares dim, and each team's count is for that slice.
+const SLICE = { mode: 'all', size: 'small', level: '1' };
+const inSlice = task => { const [, size, level] = task.split('-'); return SLICE.mode === 'all' || (SLICE.mode === 'size' ? size === SLICE.size : level === `l${SLICE.level}`); };
+const rowName = set => (set === REFERENCE ? ['Reference', 'The same AI, given the position of every object'] : TEAMS[set] || [set, '']);
+
 function boardRow(set) {
-  const [label, setup] = TEAMS[set] || [set, ''], reference = set === REFERENCE;
+  const [label, setup] = rowName(set), reference = set === REFERENCE;
   const row = el('div', 'row'); row.dataset.model = set;
-  const who = el('button', 'who', `<b>${label}${reference ? '<span class="tag">Reference</span>' : ''}</b><small>${setup}</small>`); who.type = 'button';
+  const who = el('button', 'who', `<b${reference ? '' : ' class="model"'}>${label}</b><small>${setup}</small>`); who.type = 'button';
   who.title = 'Show these videos'; who.addEventListener('click', () => { F.team = set; F.status = 'all'; F.job = 'all'; library(); if (location.hash === '#videos') route(); else location.hash = 'videos'; });
-  const count = D.tasks.filter(t => done(set, t)).length;
-  row.append(who, el('div', 'score', `<b>${D.outcomes ? count : '–'}</b><span>/36</span>`));
+  row.append(who, el('div', 'score', '<b>–</b><span>of\u00a036</span>'));
   const groups = el('div', 'groups');
   TYPES.forEach(([type, typeName]) => {
     const g = el('div', `grp t-${type}`); g.dataset.name = typeName;
@@ -268,24 +286,41 @@ function boardRow(set) {
 
 function board() {
   const b = $('board'); b.innerHTML = '';
-  const cols = el('div', 'cols', '<span></span><span></span>' + TYPES.map(([k, n]) => `<div class="ch t-${k}">${n}<small><span>Small</span><span>Medium</span><span>Large</span></small></div>`).join(''));
-  b.append(el('div', 'band', 'From camera images alone'), cols);
+  b.append(el('div', 'cols', '<span class="kicker">Cameras only</span><span class="kicker">Finished</span>' +
+    TYPES.map(([k, n]) => `<div class="ch t-${k}"><span><i></i>${n}</span><small>${SIZES.map(s => `<span data-size="${s}">${cap(s)}</span>`).join('')}</small></div>`).join('')));
   D.sets.filter(s => s !== REFERENCE).forEach(s => b.append(boardRow(s)));
   if (D.sets.includes(REFERENCE)) { const o = el('div', 'oracle'); o.append(boardRow(REFERENCE)); b.append(o); }
+  boardSlice(false);
+}
+function boardSlice(animate = true) {
+  const b = $('board'), of = SLICE.mode === 'all' ? 36 : 12;
+  b.dataset.slice = SLICE.mode;
+  b.querySelectorAll('.cell').forEach(c => c.classList.toggle('out', !inSlice(c.dataset.task)));
+  b.querySelectorAll('.ch small span').forEach(s => s.classList.toggle('on', SLICE.mode === 'size' && s.dataset.size === SLICE.size));
+  b.querySelectorAll('.row').forEach(row => {
+    const set = row.dataset.model, n = D.outcomes ? D.tasks.filter(t => inSlice(t) && done(set, t)).length : '–', s = row.querySelector('.score');
+    if (s.dataset.v === `${n}/${of}`) return;
+    s.dataset.v = `${n}/${of}`; s.innerHTML = `<b>${n}</b><span>of\u00a0${of}</span>`;
+    if (animate && motionOK()) s.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' });
+  });
+}
+function boardControls() {
+  const ctl = $('board-ctl'); if (!ctl) return;
+  ctl.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-v]'); if (!btn) return;
+    const group = btn.parentElement; SLICE[group.dataset.key] = btn.dataset.v;
+    group.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === btn));
+    ctl.dataset.mode = SLICE.mode; boardSlice();
+  });
 }
 
+// The note over a square: the run's front camera, the task, and how the run ended.
 function tip(anchor, set, task) {
-  const t = $('tip'), has = !!run(set, task); t.className = `tip t-${typeOf(task)}`;
-  t.innerHTML = (has ? `<img alt="" src="${poster(set, task, 'front')}">` : '') +
-    `<div class="tip-body"><div><b>${nice(task)}</b><small>${teamName(set)} · ${facts(task)}</small></div>` +
-    `<div class="tip-state">${has ? stateHTML(set, task) : `<span class="soon">${WORDS.soon}</span>`}</div></div>`;
-  t.hidden = false;
-  const a = anchor.getBoundingClientRect(), w = 236, h = t.offsetHeight;
-  let y = a.top - h - 10; if (y < 8) y = a.bottom + 10;
-  t.style.left = `${Math.min(Math.max(8, a.left + a.width / 2 - w / 2), innerWidth - w - 8)}px`; t.style.top = `${y}px`;
+  const has = !!run(set, task), [label] = rowName(set);
+  showNote((has ? `<img alt="" src="${poster(set, task, 'front')}">` : '') +
+    `<div class="tip-body"><b>${nice(task)}</b><small>${set === REFERENCE ? label : mname(label)} · ${facts(task)}</small>` +
+    `<div class="tip-state">${has ? stateHTML(set, task) : `<span class="soon">${WORDS.soon}</span>`}</div></div>`, anchor, `run-tip t-${typeOf(task)}`);
 }
-function hideTip() { $('tip').hidden = true; }
-addEventListener('scroll', hideTip, { passive: true });
 
 /* ---------- all videos ---------- */
 function runCard(set, task, { mark = true, type = true, team = false } = {}) {
@@ -477,7 +512,7 @@ function playerControls() {
 }
 
 
-/* ---------- charts: drawn at the width they are shown, so text is always 12 px ---------- */
+/* ---------- charts: bars in HTML, lines and points in SVG drawn at the width they are shown ---------- */
 const FINDINGS_URL = mediaUrl(MEDIA + 'findings.json');
 let FD = null;
 const svg = (w, h, body, label) => `<svg class="chart" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}">${body}</svg>`;
@@ -485,24 +520,56 @@ const txt = (x, y, s, cls = '', anchor = 'start', extra = '') => `<text x="${x.t
 const fmt1 = n => (Math.round(n * 10) / 10).toString();
 const pct = v => (v < 1 ? fmt1(v) : Math.round(v)) + '%';
 const widthOf = box => Math.max(280, Math.floor(box.clientWidth));
-function setText(id, cap, title, say, key) {
-  $(id).querySelector('.f-text').innerHTML = `<p class="kicker">${cap}</p><h3>${title}</h3><p class="say">${say}</p>` + (key ? `<div class="key"><b>${key[0]}</b><span>${key[1]}</span></div>` : '');
+const mname = m => `<span class="model">${m}</span>`;
+function setText(id, kicker, claim, say, key) {
+  $(id).querySelector('.f-text').innerHTML = `<p class="kicker">${kicker}</p><h3>${claim}</h3>` +
+    (key ? `<p class="key"><b>${key[0]}</b><span>${key[1]}</span></p>` : '') + `<p class="say">${say}</p>`;
 }
 
-/* Hover details: elements carry data-tip, an index into TIPS; one tooltip follows the pointer. */
+/* Tooltips are notes: violet-tinted, with a stem to what they describe. Chart parts carry data-tip,
+   an index into TIPS; a bar's note points at the end of the bar. */
 const TIPS = [];
 const tipAt = html => `data-tip="${TIPS.push(html) - 1}"`;
-const tipLines = (title, rows, extra = '') => `<b>${title}</b>${rows.map(([k, v]) => `<div class="tl"><span>${k}</span><span>${v}</span></div>`).join('')}${extra}`;
+const tipLines = (title, rows, extra = '', source = '') => `<b>${title}</b>${rows.map(([k, v]) => `<div class="tl"><span>${k}</span><span>${v}</span></div>`).join('')}${extra}${source ? `<p class="ts">${source}</p>` : ''}`;
+let tipTimer = 0;
+function showNote(html, anchor, cls = '') {
+  const t = $('tip'); clearTimeout(tipTimer);
+  const fresh = t.hidden || !t.classList.contains('show');
+  t.className = `tip${cls ? ` ${cls}` : ''}`; t.innerHTML = html; t.hidden = false;
+  placeNote(t, anchor);
+  if (fresh) void t.offsetWidth;
+  t.classList.add('show');
+}
+function placeNote(t, anchor) {
+  const r = anchor.getBoundingClientRect(), w = t.offsetWidth, h = t.offsetHeight;
+  const bars = [document.querySelector('.rail'), innerWidth <= 1100 ? $('toc') : null].filter(Boolean);
+  const minTop = Math.max(0, ...bars.map(b => b.getBoundingClientRect().bottom)) + 8;
+  const end = anchor.classList && anchor.classList.contains('anchor');
+  const ax = end ? r.right - Math.min(10, r.width / 2) : r.left + r.width / 2;
+  const left = Math.round(Math.min(Math.max(8, ax - w / 2), innerWidth - w - 8));
+  let top = r.top - h - 12; const below = top < minTop; if (below) top = r.bottom + 12;
+  t.style.left = `${left}px`; t.style.top = `${Math.round(top)}px`;
+  t.style.setProperty('--sx', `${Math.round(Math.min(Math.max(14, ax - left), w - 14))}px`);
+  t.classList.toggle('below', below);
+}
+function hideTip() {
+  const t = $('tip'); if (t.hidden) return;
+  t.classList.remove('show'); clearTimeout(tipTimer);
+  tipTimer = setTimeout(() => { if (!t.classList.contains('show')) t.hidden = true; }, 160);
+}
+addEventListener('scroll', hideTip, { passive: true });
 function bindTips(root) {
-  const t = $('tip');
-  const place = e => { const w = t.offsetWidth, h = t.offsetHeight; let x = e.clientX + 14, y = e.clientY + 14;
-    if (x + w > innerWidth - 8) x = e.clientX - w - 14; if (y + h > innerHeight - 8) y = e.clientY - h - 14; t.style.left = `${x}px`; t.style.top = `${y}px`; };
   root.querySelectorAll('svg.chart').forEach(svgEl => {
+    if (svgEl.dataset.tips) return; svgEl.dataset.tips = '1';
     svgEl.addEventListener('pointerover', e => { const g = e.target.closest('[data-tip]'); if (!g) return;
-      t.className = 'tip chart-tip'; t.innerHTML = TIPS[+g.dataset.tip]; t.hidden = false; place(e);
+      showNote(TIPS[+g.dataset.tip], g.querySelector('.anchor') || g.querySelector('circle') || g, 'chart-tip');
       svgEl.classList.add('focus'); svgEl.querySelectorAll('.hot').forEach(x => x.classList.remove('hot')); g.classList.add('hot'); });
-    svgEl.addEventListener('pointermove', e => { if (!t.hidden) place(e); });
-    svgEl.addEventListener('pointerleave', () => { t.hidden = true; svgEl.classList.remove('focus'); svgEl.querySelectorAll('.hot').forEach(x => x.classList.remove('hot')); });
+    svgEl.addEventListener('pointerleave', () => { hideTip(); svgEl.classList.remove('focus'); svgEl.querySelectorAll('.hot').forEach(x => x.classList.remove('hot')); });
+  });
+  root.querySelectorAll('[data-tip]').forEach(row => {
+    if (row.closest('svg') || row.dataset.bound) return; row.dataset.bound = '1';
+    const show = () => showNote(TIPS[+row.dataset.tip], (row.dataset.anchor && row.querySelector(row.dataset.anchor)) || row.querySelector('.anchor') || row, 'chart-tip');
+    row.addEventListener('pointerenter', show); row.addEventListener('pointerleave', hideTip);
   });
 }
 const yesNo = v => (v === 'yes' ? 'Yes' : v === 'partly' ? 'Partly' : 'No');
@@ -686,168 +753,215 @@ function wnBind(fig) {
   addEventListener('scroll', hide, { passive: true });
 }
 
+/* ---------- Results findings: a claim, one number, at most two sentences and one chart each ---------- */
+const SOURCE = 'From the paper';
+// A bar chart in HTML: per row a label, a 14 px bar on a track and a right-aligned value, one row
+// every 32 px. Rows enter 0.4 s apart; a row's note shows on hover. A row with `stack` splits its bar.
+function barRows(rows, { max = 100, head = '', cls = '', from = 0 } = {}) {
+  return `<div class="bars${cls ? ` ${cls}` : ''}">${head}${rows.map((r, i) =>
+    `<div class="bar-row${r.cls ? ` ${r.cls}` : ''}" data-reveal="fade" style="--i:${from + i}"${r.tip ? ` ${tipAt(r.tip)}` : ''}>` +
+    `<span class="bl">${r.label}</span><span class="bt">` +
+    (r.stack ? `<span class="stk anchor" data-reveal="grow-x">${r.stack.map(([v, f]) => `<i class="f-${f}" style="flex:${v} 1 0"></i>`).join('')}</span>`
+      : `<i class="bf anchor f-${r.fill}" data-reveal="grow-x" style="width:${Math.max(0.6, 100 * r.value / max).toFixed(2)}%"></i>`) +
+    `</span><span class="bv">${r.text}</span></div>`).join('')}</div>`;
+}
+
+// Seeing: the same AI with the position of every object, with cameras, with 128 × 80 pictures, without code.
+function chartVision(F, box) {
+  const V = Object.fromEntries(F.vision.map(v => [v.key, v])), f = F.vision_facts;
+  setText('f-vision', 'Seeing', 'Seeing is the hard part.',
+    `Told where every object is, the same AI finishes all ${V.oracle.completed} tasks; from its cameras, ${V.adaptive.completed}. At 128\u00a0×\u00a080 pixels one pixel covers about ${f.pixel_mm}\u00a0mm, more than twice the ${f.tolerance_mm}\u00a0mm it has for placing a cube, and it finishes ${V['low-resolution'].completed}.`,
+    [`${V.oracle.completed}\u2009→\u2009${V.adaptive.completed}`, 'tasks finished once it must see for itself']);
+  const name = { oracle: 'Given every position', adaptive: 'Cameras, 1280\u00a0×\u00a0800', 'low-resolution': 'Cameras, 128\u00a0×\u00a080', 'robot-tool-only': 'Cameras, no own code' };
+  const why = { oracle: 'Reference: the same AI, given the position of every object instead of pictures.', adaptive: 'Sharp camera pictures, and it may write its own code.', 'low-resolution': 'Every picture shrunk to 128 × 80 pixels.', 'robot-tool-only': 'Sharp pictures, but no code of its own: only the robot tool.' };
+  const rows = F.vision.map(v => ({ label: name[v.key] || v.label, value: v.completed, text: v.completed,
+    fill: v.key === 'oracle' ? 'soft' : v.key === 'adaptive' ? 'vio' : 's2', cls: v.key === 'oracle' ? 'ref' : v.key === 'adaptive' ? 'lead' : '',
+    tip: tipLines(name[v.key] || v.label, [['Tasks finished', `${v.completed} of 36`], ['Grasps that fail', pct(v.grasp_fail)]], `<p class="tw">${why[v.key] || ''}</p>`, `${mname('gpt-6.1-sol')}, Adaptive team. ${SOURCE}.`) }));
+  box.innerHTML = `<p class="chart-cap kicker">Tasks finished, of 36</p>${barRows(rows, { max: 36 })}${zoomFigure(f)}`;
+  zoomDrag(box.querySelector('.zoom'));
+}
+// The same spot of one camera picture at 1280 × 800 and at 128 × 80, magnified so that one pixel of
+// the small picture is 20 px wide; the bar is the room an agent has for placing a cube.
+const ZOOM = 2; // CSS px per pixel of the 1280 × 800 picture
+function zoomFigure(f) {
+  const base = mediaUrl(MEDIA + 'findings/'), bar = (10 * ZOOM * f.tolerance_mm / f.pixel_mm).toFixed(1);
+  const view = (file, res, low) => `<div class="zoom-view${low ? ' low' : ''}"><img src="${base}${file}" alt="" draggable="false" loading="lazy" decoding="async">` +
+    `<span class="chip view-tag">${res}</span><span class="chip scale"><i style="width:${bar}px"></i>${f.tolerance_mm}\u00a0mm</span></div>`;
+  return `<figure class="zoom" data-reveal="up" tabindex="0" aria-label="One camera picture at 1280 by 800 and at 128 by 80 pixels, magnified on the same spot. Drag or use the arrow keys to look around.">` +
+    view('camera-full.webp', '1280\u00a0×\u00a0800') + view('camera-128x80.png', '128\u00a0×\u00a080', true) +
+    `<figcaption>The same spot in both pictures, magnified. The bar is ${f.tolerance_mm}\u00a0mm. Drag to look around.</figcaption></figure>`;
+}
+function zoomDrag(fig) {
+  let x = 640, y = 381, last = null; // the red cube in front of arm A
+  const views = [...fig.querySelectorAll('.zoom-view')];
+  const set = () => {
+    const r = views[0].getBoundingClientRect(), hw = r.width / (2 * ZOOM), hh = r.height / (2 * ZOOM);
+    if (r.width) { x = Math.min(Math.max(x, hw), 1280 - hw); y = Math.min(Math.max(y, hh), 800 - hh); }
+    fig.style.setProperty('--zx', x.toFixed(1)); fig.style.setProperty('--zy', y.toFixed(1));
+  };
+  views.forEach(v => {
+    v.addEventListener('pointerdown', e => { if (e.button) return; last = [e.clientX, e.clientY]; v.setPointerCapture(e.pointerId); fig.classList.add('grabbing'); });
+    v.addEventListener('pointermove', e => { if (!last) return; x -= (e.clientX - last[0]) / ZOOM; y -= (e.clientY - last[1]) / ZOOM; last = [e.clientX, e.clientY]; set(); });
+    const end = () => { last = null; fig.classList.remove('grabbing'); };
+    v.addEventListener('pointerup', end); v.addEventListener('pointercancel', end);
+  });
+  fig.addEventListener('keydown', e => { const d = { ArrowLeft: [-12, 0], ArrowRight: [12, 0], ArrowUp: [0, -12], ArrowDown: [0, 12] }[e.key]; if (!d) return; e.preventDefault(); x += d[0]; y += d[1]; set(); });
+  set();
+}
+
+// Waiting: how each model's agents spend their time.
+let sortTime = 'model';
+function chartTime(F, box) {
+  const t = F.timeline_facts, shares = F.time_shares.rows;
+  setText('f-time', 'Waiting', 'The arms mostly wait.', `The world never pauses, yet in one run an arm moves only ${t.arms_moving_pct}% of the time, while an agent is thinking for ${t.thinking_pct}% of it. Faster decisions would shorten tasks more than faster arms.`, [`${t.thinking_pct}%`, 'of one run, an agent is thinking']);
+  const rows = shares.map(([m, th, rb, cd]) => ({ label: mname(m), text: `${Math.round(th)}%`, cls: m === 'gpt-6.1-sol' ? 'lead' : '', stack: [[th, 'vio'], [rb, 's2'], [cd, 's3']],
+    tip: tipLines(mname(m), [['Thinking', `${fmt1(th)}%`], ['Robot tool', `${fmt1(rb)}%`], ['Own code', `${fmt1(cd)}%`]], '', `Share of agent time, Adaptive team. ${SOURCE}.`) }));
+  box.innerHTML = `<div class="chart-top"><p class="chart-cap kicker">Share of agent time</p><div class="seg" role="group" aria-label="Order of the rows">` +
+    [['model', 'Strongest first'], ['think', 'Most thinking first']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${k === sortTime}">${n}</button>`).join('') + '</div></div>' +
+    '<p class="keyrow"><span><i class="f-vio"></i>Thinking</span><span><i class="f-s2"></i>Robot tool</span><span><i class="f-s3"></i>Own code</span></p>' + barRows(rows, { cls: 'stacked' });
+  // A new order moves the rows to their places; they keep the order they were drawn in.
+  const order = () => {
+    const th = shares.map(r => r[1]), rank = th.map((v, i) => (sortTime === 'think' ? th.filter((w, j) => w > v || (w === v && j < i)).length : i));
+    box.querySelectorAll('.bar-row').forEach((row, i) => { row.style.transform = rank[i] === i ? '' : `translateY(${(rank[i] - i) * 32}px)`; });
+    box.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === sortTime));
+  };
+  box.querySelector('.seg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; sortTime = b.dataset.v; order(); });
+  order();
+}
+
+// Retrying: the share of steps that fail at least once, in a typical task of each job.
+function chartFailure(F, box) {
+  const f = F.failure_by_type, P = f.median_atomic_failure_pct;
+  const relayDone = D.outcomes ? D.tasks.filter(t => typeOf(t) === 'relay' && done(f.set, t)).length : 8;
+  setText('f-failure', 'Retrying', 'Failing and retrying is normal.', `A grasp slips or a handover misses, and the agents see it in the pictures and try again. In a typical Relay task every handover fails at least once, yet ${relayDone} of the 9 Relay tasks are finished.`, [`${P.relay}%`, 'of Relay handovers fail at least once']);
+  const steps = f.median_steps_note || {};
+  const rows = TYPES.map(([type, name]) => ({ label: `<i class="dot t-${type}"></i>${name}`, value: P[type], text: `${P[type]}%`, fill: type === 'relay' ? 'vio' : 's2', cls: type === 'relay' ? 'lead' : '',
+    tip: tipLines(name, [['Steps that fail at least once', `${P[type]}%`]].concat(steps[type] ? [['Steps in a typical task', `about ${steps[type]}`]] : []), '', `Typical task of ${mname(f.set)}, Adaptive team. ${SOURCE}.`) }));
+  box.innerHTML = '<p class="chart-cap kicker">Steps that fail at least once</p>' + barRows(rows, { max: 100 });
+}
+
+// Team size: tasks finished at each level and at each team size.
+function chartLevels(F, box) {
+  const lv = F.levels;
+  setText('f-levels', 'Team size', 'Bigger teams are harder than harder levels.', `${mname(lv.set)} finishes about as many tasks at every level, but fewer as the team grows. More arms must share the space and the work.`, [`${lv.by_size[0]}\u2009→\u2009${lv.by_size[2]}`, `of ${lv.of} tasks, from small to large teams`]);
+  const tasksOf = (kind, i) => D.tasks.filter(t => (kind === 'level' ? t.endsWith(`-l${i + 1}`) : t.split('-')[1] === SIZES[i]));
+  const minis = list => `<div class="minis">${list.map(t => `<i class="t-${typeOf(t)}${done(lv.set, t) ? ' done' : ''}"></i>`).join('')}</div>`;
+  const block = (title, labels, vals, fill, kind, from) => barRows(vals.map((v, i) => ({ label: labels[i], value: v, text: v, fill,
+    tip: tipLines(labels[i], [['Tasks finished', `${v} of ${lv.of}`]], D.outcomes ? `${minis(tasksOf(kind, i))}<p class="tw">Filled squares are finished tasks.</p>` : '', `${mname(lv.set)}, Adaptive team. ${SOURCE}.`) })),
+    { max: lv.of, head: `<p class="bar-head">${title}</p>`, from });
+  box.innerHTML = `<p class="chart-cap kicker">Tasks finished, of ${lv.of}</p><div class="levels">` +
+    block('By level', ['Level 1', 'Level 2', 'Level 3'], lv.by_level, 's2', 'level', 0) + block('By team size', ['Small', 'Medium', 'Large'], lv.by_size, 'vio', 'size', 3) + '</div>';
+}
+
+// Team design: the four designs over eight arms, as in the film. Arms are squares, agents are dots.
+const DESIGNS = [['single-agent', 'Single agent', 'One agent drives every arm'], ['hierarchical', 'Hierarchical', 'A controller and one worker per arm'],
+  ['decentralized', 'Decentralized', 'One worker per arm, no controller'], ['adaptive', 'Adaptive', 'A controller that lends arms to helpers']];
+function teamDrawing(kind) {
+  const arms = [...Array(8)].map((_, i) => [18 + i * 244 / 7, 112]), top = [140, 22], up = q => [q[0], q[1] - 9];
+  const ln = (a, b, c = '') => `<line x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}"${c ? ` class="${c}"` : ''}/>`;
+  const dot = (p, r) => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${r}"/>`;
+  let lines = '', dots = '';
+  if (kind === 'single-agent') { arms.forEach(q => { lines += ln(top, up(q)); }); dots = dot(top, 13); }
+  else if (kind === 'hierarchical') { const mids = arms.map(q => [q[0], 66]); mids.forEach((m, i) => { lines += ln(top, m) + ln(m, up(arms[i])); }); dots = dot(top, 12) + mids.map(m => dot(m, 6.5)).join(''); }
+  else if (kind === 'decentralized') {
+    // A mesh: one worker per arm on two alternating heights, each linked to its neighbours i ± 1 and i ± 2.
+    const mids = arms.map((q, i) => [q[0], i % 2 ? 70 : 44]);
+    mids.forEach((m, i) => { [1, 2].forEach(d => { if (mids[i + d]) lines += ln(m, mids[i + d]); }); lines += ln(m, up(arms[i])); });
+    dots = mids.map(m => dot(m, 6.5)).join('');
+  } else {
+    // Adaptive: the controller has lent arms 2-3 and 5-7 to two helpers.
+    const helpers = [[[75.6, 63], [1, 2]], [[204.4, 63], [4, 5, 6]]], lent = {};
+    helpers.forEach(([h, idx]) => { lines += ln(top, h, 'lend'); idx.forEach(i => { lent[i] = h; }); });
+    arms.forEach((q, i) => { lines += ln(lent[i] || top, up(q), lent[i] ? 'lend' : ''); });
+    dots = dot(top, 12) + helpers.map(([h]) => dot(h, 8)).join('');
+  }
+  const squares = arms.map(q => `<rect x="${(q[0] - 9).toFixed(1)}" y="${q[1] - 9}" width="18" height="18" rx="4"/>`).join('');
+  return `<svg class="team-draw${kind === 'adaptive' ? ' ours' : ''}" viewBox="0 0 280 124" aria-hidden="true"><g class="tl">${lines}</g><g class="tn">${dots}</g><g class="ta">${squares}</g></svg>`;
+}
+function chartSystems(F, box) {
+  const S = Object.fromEntries(F.systems.map(s => [s.key, s])), fin = F.systems.map(s => s.completed);
+  const hMax = Math.max(...F.systems.map(s => s.total_hours)), tMax = Math.max(...F.systems.map(s => s.input_tokens_b));
+  const timeX = Math.round(S['single-agent'].total_hours / S.decentralized.total_hours), tokX = Math.round(S.hierarchical.input_tokens_b / S['single-agent'].input_tokens_b);
+  setText('f-systems', 'Team design', 'Same score, very different bill.', `However the agents are organized, they finish ${Math.min(...fin)} to ${Math.max(...fin)} of the 36 tasks. A single agent takes ${timeX}× the time of a decentralized team, and a hierarchical team reads ${tokX}× the tokens of a single agent.`, [`${tokX}×`, 'the tokens for nearly the same score']);
+  const call = { 'single-agent': ['hours', `${timeX}× the time`], hierarchical: ['tokens', `${tokX}× the tokens`] };
+  const measure = (key, m, v, vmax, text, i) => {
+    const w = 100 * v / vmax, note = call[key] && call[key][0] === m ? call[key][1] : '';
+    return `<div class="team-m${note ? ' has-note' : ''}"><span class="ml">${m === 'hours' ? 'Hours' : 'Tokens read'}</span><span class="bt bare"><i class="bf f-${key === 'adaptive' ? 'vio' : 's2'}" data-reveal="grow-x" style="width:${w.toFixed(2)}%"></i>` +
+      (note ? `<span class="note stem-up callout" data-reveal="up" style="--i:${i + 0.75};right:${(100 - w).toFixed(2)}%">${note}</span>` : '') + `</span><span class="bv">${text}</span></div>`;
+  };
+  const rows = DESIGNS.map(([key, name, line], i) => {
+    const s = S[key];
+    const tip = tipLines(name, [['Tasks finished', `${s.completed} of 36`], ['Finished within 6 hours', s.within_6h], ['Hours, all 36 tasks', fmt1(s.total_hours)], ['Tokens read, all tasks', `${fmt1(s.input_tokens_b)} billion`], ['Agent messages, typical task', s.median_messages]],
+      key === 'adaptive' ? '<p class="tw">The team used everywhere else on this page.</p>' : '', `${mname('gpt-6.1-sol')}, all 36 tasks. ${SOURCE}.`);
+    return `<div class="team-row${key === 'adaptive' ? ' ours' : ''}" data-reveal="fade" style="--i:${i}" data-anchor=".team-id b" ${tipAt(tip)}>` +
+      `<div class="team-id">${teamDrawing(key)}<div><b>${name}</b><small>${line}</small></div></div>` +
+      `<div class="team-fin"><span class="ml">Finished</span><b>${s.completed}</b></div>` +
+      measure(key, 'hours', s.total_hours, hMax, `${s.total_hours.toFixed(1)}\u00a0h`, i) + measure(key, 'tokens', s.input_tokens_b, tMax, `${s.input_tokens_b.toFixed(1)}\u00a0B`, i) + '</div>';
+  }).join('');
+  box.innerHTML = `<div class="teams"><div class="teams-head" aria-hidden="true"><span></span><span class="kicker">Finished</span><span class="kicker">Hours, all 36 tasks</span><span class="kicker">Tokens read, all tasks</span></div>${rows}</div>` +
+    `<p class="chart-foot">Tokens read: the text a model reads, which sets the cost (B is billions). Each team is ${mname('gpt-6.1-sol')} on all 36 tasks; hours count unfinished tasks up to the cutoff.</p>`;
+}
+
+// Explore every run: the steps each run finished over its hours, one small chart per job.
 let pickProgress = 'both';
-const modelCls = m => (m === 'gpt-6.1-sol' ? 'c-hi' : m === 'opus-5.5' ? 'c-s1' : 'c-s3');
 function chartProgress(F, box) {
-  setText('f-progress', 'Every run, step by step', 'Each line is one run of a job.', 'A line rises when an arm finishes a step, such as one cube placed. A circle ends a finished job, a cross one that ran out of time or was given up. Point at a line to see the run; click it to watch.');
-  box.innerHTML = '';
-  const top = el('div', 'chart-bar');
-  const seg = el('div', 'seg');
-  [['both', 'Both'], ['gpt-6.1-sol', 'gpt-6.1-sol'], ['opus-5.5', 'opus-5.5']].forEach(([k, n]) => { const b = el('button', '', n); b.type = 'button'; b.setAttribute('aria-pressed', k === pickProgress); b.onclick = () => { pickProgress = k; chartProgress(F, box); }; seg.append(b); });
-  top.append(seg, el('div', 'keyrow', ['gpt-6.1-sol', 'opus-5.5'].filter(m => pickProgress === 'both' || pickProgress === m).map(m => `<span><i class="k-line" style="--c:var(--${m === 'gpt-6.1-sol' ? 'hi' : 's1'})"></i>${m}</span>`).join('')));
-  const grid = el('div', 'small-multiples'), info = el('p', 'src', 'Both with the adaptive agent system. Point at a line for its run.');
-  box.append(top, grid, info);
-  const cols = box.clientWidth >= 1060 ? 4 : box.clientWidth >= 520 ? 2 : 1, W = Math.floor((box.clientWidth - 16 * (cols - 1)) / cols), H = Math.round(Math.min(230, W * 0.72)), L = 34, R = 10, T = 10, B = 24;
+  setText('f-progress', 'Every run', 'Explore every run.', 'Each line is one run of one task. It climbs each time an arm finishes a step, such as one cube placed; a dot ends a finished run, a cross one that was not finished.', [String(F.timelines.length), `runs of ${mname('gpt-6.1-sol')} and ${mname('opus-5.5')}`]);
+  const hint = matchMedia('(hover: none)').matches ? 'Tap a line to watch its run.' : 'Point at a line to see its run; click it to watch.';
+  box.innerHTML = `<div class="chart-top"><div class="seg" role="group" aria-label="Show the runs of">` +
+    [['both', 'Both'], ['gpt-6.1-sol', mname('gpt-6.1-sol'), 'vio'], ['opus-5.5', mname('opus-5.5'), 's1']].map(([k, n, c]) => `<button type="button" data-v="${k}" aria-pressed="${k === pickProgress}">${c ? `<i class="sw f-${c}"></i>` : ''}${n}</button>`).join('') +
+    `</div><p class="run-info">${hint}</p></div><div class="small-multiples" data-stagger data-show="${pickProgress}"></div>`;
+  const grid = box.querySelector('.small-multiples'), info = box.querySelector('.run-info');
+  const cols = grid.clientWidth >= 960 ? 4 : grid.clientWidth >= 480 ? 2 : 1, gap = 24, W = Math.floor((grid.clientWidth - gap * (cols - 1)) / cols);
+  const H = Math.round(Math.min(210, Math.max(160, W * 0.68))), L = 32, R = 8, T = 8, B = 24;
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
   TYPES.forEach(([type, typeName]) => {
-    const runs = F.timelines.filter(r => typeOf(r.task) === type && (pickProgress === 'both' || r.set === pickProgress));
-    const most = Math.max(...F.timelines.filter(r => typeOf(r.task) === type).map(r => r.steps), 1);
+    const runs = F.timelines.filter(r => typeOf(r.task) === type), most = Math.max(...runs.map(r => r.steps), 1);
     const X = h => L + Math.min(h, 24) / 24 * (W - L - R), Y = v => T + (1 - v / most) * (H - T - B);
     let g = '';
-    [0, 6, 12, 18, 24].forEach(h => { g += `<line class="grid" x1="${X(h)}" x2="${X(h)}" y1="${T}" y2="${H - B}"/>` + txt(X(h), H - B + 16, h + ' h', '', 'middle'); });
-    g += txt(L - 6, Y(most) + 4, most, '', 'end') + txt(L - 6, Y(0) + 4, 0, '', 'end');
+    [0, 6, 12, 18, 24].forEach(h => { g += `<line class="grid" x1="${X(h)}" x2="${X(h)}" y1="${T}" y2="${H - B}"/>` + txt(X(h), H - B + 17, h ? `${h} h` : '0', '', 'middle'); });
+    g += `<line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>` + txt(L - 8, Y(most) + 4, most, '', 'end');
     // gpt-6.1-sol last, so its violet lines sit on top
     runs.slice().sort((a, b) => (a.set === 'gpt-6.1-sol') - (b.set === 'gpt-6.1-sol')).forEach(r => {
       let d = `M${X(0).toFixed(1)} ${Y(0).toFixed(1)}`;
       r.points.forEach(([h, v]) => { d += `H${X(h).toFixed(1)}V${Y(v).toFixed(1)}`; });
-      const ex = X(r.hours), ey = Y(r.steps), c = modelCls(r.set);
-      const end = r.done ? `<circle cx="${ex}" cy="${ey}" r="3.2" class="${c} hollow" stroke-width="1.5"/>` : `<path d="M${ex - 3} ${ey - 3}l6 6m0-6l-6 6" class="${c}" stroke-width="1.5" style="fill:none"/>`;
-      g += `<g data-i="${F.timelines.indexOf(r)}"><path d="${d}" class="line ${c}" style="fill:none"/>${end}<path d="${d}" class="hit"/></g>`;
+      const ex = X(r.hours), ey = Y(r.steps), c = r.set === 'gpt-6.1-sol' ? 'c-hi' : 'c-s1';
+      const end = r.done ? `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="3.4" class="${c} end"/>` : `<path d="M${(ex - 3).toFixed(1)} ${(ey - 3).toFixed(1)}l6 6m0-6l-6 6" class="${c} x"/>`;
+      g += `<g data-i="${F.timelines.indexOf(r)}" data-set="${r.set}"><path d="${d}" class="line ${c}"/>${end}<path d="${d}" class="hit"/></g>`;
     });
-    const fig = el('div', `t-${type}`); fig.innerHTML = `<p class="mini-head"><i></i>${typeName}<span>steps done, 0 to ${most}</span></p>` + svg(W, H, g, `${typeName}: progress of each run`);
-    const s = fig.querySelector('svg');
-    s.addEventListener('pointerover', e => { const gEl = e.target.closest('g[data-i]'); if (!gEl) return; const r = F.timelines[+gEl.dataset.i];
-      s.classList.add('dimmed'); gEl.querySelector('.line').classList.add('hot');
-      info.innerHTML = `<b>${nice(r.task)}</b> · ${teamName(r.set)} · ${r.steps} steps in ${fmtHours(r.hours)} · ${statusWord(r.done).toLowerCase()} · click to watch`; });
-    s.addEventListener('pointerout', e => { const gEl = e.target.closest('g[data-i]'); if (gEl) gEl.querySelector('.line').classList.remove('hot'); s.classList.remove('dimmed'); });
-    s.addEventListener('click', e => { const gEl = e.target.closest('g[data-i]'); if (!gEl) return; const r = F.timelines[+gEl.dataset.i]; if (run(r.set, r.task)) openRun(r.set, r.task); });
+    const fig = el('figure', `sm t-${type}`); fig.dataset.reveal = 'up';
+    fig.innerHTML = `<figcaption class="mini-head"><i></i>${typeName}<span>steps, 0 to ${most}</span></figcaption>` + svg(W, H, g, `${typeName}: the progress of each run`);
     grid.append(fig);
   });
-  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
-}
-
-function chartVision(F, box) {
-  const v0 = F.vision;
-  setText('f-vision', 'Vision', 'Seeing is the hard part.', `Told where every object is, the same AI finishes all ${v0[0].completed} jobs. From cameras it finishes ${v0[1].completed}. With blurred pictures or without its own code, it falls to about a third. Drag across the picture to see what 128 × 80 pixels leave.`, [`${v0[0].completed} → ${v0[1].completed}`, 'jobs, when the AI must find objects itself']);
-  const W = widthOf(box), rowH = 46, H = v0.length * rowH + 18, BW = W - 96;
-  let g = txt(W, 12, 'Grasps that fail', '', 'end');
-  v0.forEach((v, i) => {
-    const y = 22 + i * rowH, bw = Math.max(4, (BW - 40) * v.completed / 36);
-    const why = { oracle: 'Gets the true position of every object instead of pictures.', adaptive: 'Sharp camera pictures, and it may write its own code.', 'low-resolution': 'Every picture shrunk to 128 × 80 pixels.', 'robot-tool-only': 'Sharp pictures, but no code: only the robot tool.' }[v.key] || '';
-    g += `<g class="bar-row pt" ${tipAt(tipLines(v.label, [['Jobs finished', `${v.completed} of 36`], ['Grasps that fail', pct(v.grasp_fail)]], `<div class="tl"><span>${why}</span><span></span></div>`))}><rect x="0" y="${y - 8}" width="${W}" height="${rowH - 6}" style="fill:transparent"/>` +
-      txt(0, y + 4, v.label, v.key === 'oracle' ? '' : 'ink') + `<rect x="0" y="${y + 12}" width="${BW - 40}" height="10" rx="2" class="track"/><rect x="0" y="${y + 12}" width="${bw}" height="10" rx="2" class="${v.key === 'oracle' ? 'c-soft' : v.key === 'adaptive' ? 'c-hi' : 'c-s2'}"/>` +
-      txt(bw + 8, y + 21, v.completed, v.key === 'adaptive' ? 'lab' : 'num') + txt(W, y + 21, pct(v.grasp_fail), 'num', 'end') + '</g>';
+  const clear = () => { grid.querySelectorAll('.hot').forEach(x => x.classList.remove('hot')); grid.querySelectorAll('.dimmed').forEach(x => x.classList.remove('dimmed')); };
+  grid.addEventListener('pointerover', e => {
+    const gEl = e.target.closest('g[data-i]'); if (!gEl) return;
+    const r = F.timelines[+gEl.dataset.i]; clear(); gEl.closest('svg').classList.add('dimmed'); gEl.querySelector('.line').classList.add('hot');
+    info.innerHTML = `<b>${nice(r.task)}</b><span>${mname(r.set)} · ${r.steps} steps in ${fmtHours(r.hours)}</span>${statusChip(r.done, 'flat')}`;
   });
-  const base = mediaUrl(MEDIA + 'findings/');
-  box.innerHTML = svg(W, H, g, 'Tasks completed out of 36 under four vision conditions'); bindTips(box);
-  const cmp = el('div', 'compare', `<img src="${base}camera-full.webp" alt="A Transport camera picture at 1280 by 800 pixels" loading="lazy"><img class="low" src="${base}camera-128x80.png" alt="The same picture at 128 by 80 pixels" loading="lazy"><i class="bar"></i><span class="l">1280 × 800</span><span class="r">128 × 80</span>`);
-  const move = e => { const r = cmp.getBoundingClientRect(); cmp.style.setProperty('--cut', `${Math.min(100, Math.max(0, (e.clientX - r.left) / r.width * 100))}%`); };
-  cmp.addEventListener('pointerdown', e => { cmp.setPointerCapture(e.pointerId); move(e); }); cmp.addEventListener('pointermove', e => { if (e.buttons) move(e); });
-  box.append(cmp, el('p', 'src', `At 128 × 80 one pixel covers about ${F.vision_facts.pixel_mm} mm, more than twice the ${F.vision_facts.tolerance_mm} mm an agent has for placing a cube. In ${F.vision_facts.runs_with_measuring_code} of its 36 runs, gpt-6.1-sol writes its own code to measure positions in pictures.`));
-}
-
-let sortTime = 'model';
-function chartTime(F, box) {
-  const t = F.timeline_facts;
-  setText('f-time', 'Where the time goes', 'The arms mostly wait.', 'The world never pauses, but the arms spend most of it standing still while the agents think. Faster decisions would shorten jobs more than faster motion would.', [`${t.thinking_pct}% vs ${t.arms_moving_pct}%`, 'of one run: an agent thinking, an arm moving']);
-  const rows = F.time_shares.rows.slice(); if (sortTime === 'think') rows.sort((a, b) => b[1] - a[1]);
-  const W = widthOf(box), rowH = 30, H = rows.length * rowH, L = Math.min(150, W * 0.34), BW = W - L - 4; let g = '';
-  rows.forEach(([name, th, rb, cd], i) => {
-    const y = i * rowH + 6; let x = L;
-    const tipHtml = tipLines(name, [['Thinking', `${fmt1(th)}%`], ['Robot tool', `${fmt1(rb)}%`], ['Own code', `${fmt1(cd)}%`]]);
-    g += `<g class="pt" data-model="${name}" ${tipAt(tipHtml)}><rect x="0" y="${y - 4}" width="${W}" height="${rowH}" style="fill:transparent"/>` + txt(L - 10, y + 14, name, name === 'gpt-6.1-sol' || name === 'opus-5.5' ? 'ink' : 'ink2', 'end');
-    [[th, 'c-hi', 'on-dark'], [rb, 'c-s1', 'on-dark'], [cd, 'c-s3', 'on-light']].forEach(([v, c, tc]) => { const w = BW * v / 100; g += `<rect x="${x}" y="${y + 2}" width="${Math.max(w - 2, 0)}" height="16" class="${c}" rx="2"/>`; if (w > 36) g += txt(x + 6, y + 14, Math.round(v) + '%', tc); x += w; });
-    g += '</g>';
+  grid.addEventListener('pointerout', e => { const gEl = e.target.closest('g[data-i]'); if (!gEl || gEl.contains(e.relatedTarget)) return; clear(); info.textContent = hint; });
+  grid.addEventListener('click', e => { const gEl = e.target.closest('g[data-i]'); if (!gEl) return; const r = F.timelines[+gEl.dataset.i]; if (run(r.set, r.task)) openRun(r.set, r.task); });
+  box.querySelector('.seg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; pickProgress = b.dataset.v; grid.dataset.show = pickProgress;
+    box.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b));
   });
-  box.innerHTML = '';
-  const top = el('div', 'chart-bar'), seg = el('div', 'seg');
-  [['model', 'Strongest first'], ['think', 'Most thinking first']].forEach(([k, n]) => { const b = el('button', '', n); b.type = 'button'; b.setAttribute('aria-pressed', k === sortTime); b.onclick = () => { sortTime = k; chartTime(F, box); }; seg.append(b); });
-  top.append(el('div', 'keyrow', '<span><i class="k-think"></i>Thinking</span><span><i class="k-robot"></i>Robot tool</span><span><i class="k-code"></i>Own code</span>'), seg);
-  box.append(top);
-  box.insertAdjacentHTML('beforeend', svg(W, H, g, 'Share of agent time spent thinking, using the robot tool and running code, per model') +
-    `<p class="src">Share of agent time with the adaptive system. opus-5.5 thinks least and computes most.</p>`);
-  bindTips(box);
-}
-
-const SYS_ICON = {
-  'single-agent': '<circle cx="60" cy="16" r="9" class="c-s1"/><path d="M60 25 L18 62 M60 25 L39 62 M60 25 L60 62 M60 25 L81 62 M60 25 L102 62" class="axis"/>',
-  hierarchical: '<circle cx="60" cy="14" r="8" class="c-s1"/>' + [18, 39, 60, 81, 102].map(x => `<path d="M60 22 L${x} 40" class="axis"/><circle cx="${x}" cy="44" r="5" class="c-s2"/><path d="M${x} 49 L${x} 60" class="axis"/>`).join(''),
-  decentralized: [18, 39, 60, 81, 102].map(x => `<circle cx="${x}" cy="40" r="5" class="c-s2"/><path d="M${x} 45 L${x} 60" class="axis"/>`).join('') + '<path d="M23 40 H34 M44 40 H55 M65 40 H76 M86 40 H97 M18 34 Q60 4 102 34" class="axis" style="fill:none"/>',
-  adaptive: '<circle cx="60" cy="14" r="8" class="c-s1"/><path d="M60 22 L33 38 M60 22 L87 38 M60 22 L60 60" class="axis"/><circle cx="33" cy="42" r="5" class="c-s2"/><circle cx="87" cy="42" r="5" class="c-s2"/><path d="M33 47 L18 60 M33 47 L39 60 M87 47 L81 60 M87 47 L102 60" class="axis"/>',
-};
-function chartSystems(F, box) {
-  const sp = F.spend, s6 = F.systems.slice(0, 3).map(x => x.within_6h);
-  setText('f-systems', 'Team design', 'More agents: faster, but more tokens.', `How the team is organized barely changes how many jobs get done (27 to 29), but it trades time for cost. Within 6 hours the three multi-agent systems finish ${Math.min(...s6)} or ${Math.max(...s6)} jobs, the single agent ${F.systems[3].within_6h}. Spending alone does not buy success: ${sp[1].set} used ${fmt1(sp[1].input_tokens_b)} billion tokens and ${Math.round(sp[1].total_hours)} hours for ${sp[1].completed} job.`, ['1.6×', 'as long for a single agent; up to 1.9× the tokens with an agent per arm']);
-  const W = widthOf(box), H = 230, L = 46, R = 16, T = 18, B = 40, xm = 60, ym = 450;
-  const X = v => L + v / xm * (W - L - R), Y = v => T + (1 - v / ym) * (H - T - B); let g = '';
-  [0, 20, 40, 60].forEach(v => { g += `<line class="grid" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}"/>` + txt(X(v), H - B + 16, v + ' B', '', 'middle'); });
-  [0, 150, 300, 450].forEach(v => { g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/>` + txt(L - 6, Y(v) + 4, v + ' h', '', 'end'); });
-  g += txt(W - R, H - 4, 'Input tokens, all 36 jobs →', '', 'end');
-  const off = { adaptive: [-14, 4, 'end'], hierarchical: [0, -13, 'middle'], decentralized: [-12, 18, 'end'], 'single-agent': [12, 4, 'start'] };
-  F.systems.forEach(s => {
-    const cx = X(s.input_tokens_b), cy = Y(s.total_hours), ours = s.key === 'adaptive';
-    const [dx, dy, an] = off[s.key];
-    g += `<g class="pt" data-sys="${s.key}" ${tipAt(tipLines(s.label, [['Jobs finished', `${s.completed} of 36`], ['Finished within 6 hours', s.within_6h], ['Hours, all 36 jobs', fmt1(s.total_hours)], ['Input tokens, all jobs', `${fmt1(s.input_tokens_b)} billion`], ['Messages, typical job', s.median_messages]]))}>` +
-      (ours ? `<circle cx="${cx}" cy="${cy}" r="10" class="c-hi" stroke-width="1.5" style="fill:none"/>` : '') +
-      `<circle cx="${cx}" cy="${cy}" r="${ours ? 5.5 : 5}" class="${ours ? 'c-hi' : 'c-s2'}"/><circle cx="${cx}" cy="${cy}" r="16" style="fill:transparent"/>` + txt(cx + dx, cy + dy, `${s.label} · ${s.completed} done`, ours ? 'lab' : 'num', an) + '</g>';
-  });
-  const sys = { 'single-agent': ['Single agent', 'One agent drives every arm'], hierarchical: ['Hierarchical', 'A controller and one worker per arm'], decentralized: ['Decentralized', 'One worker per arm, no controller'], adaptive: ['Adaptive', 'A controller that creates helpers when work can be shared'] };
-  box.innerHTML = `<div class="sys">${Object.entries(sys).map(([k, [n, d]]) => `<div data-sys="${k}" class="${k === 'adaptive' ? 'on' : ''}"><svg viewBox="0 0 120 66" class="chart" aria-hidden="true">${SYS_ICON[k]}</svg><b>${n}</b><span>${d}</span></div>`).join('')}</div>` +
-    `<p class="panel-cap">Hours against input tokens, all 36 jobs</p>` + svg(W, H, g, 'Total hours against total input tokens for the four agent systems of gpt-6.1-sol') + `<p class="src">gpt-6.1-sol on all 36 jobs. Point at a card or a point for details; the ring marks the adaptive system, used everywhere else on this page.</p>`;
-  bindTips(box);
-  // A card and its point light up together.
-  const chart = box.querySelector('svg.chart[role="img"]');
-  const light = key => { box.querySelectorAll('[data-sys]').forEach(x => x.classList.toggle('hot', x.dataset.sys === key)); chart.classList.toggle('focus', !!key); };
-  box.querySelectorAll('.sys [data-sys]').forEach(c => { c.addEventListener('pointerenter', () => light(c.dataset.sys)); c.addEventListener('pointerleave', () => light(null)); });
-  chart.addEventListener('pointerover', e => { const p = e.target.closest('[data-sys]'); if (p) box.querySelectorAll('.sys [data-sys]').forEach(x => x.classList.toggle('hot', x.dataset.sys === p.dataset.sys)); });
-  chart.addEventListener('pointerleave', () => box.querySelectorAll('.sys .hot').forEach(x => x.classList.remove('hot')));
-}
-
-function chartFailure(F, box) {
-  const f = F.failure_by_type;
-  setText('f-failure', 'Steps that fail', 'Failing and retrying is normal.', 'A grasp slips, a handover misses, and the agents notice from the pictures and try again. In the median Relay job every handover fails at least once, yet 8 of the 9 Relay jobs are finished. The four weaker models rarely recover.', ['100%', 'of handovers fail at least once in a typical Relay job']);
-  const W = widthOf(box), rowH = 28, L = 96, BW = W - L - 48; let g = '';
-  const steps = { relay: `about ${f.median_steps_note.relay} steps in a typical job`, mosaic: `about ${f.median_steps_note.mosaic} steps in a typical job` };
-  TYPES.forEach(([type, name], i) => { const v = f.median_atomic_failure_pct[type], y = i * rowH + 4, w = BW * v / 100;
-    g += `<g class="bar-row pt" ${tipAt(tipLines(name, [['Steps that fail at least once', `${v}%`]], steps[type] ? `<div class="tl"><span>${cap(steps[type])}</span><span></span></div>` : ''))}><rect x="0" y="${y - 4}" width="${W}" height="${rowH}" style="fill:transparent"/>` +
-      txt(L - 10, y + 13, name, 'ink', 'end') + `<rect x="${L}" y="${y + 3}" width="${BW}" height="12" rx="2" class="track"/><rect x="${L}" y="${y + 3}" width="${w}" height="12" rx="2" class="c-${type}"/>` + txt(L + w + 8, y + 13, v + '%', 'num') + '</g>'; });
-  const LB = Math.min(160, W * 0.36), BW2 = W - LB - 52, H2 = F.grasp_failure.length * 24 + 4; let g2 = '';
-  F.grasp_failure.forEach(([m, v], i) => { const y = 4 + i * 24, w = BW2 * v / 100;
-    g2 += `<g class="bar-row pt" data-model="${m}" ${tipAt(tipLines(m, [['Grasps that fail', `${fmt1(v)}%`], ['Jobs finished', D.outcomes && D.outcomes[m] ? `${D.tasks.filter(t => done(m, t)).length} of 36` : '–']]))}><rect x="0" y="${y - 4}" width="${W}" height="24" style="fill:transparent"/>` +
-      txt(LB - 10, y + 11, m, i < 2 ? 'ink' : 'ink2', 'end') + `<rect x="${LB}" y="${y + 2}" width="${w}" height="10" rx="2" class="${modelCls(m)}"/>` + txt(LB + w + 6, y + 11, Math.round(v) + '%', 'num') + '</g>'; });
-  box.innerHTML = `<p class="panel-cap">Steps that fail at least once, median job, gpt-6.1-sol</p>` + svg(W, 4 * rowH + 4, g, 'Median share of steps that fail at least once, by task type') +
-    `<p class="panel-cap">Grasps that fail, by model</p>` + svg(W, H2, g2, 'Share of grasps that fail, per model') +
-    `<p class="src">A Relay job has about ${f.median_steps_note.relay} steps, a Mosaic job about ${f.median_steps_note.mosaic}. Point at a bar for details.</p>`;
-  bindTips(box);
-}
-
-function chartLevels(F, box) {
-  const lv = F.levels;
-  setText('f-levels', 'Team size and level', 'Bigger teams are harder than harder jobs.', 'For gpt-6.1-sol, adding arms costs more than making the job harder. It finishes about the same share at every level, but fewer jobs as the team grows, because more arms must share the space and the work.', [`${lv.by_size[0]} → ${lv.by_size[2]}`, `of ${lv.of} jobs, from small to large teams`]);
-  const two = box.clientWidth >= 400, W = two ? Math.floor((box.clientWidth - 28) / 2) : widthOf(box), H = 190, T = 34, B = 28;
-  const jobsOf = (kind, i) => D.tasks.filter(t => (kind === 'level' ? t.endsWith(`-l${i + 1}`) : t.split('-')[1] === SIZES[i]));
-  const minis = list => `<div class="minis">${list.map(t => `<i class="t-${typeOf(t)}${done(lv.set, t) ? ' done' : ''}" title="${nice(t)}"></i>`).join('')}</div>`;
-  const group = (title, labels, vals, cls, kind) => {
-    const bw = Math.min(40, (W - 40) / 3 - 24), gap = (W - 3 * bw) / 4; let g = '';
-    vals.forEach((v, i) => { const x = gap + i * (bw + gap), h = (H - T - B) * v / lv.of, y = H - B - h, list = jobsOf(kind, i);
-      const tipHtml = tipLines(labels[i], [['Jobs finished', `${v} of ${lv.of}`]], D.outcomes ? `${minis(list)}<div class="tl"><span>Filled: finished, by gpt-6.1-sol</span><span></span></div>` : '');
-      g += `<g class="pt" ${tipAt(tipHtml)}><rect x="${x - 14}" y="${T - 4}" width="${bw + 28}" height="${H - T - B + 26}" style="fill:transparent"/><line class="axis" x1="${x - 6}" x2="${x + bw + 6}" y1="${T}" y2="${T}" stroke-dasharray="2 3"/><rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="2" class="${cls}"/>` + txt(x + bw / 2, y - 7, `${v}`, cls === 'c-hi' ? 'lab' : 'num', 'middle') + txt(x + bw / 2, H - B + 17, labels[i], 'ink2', 'middle') + '</g>'; });
-    g += `<line class="axis" x1="0" x2="${W}" y1="${H - B}" y2="${H - B}"/>`;
-    return `<figure class="level-fig"><figcaption class="panel-cap">${title}</figcaption>${svg(W, H, g, `${title}: ${vals.join(', ')} of ${lv.of}`)}</figure>`; };
-  box.innerHTML = `<div class="levels" style="grid-template-columns:repeat(${two ? 2 : 1}, minmax(0, 1fr))">${group('By level, 12 jobs each', ['Level 1', 'Level 2', 'Level 3'], lv.by_level, 'c-s2', 'level')}${group('By team size, 12 jobs each', ['Small', 'Medium', 'Large'], lv.by_size, 'c-hi', 'size')}</div><p class="src">Jobs finished out of 12; the dashed line is all 12. Point at a bar to see its twelve jobs.</p>`;
-  bindTips(box);
 }
 
 const CHARTS = {
   overview: [['chart-compare', chartCompare, true]],
-  results: [['f-progress', chartProgress], ['f-vision', chartVision], ['f-time', chartTime], ['f-systems', chartSystems], ['f-failure', chartFailure], ['f-levels', chartLevels]],
+  results: [['f-vision', chartVision, 'fluid'], ['f-time', chartTime, 'fluid'], ['f-failure', chartFailure, 'fluid'], ['f-levels', chartLevels, 'fluid'], ['f-systems', chartSystems, 'fluid'], ['f-progress', chartProgress]],
 };
 const drawnAt = {};
 function drawCharts(view) {
   if (!FD || !CHARTS[view]) return;
-  CHARTS[view].forEach(([id, draw, direct]) => {
-    const box = direct ? $(id).querySelector('.f-chart') : $(id).querySelector('.f-chart');
-    const w = Math.floor(box.clientWidth); if (!w || drawnAt[id] === w) return;
-    drawnAt[id] = w; draw(FD, box);
+  CHARTS[view].forEach(([id, draw, how]) => {
+    const box = $(id).querySelector('.f-chart'), w = Math.floor(box.clientWidth), key = how === 'fluid' ? how : w;
+    if (!w || drawnAt[id] === key) return;
+    // A chart drawn again (a wider window, results arriving) does not play its entrance twice.
+    const played = !!box.querySelector('.is-in');
+    drawnAt[id] = key; draw(FD, box);
+    if (how === true) return;
+    bindTips(box);
+    if (played || !motionOK()) box.querySelectorAll('[data-reveal]').forEach(e => e.classList.add('is-in', 'rv-done')); else reveal(box);
   });
 }
 let resizeTimer;
@@ -905,7 +1019,7 @@ async function start() {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   // A local preview (?media=) swaps the published media host in the pictures the page starts with.
   if (override) document.querySelectorAll(`img[src^="${MEDIA}"]`).forEach(i => { i.src = mediaUrl(i.getAttribute('src')); });
-  chrome(); reveal(); playerControls(); nine(); modelHover();
+  chrome(); reveal(); playerControls(); nine(); modelHover(); boardControls();
   const [tasks, media] = await Promise.all([load('data/tasks.json'), load('data/media.json')]);
   D.media = media; D.sets = media.sets.map(s => s.key);
   D.tasks = TYPES.flatMap(([type]) => SIZES.flatMap(size => [1, 2, 3].map(level => `${type}-${size}-l${level}`)));
