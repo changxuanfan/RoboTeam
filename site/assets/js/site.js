@@ -34,19 +34,38 @@ const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(
 const nice = task => { const [type, size, level] = task.split('-'); return `${cap(type)} · ${cap(size)} · Level ${level[1]}`; };
 const short = task => { const [, size, level] = task.split('-'); return `${cap(size)} · Level ${level[1]}`; };
 
+/* One place for the outcome words and for how hours read */
+const WORDS = { fin: 'Finished', not: 'Not finished', soon: 'Coming soon', pending: 'Result to come' };
+const statusWord = finished => (finished ? WORDS.fin : WORDS.not);
+const statusChip = (finished, cls = '') => `<span class="chip ${finished ? 'fin' : 'not'}${cls ? ` ${cls}` : ''}">${statusWord(finished)}</span>`;
+// Under 1 h in minutes, under 10 h in hours and minutes, then hours: '41 min', '3 h 45 min', '23.6 h'.
+// The spaces do not break, so a time never splits across two lines.
+const fmtHours = h => {
+  if (h == null || !isFinite(h)) return '';
+  const m = Math.round(h * 60);
+  if (m < 60) return `${Math.max(1, m)}\u00a0min`;
+  if (m < 600) return m % 60 ? `${Math.floor(m / 60)}\u00a0h\u00a0${m % 60}\u00a0min` : `${m / 60}\u00a0h`;
+  return `${(Math.round(h * 10) / 10).toLocaleString('en-US')}\u00a0h`;
+};
+const workText = h => (h == null ? '' : `${fmtHours(h)}\u00a0of\u00a0work`);
+
 const D = { tasks: [], facts: {}, sets: [], runs: {}, outcomes: null, media: null };
 const F = { status: 'all', team: 'all', job: 'all' };
 const teamName = key => (TEAMS[key] || [key])[0];
 const run = (set, task) => D.runs[set][task]; // undefined when the run has no video yet
 const outcome = (set, task) => D.outcomes && D.outcomes[set] && D.outcomes[set][task];
 const done = (set, task) => { const o = outcome(set, task); return o ? !!o.completed : null; };
-const facts = task => { const f = D.facts[task]; return f ? `${f.arms} arms · ${f.workload} ${UNIT[f.unit] || f.unit}` : ''; };
+const facts = task => { const f = D.facts[task]; return f ? `${f.arms}\u00a0arms · ${f.workload}\u00a0${UNIT[f.unit] || f.unit}` : ''; };
 const poster = (set, task, view) => `${mediaUrl(D.media.posters)}${set}/${task}-${view}.webp`;
 const video = (set, task, view) => `${D.media.sets.find(s => s.key === set).base}${run(set, task).folder}/${view}.mp4`;
 const stateText = (set, task) => {
   if (!run(set, task)) return null;
-  const o = outcome(set, task); if (!o) return 'Result to come';
-  return (o.completed ? 'Finished the job' : 'Did not finish') + (o.hours != null ? ` · ${o.hours} h of work` : '');
+  const o = outcome(set, task); if (!o) return WORDS.pending;
+  return statusWord(o.completed) + (o.hours != null ? `, ${workText(o.hours)}` : '');
+};
+const stateHTML = (set, task) => {
+  const o = outcome(set, task); if (!o) return `<span>${WORDS.pending}</span>`;
+  return statusChip(!!o.completed, 'flat') + (o.hours != null ? `<span>${workText(o.hours)}</span>` : '');
 };
 
 /* ---------- theme, copy buttons, citation ---------- */
@@ -69,6 +88,35 @@ function chrome() {
   $('cite-close').addEventListener('click', () => cite.close());
   cite.addEventListener('click', e => { if (e.target === cite) cite.close(); });
 }
+
+/* ---------- entrances ----------
+   An element with data-reveal plays its entrance once, the first time it comes into view.
+   Call reveal(box) after rendering new elements into box. Children of a [data-stagger] parent
+   are numbered (--i) so they enter one after another. */
+const motionOK = () => document.documentElement.classList.contains('reveal');
+let revealer = null;
+function reveal(scope = document) {
+  const items = [...scope.querySelectorAll('[data-reveal]:not(.is-in)')];
+  if (scope !== document && scope.matches('[data-reveal]:not(.is-in)')) items.unshift(scope);
+  if (!items.length) return;
+  if (!motionOK() || !('IntersectionObserver' in window)) { items.forEach(e => e.classList.add('is-in', 'rv-done')); return; }
+  [scope, ...scope.querySelectorAll('[data-stagger]')].filter(g => g.matches && g.matches('[data-stagger]')).forEach(g =>
+    [...g.querySelectorAll(':scope > [data-reveal]')].forEach((e, i) => { if (!e.style.getPropertyValue('--i')) e.style.setProperty('--i', i); }));
+  revealer = revealer || new IntersectionObserver(entries => entries.forEach(en => {
+    if (!en.isIntersecting) return;
+    en.target.classList.add('is-in'); revealer.unobserve(en.target);
+  }), { rootMargin: '0px 0px -8% 0px' });
+  items.forEach(e => revealer.observe(e));
+}
+// Once its entrance has played an element drops the animation, so showing its tab again does not replay it.
+document.addEventListener('animationend', e => {
+  if (!e.pseudoElement && /^rv-/.test(e.animationName) && e.target.classList && e.target.classList.contains('is-in')) e.target.classList.add('rv-done');
+});
+// An exit: ease-in with a slight upward drift; resolves when it has played (at once without motion).
+const leave = e => new Promise(done => {
+  if (!motionOK()) { done(); return; }
+  e.classList.add('is-leaving'); e.addEventListener('animationend', () => done(), { once: true }); setTimeout(done, 400);
+});
 
 /* ---------- three pages: Overview, Results, Videos ----------
    #overview, #results and #videos open a page; the id of anything inside a page (#new,
@@ -151,11 +199,11 @@ function film() {
 function clips() {
   const c = D.media.clips; if (!c) return;
   const base = mediaUrl(c.base), byKey = Object.fromEntries(c.items.map(i => [i.key, i]));
-  const speedTag = clip => `<span class="speed">${clip.speed.toLocaleString('en-US')}× real time</span>`;
+  const speedTag = clip => `<span class="chip speed">${clip.speed.toLocaleString('en-US')}× real time</span>`;
   document.querySelectorAll('.job[data-clip]').forEach(job => {
     const clip = byKey[job.dataset.clip]; if (!clip) return;
     const frame = job.querySelector('.clip'); frame.append(clipVideo(base + clip.video, base + clip.poster, clip.caption)); frame.insertAdjacentHTML('beforeend', speedTag(clip));
-    frame.insertAdjacentHTML('beforeend', `<span class="shown">${teamName(clip.set)} · ${short(clip.task)}</span>`);
+    frame.insertAdjacentHTML('beforeend', `<span class="chip shown">${teamName(clip.set)} · ${short(clip.task)}</span>`);
     if (run(clip.set, clip.task)) { frame.classList.add('opens'); frame.title = 'Open the whole run'; frame.addEventListener('click', () => openRun(clip.set, clip.task)); }
   });
 }
@@ -214,7 +262,7 @@ function tip(anchor, set, task) {
   const t = $('tip'), has = !!run(set, task); t.className = `tip t-${typeOf(task)}`;
   t.innerHTML = (has ? `<img alt="" src="${poster(set, task, 'front')}">` : '') +
     `<div class="tip-body"><div><b>${nice(task)}</b><small>${teamName(set)} · ${facts(task)}</small></div>` +
-    `<div class="tip-state">${has ? `<i class="${done(set, task) ? 'done' : ''}"></i><span>${stateText(set, task)}</span>` : '<span class="soon">Coming soon</span>'}</div></div>`;
+    `<div class="tip-state">${has ? stateHTML(set, task) : `<span class="soon">${WORDS.soon}</span>`}</div></div>`;
   t.hidden = false;
   const a = anchor.getBoundingClientRect(), w = 236, h = t.offsetHeight;
   let y = a.top - h - 10; if (y < 8) y = a.bottom + 10;
@@ -228,9 +276,9 @@ function runCard(set, task, { mark = true, type = true, team = false } = {}) {
   const r = run(set, task), finished = done(set, task), o = outcome(set, task);
   const card = el('button', `card t-${typeOf(task)}`); card.type = 'button';
   card.innerHTML = `<div class="thumb"><img alt="" loading="lazy" src="${poster(set, task, 'front')}"><img class="alt" alt="" data-src="${poster(set, task, 'top')}">` +
-    (mark && finished !== null ? `<span class="mark${finished ? ' done' : ''}">${finished ? 'Complete' : 'Incomplete'}</span>` : '') +
-    `<span class="len">${clock(r.seconds)}</span></div><b><i></i>${type ? `${cap(typeOf(task))} · ` : ''}${short(task)}</b>` +
-    `<small>${team ? `${teamName(set)} · ` : ''}${facts(task)}${o && o.hours != null ? ` · ${o.hours} h` : ''}</small>`;
+    (mark && finished !== null ? statusChip(finished, 'mark') : '') +
+    `<span class="chip len">${clock(r.seconds)}</span></div><b><i></i>${type ? `${cap(typeOf(task))} · ` : ''}${short(task)}</b>` +
+    `<small>${team ? `${teamName(set)} · ` : ''}${facts(task)}${o && o.hours != null ? ` · ${workText(o.hours)}` : ''}</small>`;
   card.addEventListener('pointerenter', () => { const alt = card.querySelector('.alt'); if (alt && !alt.src) alt.src = alt.dataset.src; }, { once: true });
   card.addEventListener('click', () => openRun(set, task));
   return card;
@@ -254,7 +302,7 @@ function library() {
   const pass = (set, task) => (F.team === 'all' || F.team === set) && (F.job === 'all' || typeOf(task) === F.job);
   const wanted = (set, task) => F.status === 'all' || done(set, task) === (F.status === 'yes');
   const tally = status => D.sets.reduce((n, s) => n + D.tasks.filter(t => run(s, t) && pass(s, t) && (status === 'all' || done(s, t) === (status === 'yes'))).length, 0);
-  chipRow('filter-status', 'status', [['all', `All <small>${tally('all')}</small>`], ['yes', `<i class="sq done" style="--c:var(--s1)"></i>Complete <small>${tally('yes')}</small>`], ['no', `<i class="sq" style="--c:var(--s1)"></i>Incomplete <small>${tally('no')}</small>`]]);
+  chipRow('filter-status', 'status', [['all', `All <small>${tally('all')}</small>`], ['yes', `<i class="sq done"></i>${WORDS.fin} <small>${tally('yes')}</small>`], ['no', `<i class="sq"></i>${WORDS.not} <small>${tally('no')}</small>`]]);
   chipRow('filter-team', 'team', [['all', 'All teams']].concat(D.sets.map(s => [s, teamName(s)])));
   chipRow('filter-job', 'job', [['all', 'All jobs']].concat(TYPES.map(([k, n]) => [k, `<i></i>${n}`, `t-${k}`])));
   const box = $('library'); box.innerHTML = ''; let shown = 0;
@@ -306,7 +354,7 @@ function buildViews(sources) {
     const frame = el('button', `view${i === 0 ? ' main' : ''}`); frame.type = 'button';
     const v = el('video'); v.muted = true; v.playsInline = true; v.preload = 'metadata'; v.src = src; if (posterUrl) v.poster = posterUrl;
     v.addEventListener('ended', () => eachVideo(x => x.pause()));
-    frame.append(v, el('span', 'view-tag', label), el('span', 'speed', ''));
+    frame.append(v, el('span', 'chip view-tag', label), el('span', 'chip speed', ''));
     frame.addEventListener('click', () => {
       if (i === P.main) return togglePlay();
       document.querySelectorAll('#player-views .view').forEach((f, j) => f.classList.toggle('main', j === i)); P.main = i;
@@ -324,8 +372,8 @@ function openRun(set, task) {
   hideTip(); P.set = set; P.task = task;
   const finished = done(set, task), o = outcome(set, task), r = run(set, task), p = $('player');
   p.className = `player t-${typeOf(task)}`;
-  $('player-title').innerHTML = `<i></i>${nice(task)}` + (finished !== null ? ` <span class="state${finished ? ' done' : ''}">${finished ? 'Finished' : 'Not finished'}</span>` : '');
-  $('player-sub').textContent = `${teamName(set)} · ${facts(task)}${o && o.hours != null ? ` · ${o.hours} hours of work` : ''} · ${clock(r.seconds)} of video`;
+  $('player-title').innerHTML = `<i></i>${nice(task)}` + (finished !== null ? ` ${statusChip(finished, 'flat')}` : '');
+  $('player-sub').textContent = `${teamName(set)} · ${facts(task)}${o && o.hours != null ? ` · ${workText(o.hours)}` : ''} · ${clock(r.seconds)} of video`;
   buildViews(D.media.views.map(view => [view, video(set, task, view), view === 'side' ? '' : poster(set, task, view)]));
   $('player-speed').hidden = false; $('player-compare').hidden = false;
   $('player-speed').innerHTML = SPEEDS.map(s => `<button class="chip" type="button" data-speed="${s}">${s}×</button>`).join('');
@@ -447,7 +495,7 @@ function chartProgress(F, box) {
     const s = fig.querySelector('svg');
     s.addEventListener('pointerover', e => { const gEl = e.target.closest('g[data-i]'); if (!gEl) return; const r = F.timelines[+gEl.dataset.i];
       s.classList.add('dimmed'); gEl.querySelector('.line').classList.add('hot');
-      info.innerHTML = `<b>${nice(r.task)}</b> · ${teamName(r.set)} · ${r.steps} steps in ${fmt1(r.hours)} h · ${r.done ? 'finished' : 'not finished'} · click to watch`; });
+      info.innerHTML = `<b>${nice(r.task)}</b> · ${teamName(r.set)} · ${r.steps} steps in ${fmtHours(r.hours)} · ${statusWord(r.done).toLowerCase()} · click to watch`; });
     s.addEventListener('pointerout', e => { const gEl = e.target.closest('g[data-i]'); if (gEl) gEl.querySelector('.line').classList.remove('hot'); s.classList.remove('dimmed'); });
     s.addEventListener('click', e => { const gEl = e.target.closest('g[data-i]'); if (!gEl) return; const r = F.timelines[+gEl.dataset.i]; if (run(r.set, r.task)) openRun(r.set, r.task); });
     grid.append(fig);
@@ -629,7 +677,7 @@ async function load(url) { const r = await fetch(url); if (!r.ok) throw new Erro
 
 async function start() {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  chrome(); playerControls(); nine(); modelHover();
+  chrome(); reveal(); playerControls(); nine(); modelHover();
   const [tasks, media] = await Promise.all([load('data/tasks.json'), load('data/media.json')]);
   D.media = media; D.sets = media.sets.map(s => s.key);
   D.tasks = TYPES.flatMap(([type]) => SIZES.flatMap(size => [1, 2, 3].map(level => `${type}-${size}-l${level}`)));

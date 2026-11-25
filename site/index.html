@@ -11,16 +11,16 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0e1013" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f5f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#13161a" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script>try{var t=localStorage.getItem('roboteam-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}</script>
+<script>try{var t=localStorage.getItem('roboteam-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}if('IntersectionObserver'in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('reveal')</script>
 <link rel="preload" as="image" href="https://changxuanfan.github.io/RoboTeam-media/film/roboteam-hero.webp" fetchpriority="high">
-<link rel="stylesheet" href="assets/css/site.css?v=20261125q">
-<script src="assets/js/site.js?v=20261125q" defer></script>
+<link rel="stylesheet" href="assets/css/site.css?v=20261125r">
+<script src="assets/js/site.js?v=20261125r" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -68,7 +68,7 @@
 
 
 <section class="chapter" id="jobs" aria-labelledby="jobs-title">
-  <div class="chapter-head">
+  <div class="chapter-head" data-reveal>
     <p class="kicker">The four jobs</p>
     <h2 id="jobs-title">Jobs that no arm can finish alone.</h2>
     <p class="chapter-lede">Each job comes in three team sizes and three levels, 36 tasks in all. A bigger team has more arms and more work to divide; a higher level makes the same job physically or visually harder. Each clip is a real run at 300 times real time, and opens it.</p>
@@ -83,7 +83,7 @@
 </section>
 
 <section class="chapter" id="watch" aria-labelledby="watch-title">
-  <div class="chapter-head row-head">
+  <div class="chapter-head row-head" data-reveal>
     <div><p class="kicker">Watch</p><h2 id="watch-title">Eight finished runs.</h2></div>
     <a class="more-link" href="#videos">All 218 runs →</a>
   </div>
@@ -91,7 +91,7 @@
 </section>
 
 <section class="chapter" id="new" aria-labelledby="new-title">
-  <div class="chapter-head">
+  <div class="chapter-head" data-reveal>
     <p class="kicker">What is new</p>
     <h2 id="new-title">Many arms, long jobs, and a world that never waits.</h2>
     <p class="chapter-lede">Earlier benchmarks give an agent one or two arms for minutes, often pause the world while it thinks, or tell it where every object is. RoboTeam takes all three away.</p>
@@ -107,7 +107,7 @@
 </section>
 
 <section class="chapter" id="how" aria-labelledby="how-title">
-  <div class="chapter-head">
+  <div class="chapter-head" data-reveal>
     <p class="kicker">How a run works</p>
     <h2 id="how-title">Inside one real run.</h2>
     <p class="chapter-lede">Agents work in a loop: look through the cameras, decide, send one command to one arm, and look again. Here is that loop in a run of gpt-6.1-sol on a Transport job with 8 arms, which it finished, all 24 items in place.</p>
@@ -171,18 +171,18 @@
   </nav>
   <div class="toc-body">
     <section class="chapter" id="scoreboard" aria-labelledby="results-title">
-      <div class="chapter-head">
+      <div class="chapter-head" data-reveal>
         <p class="kicker">Results</p>
         <h2 id="results-title">Who finished what.</h2>
         <p class="chapter-lede">Six AI teams tried the same 36 jobs. Each square is one attempt, and you can watch every one of them.</p>
       </div>
       <div class="big" id="big" aria-live="polite"></div>
       <div class="board" id="board"></div>
-      <div class="legend"><span><i class="cell done"></i>Finished the job</span><span><i class="cell"></i>Did not finish</span><span><i class="cell none"></i>Video coming soon</span><span class="legend-note">In each group of three, the squares are Levels 1, 2 and 3.</span></div>
+      <div class="legend"><span><i class="cell done"></i>Finished</span><span><i class="cell"></i>Not finished</span><span><i class="cell none"></i>Video coming soon</span><span class="legend-note">In each group of three, the squares are Levels 1, 2 and 3.</span></div>
     </section>
 
     <section class="chapter" aria-labelledby="learned-title">
-      <div class="chapter-head">
+      <div class="chapter-head" data-reveal>
         <p class="kicker">What we learned</p>
         <h2 id="learned-title">Six things the runs show.</h2>
         <p class="chapter-lede">The best teams finish most jobs. How they get there, and where the others fall short, says more about AI in the physical world than the score alone.</p>
@@ -204,7 +204,7 @@
 <!-- ===================== Videos ===================== -->
 <div class="page" id="videos" data-view="videos" hidden>
 <section class="chapter" aria-labelledby="videos-title">
-  <div class="chapter-head">
+  <div class="chapter-head" data-reveal>
     <p class="kicker">Videos</p>
     <h2 id="videos-title">Every run, on video.</h2>
     <p class="chapter-lede">Three cameras for every run, at ten times real time. Pick a result, a team or a job.</p>
