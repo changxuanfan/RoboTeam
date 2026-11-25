@@ -805,7 +805,7 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .stat>span{font-size:15px;line-height:1.45;color:var(--ink2);max-width:24ch;text-wrap:balance}
 @media (max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
-/* What is new: three points, then the comparison chart at full width */
+/* What is new: the three points beside the comparison chart on wide screens, above it on narrow ones */
 .new-grid{display:grid;gap:clamp(28px,3.4vw,40px)}
 .points{list-style:none;margin:0;padding:4px 0 0;display:grid;gap:28px;align-content:start}
 .points li{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:16px;align-items:start}
@@ -813,60 +813,45 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .points .ico svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .points b{display:block;font:700 18px/1.3 var(--display);letter-spacing:-.01em;color:var(--ink);text-wrap:balance}
 .points p{margin:6px 0 0;font-size:15px;line-height:1.55;color:var(--ink2);max-width:46ch}
-@media (min-width:700px){.points{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:clamp(24px,3.2vw,44px)}}
-@media (min-width:700px) and (max-width:1099px){.points li{grid-template-columns:minmax(0,1fr);row-gap:14px}.points b{min-height:2.6em}}
-.wn{padding:clamp(18px,2.2vw,26px) clamp(16px,2.2vw,26px) clamp(14px,1.8vw,18px);gap:18px}
+@media (min-width:700px) and (max-width:999px){.points{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:clamp(24px,3.2vw,44px)}.points li{grid-template-columns:minmax(0,1fr);row-gap:14px;align-content:start}.points b{min-height:2.6em}}
+@media (min-width:1000px){.new-grid{grid-template-columns:minmax(0,1fr) minmax(0,min(648px,56%));column-gap:clamp(40px,4.6vw,72px);align-items:start}.points{gap:36px;padding-top:26px}}
+.wn{padding:clamp(18px,2.2vw,26px) clamp(16px,2.2vw,26px) clamp(14px,1.8vw,20px);gap:16px}
 .wn-cap{display:grid;gap:4px;margin:0}
 .wn-cap b{font:700 clamp(18px,1.8vw,21px)/1.3 var(--display);letter-spacing:-.012em;color:var(--ink);text-wrap:balance}
-.wn-cap span{font-size:14px;color:var(--dim)}
+.wn-cap span{font-size:14px;color:var(--dim);text-wrap:pretty}
+/* The chart's box is kept before findings.json arrives, so nothing below it moves */
+.wn .f-chart{aspect-ratio:25/19}
+@media (max-width:505px){.wn .f-chart{aspect-ratio:25/28}}
 .wn-plot{position:relative}
-.wn .tick{fill:var(--dim);font:400 12px var(--sans)}
-.wn .axis-t{fill:var(--dim);font:500 12px var(--sans)}
-.wn .st-t{fill:var(--ink);font:600 14px var(--sans)}
-.wn .grid{stroke:var(--line);stroke-width:1;opacity:.75}
+.wn .tick{fill:var(--dim);font:400 12px var(--sans);font-variant-numeric:tabular-nums}
+.wn .axis-t{fill:var(--dim);font:500 12.5px var(--sans)}
+.wn .grid{fill:none;stroke:var(--line);stroke-width:1}
 .wn .base{stroke:var(--s3);stroke-width:1}
 .wn .region{fill:var(--vio-tint)}
 .wn .region-t{fill:var(--vio-ink);font:500 12px var(--mono);letter-spacing:.1em}
-.wn .dot{fill:var(--s2);transition:fill var(--t-state) var(--ease)}
-.wn .nm{fill:var(--ink2);font:500 12.5px var(--sans)}
-.wn .gl,.wn .gl-k{fill:none;stroke:var(--s2);stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round}
+.wn .dot{fill:var(--s2);stroke:var(--card);stroke-width:1.5px}
 .wn .ours{fill:var(--vio)}
 .wn .halo{fill:var(--vio);fill-opacity:.16}
-.wn .us-t{fill:var(--vio);font:700 15px var(--display);letter-spacing:-.01em}
-.wn .guide{stroke:var(--s3);stroke-width:1;stroke-dasharray:2 4}
-.wn .dim{fill:none;stroke:var(--s2);stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round}
-.wn .dim-t{fill:var(--ink2);font:500 13px var(--sans)}
+.wn .nm{fill:var(--ink2);font:500 13px var(--sans)}
+.wn .dim{fill:none;stroke:var(--s3);stroke-width:1.5;stroke-linecap:round}
+.wn .dim-t{fill:var(--dim);font:500 13px var(--sans)}
 .wn .dim-t .em{font-weight:700}
-.wn .hit{fill:transparent}
-.wn [data-b]{cursor:pointer;transition:opacity var(--t-state) var(--ease),transform var(--t-state) var(--ease)}
-.wn.hl [data-b]:not(.on){opacity:.22}
-.wn .wn-pt.on .dot{fill:var(--s1)}
-.wn .wn-pt.on .nm{fill:var(--ink)}
-.wn-us{position:absolute;display:grid;justify-items:end;gap:8px;text-align:right;pointer-events:none}
-.wn-us b{margin-right:-6px;padding:2px 6px;border-radius:6px;background:var(--card);font:700 22px/1 var(--display);letter-spacing:-.015em;color:var(--vio)}
-.wn-key{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--ink2)}
-.wn-key>span{display:inline-flex;align-items:center;gap:7px}
-.wn-key .gl-k{width:13px;height:13px;display:block}
-.wn-key .src{margin-left:auto;font-size:12.5px;color:var(--dim)}
-.wn-b{display:grid;gap:24px}
-.wn-b.side{grid-template-columns:minmax(0,1fr) 350px;gap:44px;align-items:center}
-.wn-list{display:grid;align-content:start;font-size:14px}
-.wn-lh,.wn-li{display:grid;grid-template-columns:minmax(0,1fr) 154px var(--us-col,64px);align-items:center;column-gap:16px}
-.wn-lh{padding-bottom:8px;font:500 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
-.wn-lh .us{justify-self:center;white-space:nowrap;font:700 14px var(--display);letter-spacing:-.01em;text-transform:none;color:var(--vio)}
-.wn-li{min-height:44px;border-top:1px solid var(--line)}
-.wn-li .lab{font-weight:500;color:var(--ink2)}
-.wn-li.all .lab{font-weight:600;color:var(--ink)}
-.wn-li .ok{justify-self:center;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--vio)}
-.wn-li .ok::before{content:"";width:12px;height:12px;background:var(--on-vio);-webkit-mask:var(--i-check) center/contain no-repeat;mask:var(--i-check) center/contain no-repeat}
-.wn-li .none{font-size:13px;color:var(--dim)}
-.pips{display:flex;gap:6px}
-.pip{display:block;width:10px;height:10px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1.5px var(--s2)}
-.pip.y{background:var(--s2)}
-.pip.p{background:linear-gradient(90deg,var(--s2) 50%,transparent 50%)}
-.pip.n{box-shadow:inset 0 0 0 1.5px var(--s3)}
-.pip.on{transform:scale(1.35)}
-@media (max-width:600px){.wn-lh,.wn-li{grid-template-columns:minmax(0,1fr) 126px var(--us-col,44px);column-gap:10px}.wn-lh .us{justify-self:end}.pips{gap:4px}.pip{width:9px;height:9px}.wn-key .src{margin-left:0;flex-basis:100%}}
+/* One dot or pile at a time: it grows a little and the rest dim; focus shows a violet ring */
+.wn .wn-u{cursor:pointer;outline:none}
+.wn .ring{fill:none;stroke:var(--vio);stroke-width:2;opacity:0;pointer-events:none}
+.wn .wn-u:focus-visible .ring{opacity:1}
+.wn [data-b]{transition:opacity var(--t-state) var(--ease)}
+.wn.hl [data-b]:not(.on){opacity:.25}
+.wn .wn-u :is(.dot,.ours){transition:transform var(--t-hover) var(--ease)}
+.wn .wn-u.on :is(.dot,.ours){transform:scale(1.3)}
+.wn-name{position:absolute;padding:0 6px;border-radius:6px;background:var(--card);font:700 22px/28px var(--display);letter-spacing:-.015em;color:var(--vio);white-space:nowrap;pointer-events:none}
+.wn-plot.compact .wn-name{font-size:19px;line-height:24px}
+.wn-chips{position:absolute;display:grid;justify-items:end;gap:8px;pointer-events:none}
+/* Its notes are the page's notes (.tip.chart-tip); a pile's note lists names in two columns */
+.tip.wn-tip{max-width:300px}
+.wn-nl{display:grid;grid-template-columns:auto auto;column-gap:18px;margin-top:3px;font:400 12.5px/1.55 var(--sans)}
+.wn-nl span:nth-child(odd){font-weight:600}
+.wn-nl span:nth-child(even){white-space:nowrap}
 
 /* Drawn things enter once, when their container first comes into view (playOnce in site.js) */
 .reveal .pl:not(.play):not(.played) :is(.an,.tz-cell){opacity:0}
