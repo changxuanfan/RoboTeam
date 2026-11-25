@@ -57,7 +57,9 @@ const outcome = (set, task) => D.outcomes && D.outcomes[set] && D.outcomes[set][
 const done = (set, task) => { const o = outcome(set, task); return o ? !!o.completed : null; };
 const facts = task => { const f = D.facts[task]; return f ? `${f.arms}\u00a0arms · ${f.workload}\u00a0${UNIT[f.unit] || f.unit}` : ''; };
 const poster = (set, task, view) => `${mediaUrl(D.media.posters)}${set}/${task}-${view}.webp`;
-const video = (set, task, view) => `${D.media.sets.find(s => s.key === set).base}${run(set, task).folder}/${view}.mp4`;
+// ?videos=URL reads the run videos from another host in a local preview (folders <team>/<run>/<camera>.mp4).
+const VIDEO_HOST = new URLSearchParams(location.search).get('videos');
+const video = (set, task, view) => `${VIDEO_HOST ? `${VIDEO_HOST.replace(/\/?$/, '/')}${set}/` : D.media.sets.find(s => s.key === set).base}${run(set, task).folder}/${view}.mp4`;
 const stateText = (set, task) => {
   if (!run(set, task)) return null;
   const o = outcome(set, task); if (!o) return WORDS.pending;
@@ -323,14 +325,26 @@ function tip(anchor, set, task) {
 }
 
 /* ---------- all videos ---------- */
+// Four, three or two cards in a row, in step with .vgrid in site.css
+const COLS = () => (innerWidth >= 1000 ? 4 : innerWidth >= 600 ? 3 : 2);
+const mouseOK = matchMedia('(hover: hover) and (pointer: fine)');
+const stillMQ = matchMedia('(prefers-reduced-motion: reduce)');
+const teamHTML = set => (set === REFERENCE ? 'Oracle' : `<span class="model">${teamName(set)}</span>`);
+
 function runCard(set, task, { mark = true, type = true, team = false } = {}) {
-  const r = run(set, task), finished = done(set, task), o = outcome(set, task);
-  const card = el('button', `card t-${typeOf(task)}`); card.type = 'button';
-  card.innerHTML = `<div class="thumb"><img alt="" loading="lazy" src="${poster(set, task, 'front')}"><img class="alt" alt="" data-src="${poster(set, task, 'top')}">` +
-    (mark && finished !== null ? statusChip(finished, 'mark') : '') +
-    `<span class="chip len">${clock(r.seconds)}</span></div><b><i></i>${type ? `${cap(typeOf(task))} · ` : ''}${short(task)}</b>` +
-    `<small>${team ? `${teamName(set)} · ` : ''}${facts(task)}${o && o.hours != null ? ` · ${workText(o.hours)}` : ''}</small>`;
-  card.addEventListener('pointerenter', () => { const alt = card.querySelector('.alt'); if (alt && !alt.src) alt.src = alt.dataset.src; }, { once: true });
+  const r = run(set, task), finished = done(set, task), o = outcome(set, task), job = cap(typeOf(task));
+  const work = o && o.hours != null ? workText(o.hours) : '', f = D.facts[task];
+  // On a narrow card the size of the job and the time of work each get a line of their own
+  const size = f ? `${f.arms}\u00a0arms<span class="wl"> · ${f.workload}\u00a0${UNIT[f.unit] || f.unit}</span>` : '';
+  const card = el('button', `card run t-${typeOf(task)}`); card.type = 'button';
+  card.dataset.set = set; card.dataset.task = task;
+  card.setAttribute('aria-label', [teamName(set), nice(task), finished === null ? '' : statusWord(finished), work, `${clock(r.seconds)} of video`].filter(Boolean).join(', '));
+  card.innerHTML = `<div class="thumb"><img alt="" loading="lazy" decoding="async" src="${poster(set, task, 'front')}">` +
+    (mark && finished !== null ? statusChip(finished, 'mark') : '') + `<span class="chip len">${clock(r.seconds)}</span></div>` +
+    `<b><i></i><span>${type ? `<span class="tj">${job} · </span>` : ''}${short(task)}</span></b>` +
+    `<small>${type ? `<span class="mj">${job} · </span>` : ''}${team ? `${teamHTML(set)} · ` : ''}${size}${work ? `<span class="wk"><span class="sep"> · </span>${work}</span>` : ''}</small>`;
+  card.addEventListener('pointerenter', e => peekLater(card, set, task, e));
+  card.addEventListener('pointerleave', () => peekStop(card));
   card.addEventListener('click', () => openRun(set, task));
   return card;
 }
@@ -398,95 +412,279 @@ function howCamera() {
   }), { threshold: 0.6 }).observe(fig);
 }
 
-function chipRow(id, key, options) {
-  const box = $(id); box.innerHTML = '';
-  options.forEach(([value, html, cls]) => {
-    const b = el('button', `chip ${cls || ''}`, html); b.type = 'button'; b.setAttribute('aria-pressed', F[key] === value);
-    b.addEventListener('click', () => { F[key] = value; library(); }); box.append(b);
-  });
+/* Under a mouse, after a short pause, a card plays a muted preview of its front camera from the
+   middle of the run at 2.5x inside its picture, until the pointer leaves. Never on touch screens
+   or with reduced motion, and the file is only fetched then. */
+const PEEK = { card: null, v: null, timer: 0 };
+function peekLater(card, set, task, e) {
+  clearTimeout(PEEK.timer);
+  if (e.pointerType !== 'mouse' || !mouseOK.matches || stillMQ.matches) return;
+  PEEK.timer = setTimeout(() => peekStart(card, set, task), 250);
+}
+function peekStart(card, set, task) {
+  peekStop();
+  const from = run(set, task).seconds * 0.5, thumb = card.querySelector('.thumb');
+  const v = el('video', 'peek'); v.muted = true; v.playsInline = true; v.preload = 'none'; v.disablePictureInPicture = true;
+  v.setAttribute('aria-hidden', 'true'); v.src = `${video(set, task, 'front')}#t=${from.toFixed(1)}`;
+  v.defaultPlaybackRate = v.playbackRate = 2.5;
+  v.addEventListener('playing', () => v.classList.add('on'), { once: true });
+  v.addEventListener('ended', () => { v.currentTime = from; v.play().catch(() => {}); });
+  thumb.insertBefore(v, thumb.querySelector('.chip'));
+  PEEK.card = card; PEEK.v = v; v.play().catch(() => {});
+}
+function peekStop(card) {
+  clearTimeout(PEEK.timer);
+  if (!PEEK.v || (card && card !== PEEK.card)) return;
+  const v = PEEK.v; PEEK.card = PEEK.v = null; v.classList.remove('on');
+  setTimeout(() => { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); }, 200);
 }
 
-function library() {
-  const pass = (set, task) => (F.team === 'all' || F.team === set) && (F.job === 'all' || typeOf(task) === F.job);
-  const wanted = (set, task) => F.status === 'all' || done(set, task) === (F.status === 'yes');
-  const tally = status => D.sets.reduce((n, s) => n + D.tasks.filter(t => run(s, t) && pass(s, t) && (status === 'all' || done(s, t) === (status === 'yes'))).length, 0);
-  chipRow('filter-status', 'status', [['all', `All <small>${tally('all')}</small>`], ['yes', `<i class="sq done"></i>${WORDS.fin} <small>${tally('yes')}</small>`], ['no', `<i class="sq"></i>${WORDS.not} <small>${tally('no')}</small>`]]);
-  chipRow('filter-team', 'team', [['all', 'All teams']].concat(D.sets.map(s => [s, teamName(s)])));
-  chipRow('filter-job', 'job', [['all', 'All jobs']].concat(TYPES.map(([k, n]) => [k, `<i></i>${n}`, `t-${k}`])));
-  const box = $('library'); box.innerHTML = ''; let shown = 0;
+/* ---------- the team index ----------
+   A tile per team: its score and its 36 tasks as squares, one block per job (rows: team sizes,
+   columns: levels), as on the board. A tile goes to that team's videos further down. */
+const square = (set, task) => `<i class="${done(set, task) ? 'done' : ''}${run(set, task) ? '' : ' none'}"></i>`;
+const strip = set => `<span class="strip" aria-hidden="true">${TYPES.map(([type]) => `<span class="blk t-${type}">${SIZES.map(size => [1, 2, 3].map(l => square(set, `${type}-${size}-l${l}`)).join('')).join('')}</span>`).join('')}</span>`;
+const JUMPS = { scored: null };
+function jumps() {
+  const box = $('jumps'); box.innerHTML = ''; JUMPS.scored = !!D.outcomes;
+  D.sets.forEach(set => {
+    const n = D.outcomes ? D.tasks.filter(t => done(set, t)).length : null;
+    const a = el('a', `jump${set === REFERENCE ? ' ref' : ''}`); a.href = `#team-${set}`; a.dataset.set = set; a.setAttribute('data-reveal', '');
+    a.setAttribute('aria-label', `${teamName(set)}${n === null ? '' : `, ${n} of 36 tasks finished`}. Go to its videos`);
+    a.innerHTML = `<span class="jump-name">${set === REFERENCE ? 'Oracle<span class="tag">Reference</span>' : teamHTML(set)}</span>${strip(set)}` +
+      (n === null ? '' : `<span class="jump-score"><b>${n}</b> of 36</span>`);
+    a.addEventListener('click', e => { e.preventDefault(); jumpTo(set); });
+    box.append(a);
+  });
+  const key = el('div', 'jump-key', `<p>One square per task</p><span><i class="done"></i>${WORDS.fin}</span><span><i></i>${WORDS.not}</span><span><i class="none"></i>${WORDS.soon}</span>`);
+  key.setAttribute('data-reveal', ''); box.append(key);
+  reveal(box);
+}
+function jumpTo(set) {
+  const hidden = F.team !== 'all' && F.team !== set;
+  if (hidden) F.team = 'all';
+  if (hidden || !OPEN.has(set)) { OPEN.add(set); library({ fade: true, scroll: false }); }
+  if (!$(`team-${set}`)) { F.status = F.job = 'all'; library({ fade: true, scroll: false }); }
+  const t = $(`team-${set}`); if (t) t.scrollIntoView({ block: 'start', behavior: stillMQ.matches ? 'auto' : 'smooth' });
+}
+
+/* ---------- the filter bar: Result, Job and Team ----------
+   Wide screens show every choice. Narrow ones show Result, and Team and Job each open a sheet.
+   The bar sticks under the tabs; on narrow screens it slides away while reading down. */
+const OPEN = new Set(['gpt-6.1-sol', 'opus-5.5']); // shown in full; the other teams start with one row
+const RESULT = [['all', 'All'], ['yes', WORDS.fin], ['no', WORDS.not]];
+const OPTIONS = {
+  team: () => [['all', 'All teams']].concat(D.sets.map(s => [s, teamHTML(s)])),
+  job: () => [['all', 'All jobs']].concat(TYPES.map(([k, n]) => [k, `<i></i>${n}`, `t-${k}`])),
+};
+const passes = (set, task, f = F) => !!run(set, task) && (f.team === 'all' || f.team === set) && (f.job === 'all' || typeOf(task) === f.job) && (f.status === 'all' || done(set, task) === (f.status === 'yes'));
+const tally = (over = {}) => { const f = { ...F, ...over }; return D.sets.reduce((n, s) => n + D.tasks.filter(t => passes(s, t, f)).length, 0); };
+function setFilter(key, value) { if (F[key] === value) return; F[key] = value; library({ fade: true }); }
+function clearFilters() { F.status = F.team = F.job = 'all'; library({ fade: true }); }
+function chipButtons(box, key, pick = v => setFilter(key, v)) {
+  box.innerHTML = '';
+  OPTIONS[key]().forEach(([value, html, cls]) => {
+    const b = el('button', `chip${cls ? ` ${cls}` : ''}`, `${html}<small></small>`); b.type = 'button'; b.dataset.v = value;
+    b.addEventListener('click', () => pick(value)); box.append(b);
+  });
+}
+function syncChips(box, key) {
+  box.querySelectorAll('button').forEach(b => {
+    const n = tally({ [key]: b.dataset.v }), on = F[key] === b.dataset.v;
+    b.setAttribute('aria-pressed', on); b.disabled = !on && n === 0; b.querySelector('small').textContent = n;
+  });
+}
+function syncBar() {
+  const seg = $('filter-status'); seg.hidden = !D.outcomes;
+  seg.querySelectorAll('button').forEach(b => { b.setAttribute('aria-pressed', F.status === b.dataset.v); b.querySelector('small').textContent = tally({ status: b.dataset.v }); });
+  syncChips($('filter-job'), 'job'); syncChips($('filter-team'), 'team');
+  if ($('fsheet').open) syncChips($('fsheet-chips'), SHEET.key);
+  ['team', 'job'].forEach(key => $(`open-${key}`).setAttribute('aria-pressed', F[key] !== 'all'));
+  const box = $('jumps'); box.dataset.job = F.job; box.dataset.status = F.status;
+  box.querySelectorAll('.jump').forEach(a => a.classList.toggle('dim', F.team !== 'all' && F.team !== a.dataset.set));
+}
+// A click on the dimmed page around a dialog closes it; a click on its own padding does not.
+const outside = (dlg, e) => { const r = dlg.getBoundingClientRect(); return e.target === dlg && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom); };
+const SHEET = { key: null };
+function openSheet(key) {
+  const s = $('fsheet'), box = $('fsheet-chips'); SHEET.key = key;
+  $('fsheet-title').textContent = key === 'team' ? 'Team' : 'Job';
+  chipButtons(box, key, v => { setFilter(key, v); setTimeout(closeSheet, 180); });
+  syncChips(box, key); s.showModal();
+}
+function closeSheet() {
+  const s = $('fsheet'); if (!s.open || s.classList.contains('is-leaving')) return;
+  leave(s).then(() => { s.classList.remove('is-leaving'); s.close(); });
+}
+function stickyBar() {
+  const root = document.documentElement, bar = $('filters'), mark = $('vbar-mark'), rail = $('rail');
+  // The bar's own height is set in site.css (--bar-h): measured here it would read 0 while its tab is hidden.
+  const sizes = () => root.style.setProperty('--rail-h', `${rail.offsetHeight}px`);
+  if ('ResizeObserver' in window) new ResizeObserver(sizes).observe(rail);
+  sizes();
+  const narrow = matchMedia('(max-width: 999px)'); let lastY = scrollY;
+  const spy = () => {
+    const y = scrollY, stuck = current === 'videos' && mark.getBoundingClientRect().top < rail.offsetHeight + 1;
+    bar.classList.toggle('stuck', stuck); root.classList.toggle('bar-stuck', stuck);
+    if (!stuck) { bar.classList.remove('tuck'); root.classList.remove('bar-tuck'); lastY = y; return; }
+    if (Math.abs(y - lastY) < 8) return;
+    const tuck = narrow.matches && !stillMQ.matches && y > lastY && !$('fsheet').open;
+    bar.classList.toggle('tuck', tuck); root.classList.toggle('bar-tuck', tuck); lastY = y;
+  };
+  addEventListener('scroll', spy, { passive: true }); spy();
+}
+function filterBar() {
+  if (filterBar.ready) return; filterBar.ready = true;
+  const seg = $('filter-status');
+  seg.innerHTML = RESULT.map(([v, w]) => `<button type="button" data-v="${v}">${v === 'all' ? '' : `<i class="${v === 'yes' ? 'done' : ''}"></i>`}${w}<small></small></button>`).join('');
+  seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => setFilter('status', b.dataset.v)));
+  chipButtons($('filter-job'), 'job'); chipButtons($('filter-team'), 'team');
+  ['team', 'job'].forEach(key => $(`open-${key}`).addEventListener('click', () => openSheet(key)));
+  const s = $('fsheet');
+  $('fsheet-close').addEventListener('click', closeSheet);
+  s.addEventListener('click', e => { if (outside(s, e)) closeSheet(); });
+  s.addEventListener('cancel', e => { e.preventDefault(); closeSheet(); });
+  stickyBar();
+  // The number of cards in a row changes at 600 and 1000 px; fold the rows again
+  ['(min-width: 600px)', '(min-width: 1000px)'].forEach(q => matchMedia(q).addEventListener('change', () => library({ fade: true, scroll: false })));
+}
+
+function library({ fade = false, scroll = true } = {}) {
+  filterBar(); peekStop();
+  if (JUMPS.scored !== !!D.outcomes) jumps();
+  const box = $('library'), cols = COLS(); box.innerHTML = ''; let shown = 0;
   D.sets.forEach(set => {
     if (F.team !== 'all' && F.team !== set) return;
-    const tasks = D.tasks.filter(t => pass(set, t));
-    const list = tasks.filter(t => run(set, t) && wanted(set, t));
+    const tasks = D.tasks.filter(t => F.job === 'all' || typeOf(t) === F.job);
+    const list = tasks.filter(t => passes(set, t));
     const soon = F.status === 'yes' ? [] : tasks.filter(t => !run(set, t));
     if (!list.length && !soon.length) return;
     shown += list.length;
-    const section = el('section', 'team'); section.id = `team-${set}`;
-    const minutes = Math.round(list.reduce((n, t) => n + run(set, t).seconds, 0) / 60);
+    const all = list.length + soon.length, ref = set === REFERENCE, fold = F.team === 'all' && !OPEN.has(set) && all > cols;
+    const section = el('section', `team${ref ? ' ref' : ''}${fold ? ' folded' : ''}`); section.id = `team-${set}`;
     const finished = D.outcomes ? D.tasks.filter(t => done(set, t)).length : null;
-    section.append(el('div', 'team-head', `<h3>${teamName(set)}${set === REFERENCE ? '<span class="tag">Reference</span>' : ''}</h3><span>${list.length} ${list.length === 1 ? 'video' : 'videos'}${list.length ? ` · ${minutes} min` : ''}</span>${finished !== null ? `<b>${finished} of 36 finished</b>` : ''}`));
-    const grid = el('div', 'grid');
-    list.forEach(task => {
-      grid.append(runCard(set, task, { mark: F.status === 'all', type: F.job === 'all' }));
+    const sub = ref ? 'The same AI, given the position of every object' : (TEAMS[set] || [])[1];
+    const head = el('div', 'team-head', `<h3>${ref ? 'Oracle<span class="tag">Reference</span>' : teamHTML(set)}</h3>` +
+      `<span class="team-sub">${sub ? `${sub} · ` : ''}${list.length} ${list.length === 1 ? 'video' : 'videos'}</span>` +
+      (finished === null ? '' : `<span class="team-score"><b>${finished}</b> of 36 finished</span>`));
+    head.setAttribute('data-reveal', '');
+    const grid = el('div', 'vgrid');
+    list.forEach((task, i) => {
+      const card = runCard(set, task, { mark: F.status === 'all', type: F.job === 'all' });
+      card.setAttribute('data-reveal', ''); card.style.setProperty('--i', i % cols); grid.append(card);
     });
-    if (soon.length) grid.append(el('div', 'rest', `<b><span class="soon">Coming soon</span>${soon.length} more ${soon.length === 1 ? 'video' : 'videos'}</b><ul>${soon.map(t => `<li class="t-${typeOf(t)}"><i></i>${F.job === 'all' ? `${cap(typeOf(t))} · ` : ''}${short(t)}</li>`).join('')}</ul>`));
-    section.append(grid); box.append(section);
+    if (soon.length) grid.append(el('div', 'rest', `<b><span class="soon">${WORDS.soon}</span>${soon.length} more ${soon.length === 1 ? 'video' : 'videos'}</b><ul>${soon.map(t => `<li class="t-${typeOf(t)}"><i></i>${F.job === 'all' ? `${cap(typeOf(t))} · ` : ''}${short(t)}</li>`).join('')}</ul>`));
+    section.append(head, grid);
+    if (fold) {
+      const row = el('div', 'more-row'), more = el('button', 'btn more', `Show all ${all}<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg>`);
+      more.type = 'button'; more.setAttribute('aria-label', `Show all ${all} of ${teamName(set)}`);
+      more.addEventListener('click', () => {
+        OPEN.add(set); section.classList.remove('folded'); row.remove();
+        const next = grid.children[cols]; if (next) next.focus({ preventScroll: true });
+      });
+      row.append(more); section.append(row);
+    }
+    box.append(section);
   });
-  if (!box.children.length) box.append(el('p', 'empty', 'No run matches these filters.'));
-  $('count').textContent = `${shown} ${shown === 1 ? 'video' : 'videos'} shown`;
+  if (!box.children.length) {
+    const empty = el('p', 'empty', 'No video matches these filters. <button class="link-btn" type="button">Clear filters</button>');
+    empty.querySelector('button').addEventListener('click', clearFilters); box.append(empty);
+  }
+  countLine(shown); syncBar();
+  if (!fade) { reveal(box); return; }
+  // A filter change cross-fades the list in place; nothing slides in again.
+  box.querySelectorAll('[data-reveal]').forEach(e => e.classList.add('is-in', 'rv-done'));
+  if (motionOK()) { box.classList.remove('xfade'); void box.offsetWidth; box.classList.add('xfade'); }
+  if (scroll && $('filters').classList.contains('stuck')) scrollTo({ top: $('count').getBoundingClientRect().top + scrollY - $('rail').offsetHeight - $('filters').offsetHeight - 8, behavior: 'instant' });
 }
-
+function countLine(shown) {
+  const total = tally({ status: 'all', team: 'all', job: 'all' }), on = F.status !== 'all' || F.team !== 'all' || F.job !== 'all';
+  const names = [F.status !== 'all' && statusWord(F.status === 'yes'), F.team !== 'all' && teamHTML(F.team), F.job !== 'all' && cap(F.job)].filter(Boolean);
+  $('count').innerHTML = on
+    ? `<span><b>${shown}</b> of ${total} videos</span><span class="count-on">${names.join(' · ')}</span><button class="link-btn" type="button">Clear filters</button>`
+    : `<span>All <b>${total}</b> videos</span>`;
+  const clear = $('count').querySelector('button'); if (clear) clear.addEventListener('click', clearFilters);
+}
 /* ---------- the player: three cameras on one clock ---------- */
-const P = { videos: [], main: 0, speed: 10, set: null, task: null, timer: null };
+const P = { videos: [], main: 0, speed: 10, set: null, task: null, timer: null, opener: null };
 
 function playerVideos() { return P.videos.filter(v => v.isConnected); }
 function eachVideo(f) { playerVideos().forEach(f); }
 function setSpeed(times) {
-  P.speed = times; eachVideo(v => { v.playbackRate = times / 10; });
+  P.speed = times; eachVideo(v => { v.defaultPlaybackRate = v.playbackRate = times / 10; });
   document.querySelectorAll('#player-views .speed').forEach(s => { s.textContent = `${times}× real time`; });
   document.querySelectorAll('#player-speed .chip').forEach(b => b.setAttribute('aria-pressed', +b.dataset.speed === times));
 }
 function tick() {
   const m = P.videos[P.main]; if (!m) return;
-  if (m.duration) { $('player-seek').value = Math.round(1000 * m.currentTime / m.duration); $('player-time').textContent = `${clock(m.currentTime)} / ${clock(m.duration)}`; }
-  $('player-play').classList.toggle('playing', !m.paused);
-  eachVideo(v => { if (v !== m && Math.abs(v.currentTime - m.currentTime) > 0.25) v.currentTime = m.currentTime; });
+  if (m.duration) {
+    const seek = $('player-seek'), at = m.currentTime / m.duration;
+    seek.value = Math.round(1000 * at); seek.style.setProperty('--p', `${(100 * at).toFixed(2)}%`);
+    $('player-time').textContent = `${clock(m.currentTime)} / ${clock(m.duration)}`;
+  }
+  eachVideo(v => { if (v !== m && !v.seeking && Math.abs(v.currentTime - m.currentTime) > 0.25) v.currentTime = m.currentTime; });
 }
+// The button shows pause only once the main view really plays, never while it is still loading.
+function playIcon(on) { const b = $('player-play'); b.classList.toggle('playing', on); b.setAttribute('aria-label', on ? 'Pause' : 'Play'); }
 function togglePlay() {
   const m = P.videos[P.main]; if (!m) return;
-  if (m.paused) eachVideo(v => v.play().catch(() => {})); else eachVideo(v => v.pause());
+  if (m.paused || m.ended) { if (m.ended) eachVideo(v => { v.currentTime = 0; }); eachVideo(v => v.play().catch(() => {})); } else eachVideo(v => v.pause());
+}
+function seekBy(s) {
+  const m = P.videos[P.main]; if (!m || !m.duration) return;
+  const t = Math.min(m.duration - 0.05, Math.max(0, m.currentTime + s)); eachVideo(v => { v.currentTime = t; }); tick();
+}
+function viewLabels() {
+  const single = P.videos.length === 1;
+  $('player-views').querySelectorAll('.view').forEach((f, j) => {
+    const name = f.querySelector('.view-tag').textContent;
+    f.setAttribute('aria-label', single ? 'Play or pause' : j === P.main ? `${cap(name)} camera: play or pause` : `Show the ${name} camera large`);
+  });
 }
 function buildViews(sources) {
   const box = $('player-views'); box.innerHTML = ''; box.classList.toggle('single', sources.length === 1); P.videos = []; P.main = 0;
+  const seek = $('player-seek'); seek.value = 0; seek.style.setProperty('--p', '0%'); $('player-time').textContent = '0:00';
   sources.forEach(([label, src, posterUrl], i) => {
-    const frame = el('button', `view${i === 0 ? ' main' : ''}`); frame.type = 'button';
-    const v = el('video'); v.muted = true; v.playsInline = true; v.preload = 'metadata'; v.src = src; if (posterUrl) v.poster = posterUrl;
-    v.addEventListener('ended', () => eachVideo(x => x.pause()));
+    const frame = el('button', `view loading${i === 0 ? ' main' : ''}`); frame.type = 'button';
+    const v = el('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.disablePictureInPicture = true;
+    if (posterUrl) v.poster = posterUrl;
+    v.src = src;
+    // Each view shimmers until it can play; the play button follows the main view.
+    v.addEventListener('canplay', () => frame.classList.remove('loading'), { once: true });
+    v.addEventListener('playing', () => { if (P.videos[P.main] === v) playIcon(true); });
+    v.addEventListener('pause', () => { if (P.videos[P.main] === v) playIcon(false); });
+    v.addEventListener('ended', () => { eachVideo(x => x.pause()); if (P.videos[P.main] === v) playIcon(false); });
     frame.append(v, el('span', 'chip view-tag', label), el('span', 'chip speed', ''));
     frame.addEventListener('click', () => {
       if (i === P.main) return togglePlay();
-      document.querySelectorAll('#player-views .view').forEach((f, j) => f.classList.toggle('main', j === i)); P.main = i;
+      box.querySelectorAll('.view').forEach((f, j) => f.classList.toggle('main', j === i)); P.main = i;
+      playIcon(!v.paused && v.readyState > 2); viewLabels();
     });
     box.append(frame); P.videos.push(v);
   });
+  viewLabels(); playIcon(false);
 }
 function showPlayer() {
-  const p = $('player'); if (!p.open) p.showModal();
+  const p = $('player');
+  if (!p.open) { P.opener = document.activeElement; p.showModal(); p.focus({ preventScroll: true }); }
   clearInterval(P.timer); P.timer = setInterval(tick, 200);
   eachVideo(v => v.play().catch(() => {}));
 }
 
 function openRun(set, task) {
-  hideTip(); P.set = set; P.task = task;
+  hideTip(); peekStop(); P.set = set; P.task = task;
   const finished = done(set, task), o = outcome(set, task), r = run(set, task), p = $('player');
   p.className = `player t-${typeOf(task)}`;
   $('player-title').innerHTML = `<i></i>${nice(task)}` + (finished !== null ? ` ${statusChip(finished, 'flat')}` : '');
-  $('player-sub').textContent = `${teamName(set)} · ${facts(task)}${o && o.hours != null ? ` · ${workText(o.hours)}` : ''} · ${clock(r.seconds)} of video`;
+  $('player-sub').innerHTML = [teamHTML(set), facts(task), o && o.hours != null ? workText(o.hours) : '', `${clock(r.seconds)} of video`].filter(Boolean).join(' · ');
   buildViews(D.media.views.map(view => [view, video(set, task, view), view === 'side' ? '' : poster(set, task, view)]));
   $('player-speed').hidden = false; $('player-compare').hidden = false;
   $('player-speed').innerHTML = SPEEDS.map(s => `<button class="chip" type="button" data-speed="${s}">${s}×</button>`).join('');
   $('player-speed').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => setSpeed(+b.dataset.speed)));
-  $('player-compare').innerHTML = D.sets.map(s => `<button class="chip" type="button" data-set="${s}" aria-pressed="${s === set}" ${run(s, task) ? '' : 'disabled title="Video coming soon"'}><i class="sq${done(s, task) ? ' done' : ''}"></i>${teamName(s)}</button>`).join('');
+  $('player-compare').innerHTML = D.sets.map(s => {
+    const f = done(s, task);
+    return `<button class="chip" type="button" data-set="${s}" aria-pressed="${s === set}" ${run(s, task) ? '' : `disabled title="${WORDS.soon}"`}>${f === null ? '' : `<i class="st${f ? ' done' : ''}"></i>`}${teamHTML(s)}</button>`;
+  }).join('');
   $('player-compare').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { if (!b.disabled && b.dataset.set !== P.set) openRun(b.dataset.set, task); }));
   setSpeed(P.speed); showPlayer();
   document.querySelectorAll('.cell.cur').forEach(c => c.classList.remove('cur'));
@@ -494,23 +692,57 @@ function openRun(set, task) {
 }
 
 function openFilm(src, posterUrl) {
+  hideTip(); peekStop();
   const p = $('player'); p.className = 'player';
   $('player-title').textContent = 'RoboTeam'; $('player-sub').textContent = 'The film';
   buildViews([['film', src, posterUrl]]);
   $('player-speed').hidden = true; $('player-compare').hidden = true;
-  P.videos[0].playbackRate = 1; showPlayer();
+  P.videos[0].defaultPlaybackRate = P.videos[0].playbackRate = 1; showPlayer();
 }
 
+function toggleFull() {
+  const box = $('player-in'); // a dialog cannot go full screen itself, so its inner box does
+  if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return; }
+  if (document.fullscreenEnabled && box.requestFullscreen) { box.requestFullscreen().catch(() => {}); return; }
+  const m = P.videos[P.main]; if (m && m.webkitEnterFullscreen) m.webkitEnterFullscreen(); // iPhone: the video alone
+}
 function playerControls() {
-  const p = $('player');
-  const close = () => { clearInterval(P.timer); eachVideo(v => { v.pause(); v.removeAttribute('src'); v.load(); }); $('player-views').innerHTML = ''; if (p.open) p.close(); document.querySelectorAll('.cell.cur').forEach(c => c.classList.remove('cur')); };
+  const p = $('player'), seek = $('player-seek'), full = $('player-full');
+  const close = () => {
+    if (!p.open || p.classList.contains('is-leaving')) return;
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    clearInterval(P.timer); eachVideo(v => v.pause());
+    leave(p).then(() => {
+      eachVideo(v => { v.removeAttribute('src'); v.load(); }); $('player-views').innerHTML = '';
+      p.classList.remove('is-leaving'); if (p.open) p.close();
+      document.querySelectorAll('.cell.cur').forEach(c => c.classList.remove('cur'));
+      // Back to the card (or square) that opened the player
+      const back = P.opener; P.opener = null;
+      if (back && back.isConnected && back !== document.body) back.focus({ preventScroll: true });
+    });
+  };
   $('player-close').addEventListener('click', close);
-  p.addEventListener('click', e => { if (e.target === p) close(); });
+  p.addEventListener('click', e => { if (outside(p, e)) close(); });
   p.addEventListener('cancel', e => { e.preventDefault(); close(); });
   $('player-play').addEventListener('click', togglePlay);
-  $('player-seek').addEventListener('input', e => { const m = P.videos[P.main]; if (m && m.duration) eachVideo(v => { v.currentTime = m.duration * e.target.value / 1000; }); });
+  seek.addEventListener('input', () => {
+    const m = P.videos[P.main]; seek.style.setProperty('--p', `${seek.value / 10}%`);
+    if (m && m.duration) eachVideo(v => { v.currentTime = m.duration * seek.value / 1000; });
+  });
+  full.hidden = !(document.fullscreenEnabled || 'webkitEnterFullscreen' in HTMLVideoElement.prototype);
+  full.addEventListener('click', toggleFull);
+  document.addEventListener('fullscreenchange', () => {
+    const on = document.fullscreenElement === $('player-in'); full.setAttribute('aria-label', on ? 'Leave full screen' : 'Full screen'); full.title = on ? 'Leave full screen' : 'Full screen';
+  });
+  // Space plays or pauses, F is full screen, the arrow keys go 5 s back or on, Esc closes.
+  p.addEventListener('keydown', e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const onControl = e.target !== p && e.target.closest('button, a');
+    if (e.key === ' ' && !onControl) { e.preventDefault(); togglePlay(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); seekBy(e.key === 'ArrowLeft' ? -5 : 5); }
+    else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFull(); }
+  });
 }
-
 
 /* ---------- charts: bars in HTML, lines and points in SVG drawn at the width they are shown ---------- */
 const FINDINGS_URL = mediaUrl(MEDIA + 'findings.json');

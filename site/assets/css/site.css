@@ -371,27 +371,146 @@ button.cell:hover,.cell.cur{transform:scale(1.3)}
 .tip .minis i{width:12px;height:12px;border-radius:3px;border:1.5px solid var(--c)}
 .tip .minis i.done{background:var(--c)}
 
-/* All videos: three rows of filters, then every run */
-.filters{display:grid;gap:10px;margin-bottom:6px}
+/* ---------- Videos: a team index, a filter bar that sticks under the tabs, then every run ---------- */
 .chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .chips::before{content:attr(aria-label);font:600 13px var(--sans);color:var(--dim);min-width:56px}
-.count{margin:14px 0 4px;font-size:13.5px;color:var(--dim)}
-.team{margin-top:26px;scroll-margin-top:80px}
-.team-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.team-head h3{font-size:19px}
-.team-head span{font:400 13px var(--sans);color:var(--dim)}
-.team-head b{font:600 13px var(--sans);color:var(--ink2)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:14px}
+.chip .model{font-size:12.5px}
+
+/* The team index: a tile per team with its score and its 36 tasks as squares, one block per job
+   (rows: team sizes, columns: levels), as on the board. The eighth cell says what a square means.
+   Below 1000 px the tiles sit in one row that scrolls sideways. */
+.jumps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 20px}
+.jump{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name name" "strip score";align-items:end;gap:12px;padding:13px 14px 14px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);color:var(--ink);transition:transform var(--t-hover) var(--ease),box-shadow var(--t-hover) var(--ease),opacity var(--t-state) var(--ease)}
+.jump:hover{text-decoration:none;transform:translateY(-2px);box-shadow:var(--sh-plate)}
+.jump:active{transform:none;box-shadow:var(--sh-chip)}
+.jump.dim{opacity:.5}
+.jump.ref{background:var(--vio-tint);border-color:var(--vio-soft)}
+.jump-name{grid-area:name;display:flex;align-items:center;min-width:0;height:22px;font:600 15px/1 var(--display);white-space:nowrap}
+.jump-name .model{font:500 14px/1 var(--mono);overflow:hidden;text-overflow:ellipsis}
+.jump-name .tag{margin-left:8px}
+.jump-score{grid-area:score;font:400 13px/1 var(--sans);color:var(--dim);white-space:nowrap}
+.jump-score b{margin-right:3px;font:600 18px/1 var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
+.jump.ref .jump-score b{color:var(--vio-ink)}
+.strip{grid-area:strip;display:flex;gap:9px}
+.blk{display:grid;grid-template-columns:repeat(3,7px);gap:2px;transition:opacity var(--t-state) var(--ease)}
+.blk i,.jump-key i{display:block;width:7px;height:7px;border-radius:2px;box-shadow:inset 0 0 0 1.25px var(--c);transition:opacity var(--t-state) var(--ease)}
+.blk i.done,.jump-key i.done{background:var(--c);box-shadow:none}
+.blk i.none,.jump-key i.none{box-shadow:none;background:color-mix(in srgb,var(--c) 30%,transparent)}
+/* The squares follow the filters: other jobs and other results step back */
+.jumps[data-job="transport"] .blk:not(.t-transport),.jumps[data-job="mosaic"] .blk:not(.t-mosaic),.jumps[data-job="relay"] .blk:not(.t-relay),.jumps[data-job="dial"] .blk:not(.t-dial),
+.jumps[data-status="yes"] .blk i:not(.done),.jumps[data-status="no"] .blk i.done{opacity:.2}
+.jump-key{display:grid;align-content:center;gap:6px;padding:4px 6px;font:400 12px/1.2 var(--sans);color:var(--dim)}
+.jump-key p{margin:0 0 2px;color:var(--ink2)}
+.jump-key span{display:flex;align-items:center;gap:8px}
+.jump-key i{--c:var(--dim)}
+@media (max-width:999px){
+  .jumps{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:var(--gutter);gap:10px;margin:0 calc(-1 * var(--gutter)) 12px;padding:2px var(--gutter) 8px;scrollbar-width:none}
+  .jumps::-webkit-scrollbar{display:none}
+  .jump{flex:0 0 224px;scroll-snap-align:start}
+  .jump-key{flex:0 0 auto;padding-right:var(--gutter)}
+}
+
+/* The filter bar. Result is a three-part switch drawn like the page tabs; Job and Team are chips.
+   Once it sticks under the tabs it gets the top bar's ground, and the two read as one. */
+.vbar-mark{height:0}
+.vbar{position:sticky;top:var(--rail-h,64px);z-index:30;display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:12px 0;transition:transform .3s var(--ease)}
+.vbar::before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:calc(50% - 50vw);right:calc(50% - 50vw);background:color-mix(in srgb,var(--paper) 90%,transparent);-webkit-backdrop-filter:saturate(1.4) blur(12px);backdrop-filter:saturate(1.4) blur(12px);border-bottom:1px solid var(--line);opacity:0;transition:opacity var(--t-state) var(--ease)}
+.vbar.stuck::before{opacity:1}
+.vbar.tuck{transform:translateY(calc(-100% - 2px))}
+.bar-stuck:not(.bar-tuck) .rail{border-bottom-color:transparent}
+.vbar .chips::before{content:none}
+.vbar .chips small{display:none}
+#filter-team{flex-basis:100%}
+.seg{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:12px;background:var(--well);box-shadow:inset 0 0 0 1px var(--line)}
+.seg button{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:30px;padding:0 13px;border-radius:9px;font:500 14px/1 var(--sans);color:var(--ink2);white-space:nowrap;transition:background-color var(--t-state) var(--ease),color var(--t-state) var(--ease),box-shadow var(--t-state) var(--ease)}
+.seg button:hover{color:var(--ink);background:color-mix(in srgb,var(--raise) 55%,transparent)}
+.seg button:active{background:var(--raise)}
+.seg button[aria-pressed="true"]{color:var(--vio-ink);background:var(--raise);box-shadow:var(--sh-chip)}
+.seg small{font:500 12px/1 var(--sans);color:var(--dim);font-variant-numeric:tabular-nums}
+.seg [aria-pressed="true"] small{color:inherit;opacity:.72}
+/* The two result glyphs, as small as a dot: violet with a check, or an outlined ring */
+.seg i,.chip i.st{position:relative;width:12px;height:12px;border-radius:50%;flex:none;background:none;box-shadow:inset 0 0 0 1.5px var(--s2)}
+.seg i.done,.chip i.st.done{background:var(--vio);box-shadow:none}
+.seg i.done::after,.chip i.st.done::after{content:"";position:absolute;inset:0;background:var(--on-vio);-webkit-mask:var(--i-check) center/8px no-repeat;mask:var(--i-check) center/8px no-repeat}
+.fbtn{display:none;align-items:center;gap:6px;height:36px;padding:0 9px 0 12px;border-radius:var(--r-btn);background:var(--card);box-shadow:inset 0 0 0 1px var(--line);font:500 14px/1 var(--sans);color:var(--ink2);white-space:nowrap;flex:none;transition:background-color var(--t-state) var(--ease),color var(--t-state) var(--ease),box-shadow var(--t-hover) var(--ease),transform var(--t-hover) var(--ease)}
+.fbtn:hover{color:var(--ink);box-shadow:inset 0 0 0 1px var(--s2)}
+.fbtn:active{transform:scale(.97)}
+.fbtn[aria-pressed="true"]{background:var(--vio-tint);color:var(--vio-ink);box-shadow:inset 0 0 0 1.5px var(--vio-soft)}
+.fbtn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:999px){
+  .vbar{flex-wrap:nowrap;gap:8px;padding:10px 0}
+  #filter-job,#filter-team{display:none}
+  .fbtn{display:inline-flex}
+}
+@media (max-width:599px){
+  .seg{flex:1 1 auto;min-width:0}
+  .seg button{flex:1 1 auto;padding:0 6px;font-size:13.5px}
+  .seg small,.seg i{display:none}
+}
+@media (max-width:370px){.seg button{padding:0 4px;font-size:13px}}
+
+/* The sheet of chips behind Team and Job on narrow screens */
+.sheet{position:fixed;inset:auto 0 0;margin:0 auto;width:min(100%,560px);max-width:100%;max-height:min(72vh,560px);border:0;border-radius:16px 16px 0 0;padding:16px var(--gutter) calc(22px + env(safe-area-inset-bottom));background:var(--card);color:var(--ink);box-shadow:var(--sh-panel);overflow:auto}
+.sheet[open]{display:grid;gap:14px;animation:sheet-in var(--t-enter) var(--ease)}
+.sheet::backdrop{background:var(--veil)}
+.sheet[open]::backdrop{animation:veil-in var(--t-enter) var(--ease)}
+.sheet.is-leaving{animation:sheet-out var(--t-exit) var(--ease-in) forwards}
+.sheet.is-leaving::backdrop{animation:veil-out var(--t-exit) var(--ease-in) forwards}
+@keyframes sheet-in{from{transform:translateY(100%)}}
+@keyframes sheet-out{to{transform:translateY(100%)}}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sheet-head h3{font-size:20px}
+.sheet .chips{gap:8px}
+.sheet .chips::before{content:none}
+.sheet button.chip{height:40px;padding:0 15px;font-size:14.5px}
+.sheet .chip .model{font-size:13.5px}
+
+/* How many videos the filters leave */
+.count{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-height:22px;margin:6px 0 0;font:400 14px/1.5 var(--sans);color:var(--dim)}
+.count b{font-weight:600;color:var(--ink2);font-variant-numeric:tabular-nums}
+.count-on{color:var(--ink2)}
+.count-on .model{font-size:13px}
+.count .link-btn{font-size:14px;color:var(--vio)}
+@media (min-width:1000px){.count-on{display:none}}
+
+/* A team: its head, then its runs. Teams after the first two start folded to one row. */
+.team{margin-top:30px;scroll-margin-top:calc(var(--rail-h,64px) + var(--bar-h,60px) + 14px)}
+.vids{--bar-h:104px}
+.team-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:baseline;gap:4px 12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.team-head h3{display:flex;align-items:center;font-size:20px;line-height:1.2}
+.team-head h3 .model{font:500 19px/1.2 var(--mono)}
+.team-sub{font:400 14px var(--sans);color:var(--dim)}
+.team-score{justify-self:end;font:400 14px var(--sans);color:var(--dim);white-space:nowrap}
+.team-score b{margin-right:3px;font:600 19px/1 var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
+.team.ref .team-score b{color:var(--vio-ink)}
+.vgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 16px}
+.team.folded .vgrid>.run:nth-child(n+5),.team.folded .vgrid>.rest{display:none}
+.more-row{margin-top:16px}
+.btn.more{height:36px;padding:0 14px;font-size:14px}
+.btn.more svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:transform var(--t-hover) var(--ease)}
+.btn.more:hover svg{transform:translateY(2px)}
+#library.xfade{animation:rv-fade var(--t-state) linear}
+@media (max-width:999px){.vids{--bar-h:56px}.vgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.team.folded .vgrid>.run:nth-child(n+4){display:none}}
+@media (max-width:599px){.team-head{grid-template-columns:minmax(0,1fr) auto}.team-sub{grid-column:1/-1;grid-row:2}.vgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}.team.folded .vgrid>.run:nth-child(n+3){display:none}}
+
+/* A run: the front camera with its result and length, then the task and what it took */
 .thumb{position:relative;aspect-ratio:16/10;border-radius:var(--r-media);overflow:hidden;background:var(--video)}
 .card .thumb{border-radius:0}
-.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .25s}
-.thumb img.alt{opacity:0}.card:hover .thumb img.alt{opacity:1}
+.thumb img,.thumb video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.thumb video.peek{opacity:0;transition:opacity .2s var(--ease)}
+.thumb video.peek.on{opacity:1}
 .thumb::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--c)}
-.thumb .len{position:absolute;right:12px;bottom:12px}
-.thumb .mark{position:absolute;left:12px;top:12px}
+.thumb .len{position:absolute;right:10px;bottom:11px}
+.thumb .mark{position:absolute;left:10px;top:10px}
 .card>b{font:600 14px var(--display);display:flex;align-items:center;gap:7px;padding:11px 12px 0;text-wrap:balance}
 .card>b i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
 .card>small{font:400 12.5px/1.45 var(--sans);color:var(--dim);padding:3px 12px 12px;text-wrap:pretty}
+.run{container-type:inline-size}
+.run>b{font-size:14.5px;line-height:1.3;padding-top:12px}
+.run>small{padding-bottom:13px}
+.run .mj{display:none}
+/* A narrow card moves the job name from its title to the line below */
+@container (max-width:252px){.run .tj,.run .wl,.run .wk .sep{display:none}.run .mj{display:inline}.run .wk{display:block}}
 .rest{grid-column:span 2;border:1.5px dashed var(--line2);border-radius:8px;padding:12px 14px;display:grid;gap:8px;align-content:start;align-self:start;
   background:repeating-linear-gradient(135deg,var(--bg2) 0 6px,transparent 6px 12px)}
 .rest b{font:600 14px var(--display);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -399,8 +518,8 @@ button.cell:hover,.cell.cur{transform:scale(1.3)}
 .rest li{font:400 12px var(--sans);color:var(--ink2);border:1px solid var(--line2);border-radius:4px;padding:1px 5px;background:var(--card)}
 .rest li i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c);margin-right:5px}
 .empty{color:var(--dim);padding:18px 0}
-@media (max-width:480px){.rest{grid-column:span 1}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-
+.empty .link-btn{margin-left:6px;color:var(--vio);font-size:inherit}
+@media (max-width:599px){.rest{grid-column:1/-1}}
 /* Get started */
 .start-grid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:18px}
 @media (max-width:860px){.start-grid{grid-template-columns:1fr}}
@@ -415,34 +534,77 @@ pre{margin:0;background:var(--card);border:1px solid var(--line);border-radius:1
 .foot{max-width:var(--max);margin:auto;padding:22px var(--gutter) 40px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;font-size:13px;color:var(--dim)}
 
 /* The player: three cameras on one clock */
+:root{--shine:rgb(255 255 255 / .42)}
+[data-theme="dark"]{--shine:rgb(255 255 255 / .07)}
 .player{width:min(1080px,calc(100vw - 24px));max-height:calc(100vh - 24px);border:0;border-radius:14px;padding:16px;background:var(--card);color:var(--ink);box-shadow:var(--sh-panel);overflow:auto}
+.player:focus{outline:none}
 .player::backdrop{background:var(--veil)}
-.player[open]{display:grid;gap:12px}
+.player[open]{display:block;animation:dlg-in var(--t-enter) var(--ease)}
+/* The inner box goes full screen: Chrome does not take a dialog itself as a full-screen target */
+.player-in{display:grid;gap:12px}
+.player[open]::backdrop{animation:veil-in var(--t-enter) var(--ease)}
+.player.is-leaving::backdrop{animation:veil-out var(--t-exit) var(--ease-in) forwards}
+@keyframes dlg-in{from{opacity:0;transform:translate3d(0,10px,0) scale(.985)}}
+@keyframes veil-in{from{opacity:0}}
+@keyframes veil-out{to{opacity:0}}
 .player-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
 .player-top h3{font-size:22px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .player-top h3 i{width:11px;height:11px;border-radius:50%;background:var(--c)}
-.player-sub{margin:2px 0 0;font:400 13px var(--sans);color:var(--dim)}
+.player-sub{margin:3px 0 0;font:400 13.5px var(--sans);color:var(--dim)}
+.player-sub .model{color:var(--ink2);font-size:13px}
 .close{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;flex:none;color:var(--ink2);box-shadow:inset 0 0 0 1px var(--line);transition:box-shadow var(--t-hover) var(--ease),color var(--t-hover) var(--ease)}
 .close:hover{color:var(--ink);box-shadow:inset 0 0 0 1px var(--s2)}
 .close:active{transform:scale(.95)}
 .views{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);grid-template-rows:auto auto;gap:10px}
-.view{position:relative;border-radius:var(--r-media);overflow:hidden;background:var(--video);aspect-ratio:16/10;display:block;width:100%}
+.view{position:relative;border-radius:var(--r-media);overflow:hidden;background:var(--video);aspect-ratio:16/10;display:block;width:100%;transition:box-shadow var(--t-hover) var(--ease)}
 .view video{width:100%;height:100%;object-fit:cover}
 .view.main{grid-row:1/3;aspect-ratio:auto}
+.view:not(.main):hover{box-shadow:0 0 0 2px var(--vio-soft)}
 .views.single{grid-template-columns:1fr}.views.single .view:not(.main){display:none}
-.view:not(.main) .speed{display:none}
+.view:not(.main) .speed,.views.single .speed{display:none}
+/* Each view shimmers until its video can play */
+.view::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 30%,var(--shine) 50%,transparent 70%) 0 0/250% 100% no-repeat;opacity:0;transition:opacity .25s var(--ease)}
+.view.loading::after{opacity:1;animation:shimmer 1.3s linear infinite}
+@keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
 .controls{display:flex;align-items:center;gap:12px}
 .play-btn{width:38px;height:38px;border-radius:50%;background:var(--btn);flex:none;position:relative;transition:box-shadow var(--t-hover) var(--ease),transform var(--t-hover) var(--ease)}
 .play-btn:hover{box-shadow:var(--sh-chip)}
 .play-btn:active{transform:scale(.95)}
 .play-btn::after{content:"";position:absolute;left:15px;top:11px;border-left:12px solid var(--btn-ink);border-block:8px solid transparent}
 .play-btn.playing::after{left:12px;top:11px;width:4px;height:16px;border:0;border-inline:5px solid var(--btn-ink)}
-.seek{flex:1;accent-color:var(--vio);min-width:0}
+/* The seek bar: a thin track, violet up to the playhead */
+.seek{flex:1;min-width:0;height:22px;margin:0;background:none;-webkit-appearance:none;appearance:none;cursor:pointer;border-radius:6px;--p:0%}
+.seek::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(to right,var(--vio) var(--p),var(--well) var(--p))}
+.seek::-moz-range-track{height:4px;border-radius:2px;background:var(--well)}
+.seek::-moz-range-progress{height:4px;border-radius:2px;background:var(--vio)}
+.seek::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;background:var(--vio);box-shadow:0 0 0 2px var(--card),var(--sh-chip);transition:transform var(--t-hover) var(--ease)}
+.seek::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:var(--vio);box-shadow:0 0 0 2px var(--card),var(--sh-chip)}
+.seek:hover::-webkit-slider-thumb{transform:scale(1.15)}
+.seek:focus-visible{outline:2px solid var(--vio);outline-offset:3px}
 .time{font:500 12px var(--mono);color:var(--dim);font-variant-numeric:tabular-nums;min-width:86px;text-align:right}
+.icon-btn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;color:var(--ink2);box-shadow:inset 0 0 0 1px var(--line);transition:box-shadow var(--t-hover) var(--ease),color var(--t-hover) var(--ease)}
+.icon-btn:hover{color:var(--ink);box-shadow:inset 0 0 0 1px var(--s2)}
+.icon-btn:active{transform:scale(.95)}
+.icon-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn .shrink,.player-in:fullscreen .icon-btn .grow{display:none}
+.player-in:fullscreen .icon-btn .shrink{display:block}
 .player-row{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:center}
-.player .chips::before{min-width:0;margin-right:4px}
+#player-speed{order:1}.keys{order:2}#player-compare{order:3;flex-basis:100%}
+#player-compare button.chip{padding:0 11px 0 10px}
+.player .chips::before{min-width:0;margin-right:4px;font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase}
+/* The keys, for a keyboard and a mouse only */
+.keys{margin:0 0 0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:5px;font:400 12px/1 var(--sans);color:var(--dim)}
+.keys kbd{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:6px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line),0 1px 0 var(--line);font:500 12px/1 var(--mono);color:var(--ink2)}
+.keys span{margin-right:9px}
+.keys span:last-child{margin-right:0}
+@media (hover:none),(max-width:860px){.keys{display:none}}
+/* Full screen: the views take the height, the controls stay below */
+.player-in:fullscreen{width:100%;height:100%;padding:20px 24px;background:var(--card);grid-template-rows:auto minmax(0,1fr) auto auto;overflow:hidden}
+.player-in::backdrop{background:var(--card)}
+.player-in:fullscreen .views{min-height:0;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}
+.player-in:fullscreen .view{aspect-ratio:auto;min-height:0}
+.player-in:fullscreen .view video{object-fit:contain}
 @media (max-width:640px){.views{grid-template-columns:1fr 1fr;grid-template-rows:auto}.view.main{grid-column:1/3;grid-row:auto;aspect-ratio:16/10}}
-
 @media (max-width:900px){.hero{grid-template-columns:1fr}.rail-links>a{display:none}}
 /* Phones: the three page tabs get their own row under the name */
 @media (max-width:700px){
@@ -562,10 +724,10 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .chart .end{stroke:var(--card);stroke-width:2;paint-order:stroke}
 .chart path.x{fill:none;stroke-width:1.6;stroke-linecap:round}
 
-/* Videos: rows of filter chips above the grid */
-.with-side{display:grid;gap:14px}
-.filters{display:grid;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line)}
-.side-body .count{margin-top:4px}
+/* Header on narrow screens: Paper stays; Code and Cite are in the footer */
+@media (max-width:900px){.rail-links>a.rl-paper{display:inline-block}.rail-links>.rail-btn{display:none}}
+.rail{transition:border-color var(--t-state) var(--ease)}
+@media (prefers-reduced-motion:reduce){.player::backdrop,.sheet::backdrop{animation:none!important}.vbar.tuck{transform:none}}
 
 /* Footer and the citation box */
 .foot{max-width:var(--max);margin:clamp(40px,6vw,64px) auto 0;padding:26px var(--gutter) 36px;border-top:1px solid var(--line);display:grid;gap:14px}
