@@ -21,7 +21,7 @@ const TEAMS = {
   'qwen3.8-flash': ['qwen3.8-flash', 'in Codex'],
   'deepseek-v4.1-flash': ['deepseek-v4.1-flash', 'in Codex'],
   'glm-5.3-flash': ['glm-5.3-flash', 'in Codex'],
-  oracle: ['Oracle', 'gpt-6.1-sol, told where every object is'],
+  oracle: ['Reference', 'the same AI, given the position of every object'],
 };
 const REFERENCE = 'oracle';
 const SPEEDS = [10, 20, 50, 100]; // times real time; the videos themselves are 10x
@@ -34,19 +34,40 @@ const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(
 const nice = task => { const [type, size, level] = task.split('-'); return `${cap(type)} · ${cap(size)} · Level ${level[1]}`; };
 const short = task => { const [, size, level] = task.split('-'); return `${cap(size)} · Level ${level[1]}`; };
 
+/* One place for the outcome words and for how hours read */
+const WORDS = { fin: 'Finished', not: 'Not finished', soon: 'Coming soon', pending: 'Result to come' };
+const statusWord = finished => (finished ? WORDS.fin : WORDS.not);
+const statusChip = (finished, cls = '') => `<span class="chip ${finished ? 'fin' : 'not'}${cls ? ` ${cls}` : ''}">${statusWord(finished)}</span>`;
+// Under 1 h in minutes, under 10 h in hours and minutes, then hours: '41 min', '3 h 45 min', '23.6 h'.
+// The spaces do not break, so a time never splits across two lines.
+const fmtHours = h => {
+  if (h == null || !isFinite(h)) return '';
+  const m = Math.round(h * 60);
+  if (m < 60) return `${Math.max(1, m)}\u00a0min`;
+  if (m < 600) return m % 60 ? `${Math.floor(m / 60)}\u00a0h\u00a0${m % 60}\u00a0min` : `${m / 60}\u00a0h`;
+  return `${(Math.round(h * 10) / 10).toLocaleString('en-US')}\u00a0h`;
+};
+const workText = h => (h == null ? '' : `${fmtHours(h)}\u00a0of\u00a0work`);
+
 const D = { tasks: [], facts: {}, sets: [], runs: {}, outcomes: null, media: null };
 const F = { status: 'all', team: 'all', job: 'all' };
 const teamName = key => (TEAMS[key] || [key])[0];
 const run = (set, task) => D.runs[set][task]; // undefined when the run has no video yet
 const outcome = (set, task) => D.outcomes && D.outcomes[set] && D.outcomes[set][task];
 const done = (set, task) => { const o = outcome(set, task); return o ? !!o.completed : null; };
-const facts = task => { const f = D.facts[task]; return f ? `${f.arms} arms · ${f.workload} ${UNIT[f.unit] || f.unit}` : ''; };
+const facts = task => { const f = D.facts[task]; return f ? `${f.arms}\u00a0arms · ${f.workload}\u00a0${UNIT[f.unit] || f.unit}` : ''; };
 const poster = (set, task, view) => `${mediaUrl(D.media.posters)}${set}/${task}-${view}.webp`;
-const video = (set, task, view) => `${D.media.sets.find(s => s.key === set).base}${run(set, task).folder}/${view}.mp4`;
+// ?videos=URL reads the run videos from another host in a local preview (folders <team>/<run>/<camera>.mp4).
+const VIDEO_HOST = new URLSearchParams(location.search).get('videos');
+const video = (set, task, view) => `${VIDEO_HOST ? `${VIDEO_HOST.replace(/\/?$/, '/')}${set}/` : D.media.sets.find(s => s.key === set).base}${run(set, task).folder}/${view}.mp4`;
 const stateText = (set, task) => {
   if (!run(set, task)) return null;
-  const o = outcome(set, task); if (!o) return 'Result to come';
-  return (o.completed ? 'Finished the job' : 'Did not finish') + (o.hours != null ? ` · ${o.hours} h of work` : '');
+  const o = outcome(set, task); if (!o) return WORDS.pending;
+  return statusWord(o.completed) + (o.hours != null ? `, ${workText(o.hours)}` : '');
+};
+const stateHTML = (set, task) => {
+  const o = outcome(set, task); if (!o) return `<span>${WORDS.pending}</span>`;
+  return statusChip(!!o.completed, 'flat') + (o.hours != null ? `<span>${workText(o.hours)}</span>` : '');
 };
 
 /* ---------- theme, copy buttons, citation ---------- */
@@ -67,8 +88,37 @@ function chrome() {
   const cite = $('cite');
   document.querySelectorAll('[data-cite]').forEach(b => b.addEventListener('click', () => cite.showModal()));
   $('cite-close').addEventListener('click', () => cite.close());
-  cite.addEventListener('click', e => { if (e.target === cite) cite.close(); });
+  cite.addEventListener('click', e => { if (outside(cite, e)) cite.close(); });
 }
+
+/* ---------- entrances ----------
+   An element with data-reveal plays its entrance once, the first time it comes into view.
+   Call reveal(box) after rendering new elements into box. Children of a [data-stagger] parent
+   are numbered (--i) so they enter one after another. */
+const motionOK = () => document.documentElement.classList.contains('reveal');
+let revealer = null;
+function reveal(scope = document) {
+  const items = [...scope.querySelectorAll('[data-reveal]:not(.is-in)')];
+  if (scope !== document && scope.matches('[data-reveal]:not(.is-in)')) items.unshift(scope);
+  if (!items.length) return;
+  if (!motionOK() || !('IntersectionObserver' in window)) { items.forEach(e => e.classList.add('is-in', 'rv-done')); return; }
+  [scope, ...scope.querySelectorAll('[data-stagger]')].filter(g => g.matches && g.matches('[data-stagger]')).forEach(g =>
+    [...g.querySelectorAll(':scope > [data-reveal]')].forEach((e, i) => { if (!e.style.getPropertyValue('--i')) e.style.setProperty('--i', i); }));
+  revealer = revealer || new IntersectionObserver(entries => entries.forEach(en => {
+    if (!en.isIntersecting) return;
+    en.target.classList.add('is-in'); revealer.unobserve(en.target);
+  }), { rootMargin: '0px 0px -40px 0px' });
+  items.forEach(e => revealer.observe(e));
+}
+// Once its entrance has played an element drops the animation, so showing its tab again does not replay it.
+document.addEventListener('animationend', e => {
+  if (!e.pseudoElement && /^rv-/.test(e.animationName) && e.target.classList && e.target.classList.contains('is-in')) e.target.classList.add('rv-done');
+});
+// An exit: ease-in with a slight upward drift; resolves when it has played (at once without motion).
+const leave = e => new Promise(done => {
+  if (!motionOK()) { done(); return; }
+  e.classList.add('is-leaving'); e.addEventListener('animationend', () => done(), { once: true }); setTimeout(done, 400);
+});
 
 /* ---------- three pages: Overview, Results, Videos ----------
    #overview, #results and #videos open a page; the id of anything inside a page (#new,
@@ -99,16 +149,31 @@ function route() {
   showView(view ? view.id : 'overview');
   if (target) setTimeout(() => target.scrollIntoView({ block: 'start', behavior: 'instant' }), 0);
 }
+/* The contents beside Results: the section read now is the one crossing a band 30% to 40% down the
+   window, and at the end of the page it is the last one. */
 function tocSpy() {
-  const links = [...document.querySelectorAll('#toc a')], parts = links.map(a => document.querySelector(a.getAttribute('href')));
-  const spy = () => {
-    if (current !== 'results') return;
-    let on = 0; parts.forEach((p, i) => { if (p.getBoundingClientRect().top < 160) on = i; });
-    links.forEach((a, i) => a.classList.toggle('on', i === on));
+  const toc = $('toc'), links = [...toc.querySelectorAll('a')], parts = links.map(a => document.querySelector(a.getAttribute('href')));
+  const live = new Set(); let on = -1;
+  const mark = i => {
+    if (i === on) return; on = i;
+    links.forEach((a, k) => { a.classList.toggle('on', k === i); if (k === i) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current'); });
+    // In the row of contents on narrow screens the current link stays in view.
+    if (toc.scrollWidth > toc.clientWidth + 1) { const a = links[i]; toc.scrollTo({ left: Math.max(0, a.offsetLeft - (toc.clientWidth - a.offsetWidth) / 2), behavior: motionOK() ? 'smooth' : 'auto' }); }
   };
-  addEventListener('scroll', spy, { passive: true }); spy();
+  const pick = () => {
+    if (current !== 'results') return;
+    const h = document.documentElement.scrollHeight;
+    if (h > innerHeight + 4 && scrollY + innerHeight >= h - 4) { mark(links.length - 1); return; }
+    let last = -1; parts.forEach((p, i) => { if (live.has(p)) last = i; });
+    if (last >= 0) mark(last);
+  };
+  const io = new IntersectionObserver(entries => { entries.forEach(e => (e.isIntersecting ? live.add(e.target) : live.delete(e.target))); pick(); }, { rootMargin: '-30% 0px -60% 0px' });
+  parts.forEach(p => p && io.observe(p));
+  addEventListener('scroll', pick, { passive: true });
+  links.forEach((a, i) => a.addEventListener('click', () => mark(i)));
+  mark(0);
   // On narrow screens the row of contents slides away while reading down and returns on the way up.
-  const toc = $('toc'); let lastY = scrollY;
+  let lastY = scrollY;
   addEventListener('scroll', () => { const y = scrollY; if (Math.abs(y - lastY) < 8) return; toc.classList.toggle('tuck', y > lastY && y > 300); lastY = y; }, { passive: true });
 }
 
@@ -124,60 +189,85 @@ function clipVideo(src, posterUrl, label) {
   onScreen.observe(v); return v;
 }
 
+/* ---------- the hero film ----------
+   A hero-only loop (a "hero" entry in film.json: the hall to the grid, joined by a cross-fade)
+   plays with loop on. Until it is published, the 30 s loop plays only its footage window: just
+   before the end card it dips to the poster, which shows the frame the window starts on, and
+   starts the window again. With reduced motion only the poster shows. */
+const LOOP_WINDOW = [6.2, 26.6];
 function film() {
-  const f = D.media.film, box = $('film'); if (!f || !f.loop) return;
-  // The 720p file is sharp enough unless the box is wider than about 1400 device pixels.
+  const f = D.media.film, box = $('film'); if (!f) return;
   const base = mediaUrl(f.base), wide = box.clientWidth * (devicePixelRatio || 1) > 1400;
-  // The poster is the hall seen from above with the four jobs marked, 6.3 s into the loop; the first play starts there.
-  // The loop is fetched only once the page has loaded, so it never slows the page down.
-  const poster = box.querySelector('.film-poster');
-  if (override) { poster.src = mediaUrl(poster.getAttribute('src')); $('how-camera').src = mediaUrl($('how-camera').getAttribute('src')); }
-  const begin = () => {
-    const v = el('video'); v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('aria-label', 'The RoboTeam film');
-    v.src = base + (wide || !f.loop.small ? f.loop.video : f.loop.small);
-    v.addEventListener('loadedmetadata', () => { v.currentTime = 6.2; }, { once: true });
-    v.addEventListener('playing', () => v.classList.add('ready'), { once: true });
-    box.append(v); onScreen.observe(v);
-  };
-  const later = () => ('requestIdleCallback' in window ? requestIdleCallback(begin, { timeout: 1500 }) : setTimeout(begin, 300));
-  if (document.readyState === 'complete') later(); else addEventListener('load', later, { once: true });
   if (f.film) {
-    const b = $('watch-film'); b.hidden = false;
-    if (f.film.seconds) b.querySelector('span').textContent = `Watch the film · ${clock(f.film.seconds)}`;
-    b.addEventListener('click', () => openFilm(base + f.film.video, base + f.film.poster));
-  }
+    const label = f.film.seconds ? `Watch the film · ${clock(f.film.seconds)}` : 'Watch the film';
+    const open = () => openFilm(base + f.film.video, base + f.film.poster);
+    $('watch-film').querySelector('span').textContent = label;
+    $('watch-film').addEventListener('click', open);
+    $('film-play').setAttribute('aria-label', label); $('film-play').addEventListener('click', open);
+  } else { $('watch-film').hidden = true; $('film-play').hidden = true; }
+  if (!motionOK()) return;
+  const begin = hero => {
+    const clip = hero || f.loop; if (!clip) return;
+    const v = el('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('aria-hidden', 'true');
+    v.src = base + (wide || !clip.small ? clip.video : clip.small);
+    v.addEventListener('playing', () => v.classList.add('ready'), { once: true });
+    if (hero) v.loop = true;
+    else {
+      const [from, to] = LOOP_WINDOW; let dip = false;
+      v.addEventListener('loadedmetadata', () => { v.currentTime = from; }, { once: true });
+      v.addEventListener('seeked', () => { if (dip) { dip = false; v.classList.add('ready'); } });
+      // Checked on every frame where the browser allows it, and on timeupdate as a backup (frame callbacks pause in background tabs).
+      const check = () => { if (!dip && v.currentTime >= to) { dip = true; v.classList.remove('ready'); setTimeout(() => { v.currentTime = from; }, 340); } };
+      const frame = () => { check(); v.requestVideoFrameCallback(frame); };
+      if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(frame);
+      v.addEventListener('timeupdate', check);
+    }
+    box.querySelector('.film-poster').after(v); onScreen.observe(v);
+  };
+  const go = () => (f.hero ? Promise.resolve(f.hero) : load(base + 'film.json').then(j => j.hero || null, () => null)).then(begin);
+  const later = () => ('requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 1500 }) : setTimeout(go, 300));
+  if (document.readyState === 'complete') later(); else addEventListener('load', later, { once: true });
 }
 
 function clips() {
   const c = D.media.clips; if (!c) return;
   const base = mediaUrl(c.base), byKey = Object.fromEntries(c.items.map(i => [i.key, i]));
-  const speedTag = clip => `<span class="speed">${clip.speed.toLocaleString('en-US')}× real time</span>`;
+  const speedTag = clip => `<span class="chip speed">${clip.speed.toLocaleString('en-US')}× real time</span>`;
   document.querySelectorAll('.job[data-clip]').forEach(job => {
     const clip = byKey[job.dataset.clip]; if (!clip) return;
     const frame = job.querySelector('.clip'); frame.append(clipVideo(base + clip.video, base + clip.poster, clip.caption)); frame.insertAdjacentHTML('beforeend', speedTag(clip));
-    frame.insertAdjacentHTML('beforeend', `<span class="shown">${teamName(clip.set)} · ${short(clip.task)}</span>`);
-    if (run(clip.set, clip.task)) { frame.classList.add('opens'); frame.title = 'Open the whole run'; frame.addEventListener('click', () => openRun(clip.set, clip.task)); }
+    job.querySelector('.job-text').insertAdjacentHTML('afterbegin', `<p class="clip-of"><span class="model">${teamName(clip.set)}</span> · ${short(clip.task)}</p>`);
+    if (run(clip.set, clip.task)) {
+      const open = () => openRun(clip.set, clip.task);
+      frame.classList.add('opens'); frame.title = 'Open the whole run'; frame.tabIndex = 0; frame.setAttribute('role', 'button');
+      frame.setAttribute('aria-label', `Open the whole run: ${cap(typeOf(clip.task))} · ${short(clip.task)}`);
+      frame.addEventListener('click', open);
+      frame.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    }
   });
 }
 
-/* ---------- results: three numbers and the board of squares ---------- */
+/* ---------- Results: three numbers, then the board and its switch ---------- */
 function numbers(results) {
   const best = results.conditions.find(c => c.key === 'adaptive'); if (!best) return;
-  const items = [
-    ['transport', `${best.completed} / 36`, 'jobs finished by the best team'],
-    ['relay', `${best.median_hours.toFixed(1)} h`, 'of work for a typical job'],
-    ['dial', `${Math.round(best.atomic_failure * 100)}%`, 'of its steps fail at least once and are tried again'],
-  ];
-  $('big').innerHTML = items.map(([type, big, small]) => `<div class="t-${type}"><b>${big}</b><span>${small}</span></div>`).join('');
+  [['big-done', String(best.completed)], ['big-hours', `${best.median_hours.toFixed(1)}\u00a0h`], ['big-fail', `${Math.round(best.atomic_failure * 100)}%`]].forEach(([id, v]) => {
+    const e = $(id); if (!e || e.textContent === v) return;
+    e.textContent = v; if (motionOK()) e.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' });
+  });
 }
 
+// The switch above the board shows one slice of the 36 tasks, one team size or one level: the other
+// squares dim, and each team's count is for that slice.
+const SLICE = { mode: 'all', size: 'small', level: '1' };
+const inSlice = task => { const [, size, level] = task.split('-'); return SLICE.mode === 'all' || (SLICE.mode === 'size' ? size === SLICE.size : level === `l${SLICE.level}`); };
+const rowName = set => TEAMS[set] || [set, ''];
+
 function boardRow(set) {
-  const [label, setup] = TEAMS[set] || [set, ''], reference = set === REFERENCE;
+  const [label, setup] = rowName(set), reference = set === REFERENCE;
   const row = el('div', 'row'); row.dataset.model = set;
-  const who = el('button', 'who', `<b>${label}${reference ? '<span class="tag">Reference</span>' : ''}</b><small>${setup}</small>`); who.type = 'button';
+  const who = el('button', 'who', `<b${reference ? '' : ' class="model"'}>${label}</b><small>${setup}</small>`); who.type = 'button';
   who.title = 'Show these videos'; who.addEventListener('click', () => { F.team = set; F.status = 'all'; F.job = 'all'; library(); if (location.hash === '#videos') route(); else location.hash = 'videos'; });
-  const count = D.tasks.filter(t => done(set, t)).length;
-  row.append(who, el('div', 'score', `<b>${D.outcomes ? count : '–'}</b><span>/36</span>`));
+  row.append(who, el('div', 'score', '<b>–</b><span>of\u00a036</span>'));
   const groups = el('div', 'groups');
   TYPES.forEach(([type, typeName]) => {
     const g = el('div', `grp t-${type}`); g.dataset.name = typeName;
@@ -204,133 +294,403 @@ function boardRow(set) {
 
 function board() {
   const b = $('board'); b.innerHTML = '';
-  const cols = el('div', 'cols', '<span></span><span></span>' + TYPES.map(([k, n]) => `<div class="ch t-${k}">${n}<small><span>Small</span><span>Medium</span><span>Large</span></small></div>`).join(''));
-  b.append(el('div', 'band', 'From camera images alone'), cols);
+  b.append(el('div', 'cols', '<span class="kicker">Cameras only</span><span class="kicker">Finished</span>' +
+    TYPES.map(([k, n]) => `<div class="ch t-${k}"><span><i></i>${n}</span><small>${SIZES.map(s => `<span data-size="${s}">${cap(s)}</span>`).join('')}</small></div>`).join('')));
   D.sets.filter(s => s !== REFERENCE).forEach(s => b.append(boardRow(s)));
   if (D.sets.includes(REFERENCE)) { const o = el('div', 'oracle'); o.append(boardRow(REFERENCE)); b.append(o); }
+  boardSlice(false);
+}
+function boardSlice(animate = true) {
+  const b = $('board'), of = SLICE.mode === 'all' ? 36 : 12;
+  b.dataset.slice = SLICE.mode;
+  b.querySelectorAll('.cell').forEach(c => c.classList.toggle('out', !inSlice(c.dataset.task)));
+  b.querySelectorAll('.ch small span').forEach(s => s.classList.toggle('on', SLICE.mode === 'size' && s.dataset.size === SLICE.size));
+  b.querySelectorAll('.row').forEach(row => {
+    const set = row.dataset.model, n = D.outcomes ? D.tasks.filter(t => inSlice(t) && done(set, t)).length : '–', s = row.querySelector('.score');
+    if (s.dataset.v === `${n}/${of}`) return;
+    s.dataset.v = `${n}/${of}`; s.innerHTML = `<b>${n}</b><span>of\u00a0${of}</span>`;
+    if (animate && motionOK()) s.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' });
+  });
+}
+function boardControls() {
+  const ctl = $('board-ctl'); if (!ctl) return;
+  ctl.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-v]'); if (!btn) return;
+    const group = btn.parentElement; SLICE[group.dataset.key] = btn.dataset.v;
+    group.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === btn));
+    ctl.dataset.mode = SLICE.mode; boardSlice();
+  });
 }
 
+// The note over a square: the run's front camera, the task, and how the run ended.
 function tip(anchor, set, task) {
-  const t = $('tip'), has = !!run(set, task); t.className = `tip t-${typeOf(task)}`;
-  t.innerHTML = (has ? `<img alt="" src="${poster(set, task, 'front')}">` : '') +
-    `<div class="tip-body"><div><b>${nice(task)}</b><small>${teamName(set)} · ${facts(task)}</small></div>` +
-    `<div class="tip-state">${has ? `<i class="${done(set, task) ? 'done' : ''}"></i><span>${stateText(set, task)}</span>` : '<span class="soon">Coming soon</span>'}</div></div>`;
-  t.hidden = false;
-  const a = anchor.getBoundingClientRect(), w = 236, h = t.offsetHeight;
-  let y = a.top - h - 10; if (y < 8) y = a.bottom + 10;
-  t.style.left = `${Math.min(Math.max(8, a.left + a.width / 2 - w / 2), innerWidth - w - 8)}px`; t.style.top = `${y}px`;
+  const has = !!run(set, task), [label] = rowName(set);
+  showNote((has ? `<img alt="" src="${poster(set, task, 'front')}">` : '') +
+    `<div class="tip-body"><b>${nice(task)}</b><small>${set === REFERENCE ? label : mname(label)} · ${facts(task)}</small>` +
+    `<div class="tip-state">${has ? stateHTML(set, task) : `<span class="soon">${WORDS.soon}</span>`}</div></div>`, anchor, `run-tip t-${typeOf(task)}`);
 }
-function hideTip() { $('tip').hidden = true; }
-addEventListener('scroll', hideTip, { passive: true });
 
 /* ---------- all videos ---------- */
+// Four, three or two cards in a row, in step with .vgrid in site.css
+const COLS = () => (innerWidth >= 1000 ? 4 : innerWidth >= 600 ? 3 : 2);
+const mouseOK = matchMedia('(hover: hover) and (pointer: fine)');
+const stillMQ = matchMedia('(prefers-reduced-motion: reduce)');
+const teamHTML = set => (set === REFERENCE ? teamName(set) : `<span class="model">${teamName(set)}</span>`);
+
 function runCard(set, task, { mark = true, type = true, team = false } = {}) {
-  const r = run(set, task), finished = done(set, task), o = outcome(set, task);
-  const card = el('button', `card t-${typeOf(task)}`); card.type = 'button';
-  card.innerHTML = `<div class="thumb"><img alt="" loading="lazy" src="${poster(set, task, 'front')}"><img class="alt" alt="" data-src="${poster(set, task, 'top')}">` +
-    (mark && finished !== null ? `<span class="mark${finished ? ' done' : ''}">${finished ? 'Complete' : 'Incomplete'}</span>` : '') +
-    `<span class="len">${clock(r.seconds)}</span></div><b><i></i>${type ? `${cap(typeOf(task))} · ` : ''}${short(task)}</b>` +
-    `<small>${team ? `${teamName(set)} · ` : ''}${facts(task)}${o && o.hours != null ? ` · ${o.hours} h` : ''}</small>`;
-  card.addEventListener('pointerenter', () => { const alt = card.querySelector('.alt'); if (alt && !alt.src) alt.src = alt.dataset.src; }, { once: true });
+  const r = run(set, task), finished = done(set, task), o = outcome(set, task), job = cap(typeOf(task));
+  const work = o && o.hours != null ? workText(o.hours) : '', f = D.facts[task];
+  // On a narrow card the size of the job and the time of work each get a line of their own
+  const size = f ? `${f.arms}\u00a0arms<span class="wl"> · ${f.workload}\u00a0${UNIT[f.unit] || f.unit}</span>` : '';
+  const card = el('button', `card run t-${typeOf(task)}`); card.type = 'button';
+  card.dataset.set = set; card.dataset.task = task;
+  card.setAttribute('aria-label', [teamName(set), nice(task), finished === null ? '' : statusWord(finished), work, `${clock(r.seconds)} of video`].filter(Boolean).join(', '));
+  card.innerHTML = `<div class="thumb"><img alt="" loading="lazy" decoding="async" src="${poster(set, task, 'front')}">` +
+    (mark && finished !== null ? statusChip(finished, 'mark') : '') + `<span class="chip len">${clock(r.seconds)}</span></div>` +
+    `<b><i></i><span>${type ? `<span class="tj">${job} · </span>` : ''}${short(task)}</span></b>` +
+    `<small>${type ? `<span class="mj">${job} · </span>` : ''}${team ? `${teamHTML(set)} · ` : ''}${size}${work ? `<span class="wk"><span class="sep"> · </span>${work}</span>` : ''}</small>`;
+  card.addEventListener('pointerenter', e => peekLater(card, set, task, e));
+  card.addEventListener('pointerleave', () => peekStop(card));
   card.addEventListener('click', () => openRun(set, task));
   return card;
 }
-const FEATURED = [['gpt-6.1-sol', 'transport-large-l3'], ['opus-5.5', 'mosaic-large-l1'], ['gpt-6.1-sol', 'relay-large-l1'], ['gpt-6.1-sol', 'dial-large-l3'],
-  ['opus-5.5', 'transport-large-l2'], ['gpt-6.1-sol', 'mosaic-small-l3'], ['opus-5.5', 'relay-medium-l2'], ['opus-5.5', 'dial-medium-l3']];
-function featured() {
-  const box = $('featured'); box.innerHTML = '';
-  FEATURED.filter(([set, task]) => D.runs[set] && run(set, task)).forEach(([set, task]) => box.append(runCard(set, task, { mark: false, team: true })));
+/* ---------- Overview: the results at a glance, and the two cards that lead on ---------- */
+// Plays a container's entrance once, when it first comes into view: its .an children start
+// hidden, animate while it has .play, and stay still once it has .played.
+const playOnce = (() => {
+  const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    const n = e.target; io.unobserve(n); n.classList.add('play');
+    setTimeout(() => n.classList.replace('play', 'played'), +n.dataset.playMs || 2000);
+  }), { rootMargin: '0px 0px -40px 0px' }) : null;
+  return (n, ms) => {
+    if (n.classList.contains('play') || n.classList.contains('played')) return;
+    if (!motionOK() || !io) { n.classList.add('played'); return; }
+    n.classList.add('pl'); n.dataset.playMs = ms; io.observe(n);
+  };
+})();
+function statBest(n) {
+  const s = $('stat-best'); if (!s || s.textContent === String(n)) return;
+  s.textContent = n;
+  if (motionOK()) s.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: 'linear' });
+}
+const GLANCE = [['gpt-6.1-sol', 'vio'], ['opus-5.5', 's1'], [REFERENCE, 'ref']];
+function glance() {
+  const box = $('glance-rows'); if (!box) return;
+  const known = !!D.outcomes, count = set => D.tasks.filter(t => done(set, t)).length;
+  const head = `<div class="tz-head" aria-hidden="true"><span></span><span class="tz-strip">${TYPES.map(([k, n]) => `<span class="t-${k}"><i></i>${n}</span>`).join('')}</span><span></span></div>`;
+  const row = ([set, tone], r) => {
+    const who = `<b${set === REFERENCE ? '' : ' class="model"'}>${teamName(set)}</b><small>${TEAMS[set][1]}</small>`;
+    let k = 0;
+    const cells = TYPES.map(([type]) => `<span class="tz-grp">${SIZES.flatMap(size => [1, 2, 3].map(l => `${type}-${size}-l${l}`)).map(task =>
+      `<button type="button" class="tz-cell${done(set, task) ? ' d' : ''}" style="--k:${k++}" data-set="${set}" data-task="${task}" aria-label="${teamName(set)}, ${nice(task)}: ${stateText(set, task) || WORDS.soon}"></button>`).join('')}</span>`).join('');
+    return `<div class="tz-row ${tone}" style="--r:${r}"><div class="tz-who">${who}</div><div class="tz-strip">${cells}</div><div class="tz-n"><b class="an rise">${known ? count(set) : '–'}</b><span>of 36</span></div></div>`;
+  };
+  box.innerHTML = head + GLANCE.filter(([s]) => D.runs[s]).map(row).join('') + '<p class="tz-foot">Each square is one of the 36 tasks, grouped by job. Point at a square to see the run.</p>';
+  const best = GLANCE[0][0];
+  if (known) $('glance-lede').innerHTML = `From cameras alone, <span class="model">${teamName(best)}</span> finished ${count(best)} of 36 tasks. Given the position of every object, the same AI finished ${count(REFERENCE) === 36 ? 'all 36' : `${count(REFERENCE)} of 36`}.`;
+  if (!box.dataset.bound) {
+    box.dataset.bound = '1';
+    const cell = e => e.target.closest('.tz-cell');
+    const on = e => { const c = cell(e); if (c) tip(c, c.dataset.set, c.dataset.task); };
+    box.addEventListener('mouseover', on); box.addEventListener('focusin', on);
+    box.addEventListener('mouseout', e => { if (cell(e)) hideTip(); }); box.addEventListener('focusout', hideTip);
+    box.addEventListener('click', e => { const c = cell(e); if (!c) return; if (run(c.dataset.set, c.dataset.task)) openRun(c.dataset.set, c.dataset.task); else tip(c, c.dataset.set, c.dataset.task); });
+  }
+  playOnce(box, 2300);
+}
+const MOSAIC = [['gpt-6.1-sol', 'transport-large-l3'], ['opus-5.5', 'mosaic-large-l1'], ['gpt-6.1-sol', 'relay-large-l1'], ['gpt-6.1-sol', 'dial-large-l3']];
+function nextThumbs() {
+  const b = $('go-board');
+  if (b) b.innerHTML = D.sets.map(set => `<span class="mb-row${set === REFERENCE ? ' ref' : ''}">${TYPES.map(([type]) =>
+    `<span class="t-${type}">${D.tasks.filter(t => typeOf(t) === type).map(t => `<i${done(set, t) ? ' class="d"' : ''}></i>`).join('')}</span>`).join('')}</span>`).join('');
+  const m = $('go-mosaic');
+  if (m && !m.childElementCount) m.innerHTML = MOSAIC.filter(([s, t]) => D.runs[s] && run(s, t)).map(([s, t]) => `<img alt="" loading="lazy" src="${poster(s, t, 'front')}">`).join('');
+}
+// Step 1 of the walk-through: the run-start picture and the one that came back after the first call take turns while it is in view.
+function howCamera() {
+  const fig = $('how-cam'); if (!fig || !motionOK()) return;
+  let timer = 0, on = false;
+  const flip = () => { const now = fig.classList.toggle('new'); timer = setTimeout(flip, now ? 3600 : 2400); };
+  new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting && !on) { on = true; timer = setTimeout(flip, 1300); }
+    else if (!e.isIntersecting && on) { on = false; clearTimeout(timer); }
+  }), { threshold: 0.6 }).observe(fig);
 }
 
-function chipRow(id, key, options) {
-  const box = $(id); box.innerHTML = '';
-  options.forEach(([value, html, cls]) => {
-    const b = el('button', `chip ${cls || ''}`, html); b.type = 'button'; b.setAttribute('aria-pressed', F[key] === value);
-    b.addEventListener('click', () => { F[key] = value; library(); }); box.append(b);
+/* Under a mouse, after a short pause, a card plays a muted preview of its front camera from the
+   middle of the run at 2.5x inside its picture, until the pointer leaves. Never on touch screens
+   or with reduced motion, and the file is only fetched then. */
+const PEEK = { card: null, v: null, timer: 0 };
+function peekLater(card, set, task, e) {
+  clearTimeout(PEEK.timer);
+  if (e.pointerType !== 'mouse' || !mouseOK.matches || stillMQ.matches) return;
+  PEEK.timer = setTimeout(() => peekStart(card, set, task), 250);
+}
+function peekStart(card, set, task) {
+  peekStop();
+  const from = run(set, task).seconds * 0.5, thumb = card.querySelector('.thumb');
+  const v = el('video', 'peek'); v.muted = true; v.playsInline = true; v.preload = 'none'; v.disablePictureInPicture = true;
+  v.setAttribute('aria-hidden', 'true'); v.src = `${video(set, task, 'front')}#t=${from.toFixed(1)}`;
+  v.defaultPlaybackRate = v.playbackRate = 2.5;
+  v.addEventListener('playing', () => v.classList.add('on'), { once: true });
+  v.addEventListener('ended', () => { v.currentTime = from; v.play().catch(() => {}); });
+  thumb.insertBefore(v, thumb.querySelector('.chip'));
+  PEEK.card = card; PEEK.v = v; v.play().catch(() => {});
+}
+function peekStop(card) {
+  clearTimeout(PEEK.timer);
+  if (!PEEK.v || (card && card !== PEEK.card)) return;
+  const v = PEEK.v; PEEK.card = PEEK.v = null; v.classList.remove('on');
+  setTimeout(() => { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); }, 200);
+}
+
+/* ---------- the team index ----------
+   A tile per team: its score and its 36 tasks as squares, one block per job (rows: team sizes,
+   columns: levels), as on the board. A tile goes to that team's videos further down. */
+const square = (set, task) => `<i class="${done(set, task) ? 'done' : ''}${run(set, task) ? '' : ' none'}"></i>`;
+const strip = set => `<span class="strip" aria-hidden="true">${TYPES.map(([type]) => `<span class="blk t-${type}">${SIZES.map(size => [1, 2, 3].map(l => square(set, `${type}-${size}-l${l}`)).join('')).join('')}</span>`).join('')}</span>`;
+const JUMPS = { scored: null };
+function jumps() {
+  const box = $('jumps'); box.innerHTML = ''; JUMPS.scored = !!D.outcomes;
+  D.sets.forEach(set => {
+    const n = D.outcomes ? D.tasks.filter(t => done(set, t)).length : null;
+    const a = el('a', `jump${set === REFERENCE ? ' ref' : ''}`); a.href = `#team-${set}`; a.dataset.set = set; a.setAttribute('data-reveal', '');
+    a.setAttribute('aria-label', `${teamName(set)}${n === null ? '' : `, ${n} of 36 tasks finished`}. Go to its videos`);
+    a.innerHTML = `<span class="jump-name">${teamHTML(set)}</span>${strip(set)}` +
+      (n === null ? '' : `<span class="jump-score"><b>${n}</b> of 36</span>`);
+    a.addEventListener('click', e => { e.preventDefault(); jumpTo(set); });
+    box.append(a);
+  });
+  const key = el('div', 'jump-key', `<p>One square per task</p><span><i class="done"></i>${WORDS.fin}</span><span><i></i>${WORDS.not}</span><span><i class="none"></i>${WORDS.soon}</span>`);
+  key.setAttribute('data-reveal', ''); box.append(key);
+  reveal(box);
+}
+function jumpTo(set) {
+  const hidden = F.team !== 'all' && F.team !== set;
+  if (hidden) F.team = 'all';
+  if (hidden || !OPEN.has(set)) { OPEN.add(set); library({ fade: true, scroll: false }); }
+  if (!$(`team-${set}`)) { F.status = F.job = 'all'; library({ fade: true, scroll: false }); }
+  const t = $(`team-${set}`); if (t) t.scrollIntoView({ block: 'start', behavior: stillMQ.matches ? 'auto' : 'smooth' });
+}
+
+/* ---------- the filter bar: Result, Job and Team ----------
+   Wide screens show every choice. Narrow ones show Result, and Team and Job each open a sheet.
+   The bar sticks under the tabs; on narrow screens it slides away while reading down. */
+const OPEN = new Set(['gpt-6.1-sol', 'opus-5.5']); // shown in full; the other teams start with one row
+const RESULT = [['all', 'All'], ['yes', WORDS.fin], ['no', WORDS.not]];
+const OPTIONS = {
+  team: () => [['all', 'All teams']].concat(D.sets.map(s => [s, teamHTML(s)])),
+  job: () => [['all', 'All jobs']].concat(TYPES.map(([k, n]) => [k, `<i></i>${n}`, `t-${k}`])),
+};
+const passes = (set, task, f = F) => !!run(set, task) && (f.team === 'all' || f.team === set) && (f.job === 'all' || typeOf(task) === f.job) && (f.status === 'all' || done(set, task) === (f.status === 'yes'));
+const tally = (over = {}) => { const f = { ...F, ...over }; return D.sets.reduce((n, s) => n + D.tasks.filter(t => passes(s, t, f)).length, 0); };
+function setFilter(key, value) { if (F[key] === value) return; F[key] = value; library({ fade: true }); }
+function clearFilters() { F.status = F.team = F.job = 'all'; library({ fade: true }); }
+function chipButtons(box, key, pick = v => setFilter(key, v)) {
+  box.innerHTML = '';
+  OPTIONS[key]().forEach(([value, html, cls]) => {
+    const b = el('button', `chip${cls ? ` ${cls}` : ''}`, `${html}<small></small>`); b.type = 'button'; b.dataset.v = value;
+    b.addEventListener('click', () => pick(value)); box.append(b);
   });
 }
+function syncChips(box, key) {
+  box.querySelectorAll('button').forEach(b => {
+    const n = tally({ [key]: b.dataset.v }), on = F[key] === b.dataset.v;
+    b.setAttribute('aria-pressed', on); b.disabled = !on && n === 0; b.querySelector('small').textContent = n;
+  });
+}
+function syncBar() {
+  const seg = $('filter-status'); seg.hidden = !D.outcomes;
+  seg.querySelectorAll('button').forEach(b => { b.setAttribute('aria-pressed', F.status === b.dataset.v); b.querySelector('small').textContent = tally({ status: b.dataset.v }); });
+  syncChips($('filter-job'), 'job'); syncChips($('filter-team'), 'team');
+  if ($('fsheet').open) syncChips($('fsheet-chips'), SHEET.key);
+  ['team', 'job'].forEach(key => $(`open-${key}`).setAttribute('aria-pressed', F[key] !== 'all'));
+  const box = $('jumps'); box.dataset.job = F.job; box.dataset.status = F.status;
+  box.querySelectorAll('.jump').forEach(a => a.classList.toggle('dim', F.team !== 'all' && F.team !== a.dataset.set));
+}
+// A click on the dimmed page around a dialog closes it; a click on its own padding does not.
+const outside = (dlg, e) => { const r = dlg.getBoundingClientRect(); return e.target === dlg && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom); };
+const SHEET = { key: null };
+function openSheet(key) {
+  const s = $('fsheet'), box = $('fsheet-chips'); SHEET.key = key;
+  $('fsheet-title').textContent = key === 'team' ? 'Team' : 'Job';
+  chipButtons(box, key, v => { setFilter(key, v); setTimeout(closeSheet, 180); });
+  syncChips(box, key); s.showModal();
+}
+function closeSheet() {
+  const s = $('fsheet'); if (!s.open || s.classList.contains('is-leaving')) return;
+  leave(s).then(() => { s.classList.remove('is-leaving'); s.close(); });
+}
+function stickyBar() {
+  const root = document.documentElement, bar = $('filters'), mark = $('vbar-mark'), rail = $('rail');
+  // The bar's own height is set in site.css (--bar-h): measured here it would read 0 while its tab is hidden.
+  const sizes = () => root.style.setProperty('--rail-h', `${rail.offsetHeight}px`);
+  if ('ResizeObserver' in window) new ResizeObserver(sizes).observe(rail);
+  sizes();
+  const narrow = matchMedia('(max-width: 999px)'); let lastY = scrollY;
+  const spy = () => {
+    const y = scrollY, stuck = current === 'videos' && mark.getBoundingClientRect().top < rail.offsetHeight + 1;
+    bar.classList.toggle('stuck', stuck); root.classList.toggle('bar-stuck', stuck);
+    if (!stuck) { bar.classList.remove('tuck'); root.classList.remove('bar-tuck'); lastY = y; return; }
+    if (Math.abs(y - lastY) < 8) return;
+    const tuck = narrow.matches && !stillMQ.matches && y > lastY && !$('fsheet').open;
+    bar.classList.toggle('tuck', tuck); root.classList.toggle('bar-tuck', tuck); lastY = y;
+  };
+  addEventListener('scroll', spy, { passive: true }); spy();
+}
+function filterBar() {
+  if (filterBar.ready) return; filterBar.ready = true;
+  const seg = $('filter-status');
+  seg.innerHTML = RESULT.map(([v, w]) => `<button type="button" data-v="${v}">${v === 'all' ? '' : `<i class="${v === 'yes' ? 'done' : ''}"></i>`}${w}<small></small></button>`).join('');
+  seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => setFilter('status', b.dataset.v)));
+  chipButtons($('filter-job'), 'job'); chipButtons($('filter-team'), 'team');
+  ['team', 'job'].forEach(key => $(`open-${key}`).addEventListener('click', () => openSheet(key)));
+  const s = $('fsheet');
+  $('fsheet-close').addEventListener('click', closeSheet);
+  s.addEventListener('click', e => { if (outside(s, e)) closeSheet(); });
+  s.addEventListener('cancel', e => { e.preventDefault(); closeSheet(); });
+  stickyBar();
+  // The number of cards in a row changes at 600 and 1000 px; fold the rows again
+  ['(min-width: 600px)', '(min-width: 1000px)'].forEach(q => matchMedia(q).addEventListener('change', () => library({ fade: true, scroll: false })));
+}
 
-function library() {
-  const pass = (set, task) => (F.team === 'all' || F.team === set) && (F.job === 'all' || typeOf(task) === F.job);
-  const wanted = (set, task) => F.status === 'all' || done(set, task) === (F.status === 'yes');
-  const tally = status => D.sets.reduce((n, s) => n + D.tasks.filter(t => run(s, t) && pass(s, t) && (status === 'all' || done(s, t) === (status === 'yes'))).length, 0);
-  chipRow('filter-status', 'status', [['all', `All <small>${tally('all')}</small>`], ['yes', `<i class="sq done" style="--c:var(--s1)"></i>Complete <small>${tally('yes')}</small>`], ['no', `<i class="sq" style="--c:var(--s1)"></i>Incomplete <small>${tally('no')}</small>`]]);
-  chipRow('filter-team', 'team', [['all', 'All teams']].concat(D.sets.map(s => [s, teamName(s)])));
-  chipRow('filter-job', 'job', [['all', 'All jobs']].concat(TYPES.map(([k, n]) => [k, `<i></i>${n}`, `t-${k}`])));
-  const box = $('library'); box.innerHTML = ''; let shown = 0;
+function library({ fade = false, scroll = true } = {}) {
+  filterBar(); peekStop();
+  if (JUMPS.scored !== !!D.outcomes) jumps();
+  const box = $('library'), cols = COLS(); box.innerHTML = ''; let shown = 0;
   D.sets.forEach(set => {
     if (F.team !== 'all' && F.team !== set) return;
-    const tasks = D.tasks.filter(t => pass(set, t));
-    const list = tasks.filter(t => run(set, t) && wanted(set, t));
+    const tasks = D.tasks.filter(t => F.job === 'all' || typeOf(t) === F.job);
+    const list = tasks.filter(t => passes(set, t));
     const soon = F.status === 'yes' ? [] : tasks.filter(t => !run(set, t));
     if (!list.length && !soon.length) return;
     shown += list.length;
-    const section = el('section', 'team'); section.id = `team-${set}`;
-    const minutes = Math.round(list.reduce((n, t) => n + run(set, t).seconds, 0) / 60);
+    const ref = set === REFERENCE, fold = F.team === 'all' && !OPEN.has(set) && list.length > cols;
+    const section = el('section', `team${ref ? ' ref' : ''}${fold ? ' folded' : ''}`); section.id = `team-${set}`;
     const finished = D.outcomes ? D.tasks.filter(t => done(set, t)).length : null;
-    section.append(el('div', 'team-head', `<h3>${teamName(set)}${set === REFERENCE ? '<span class="tag">Reference</span>' : ''}</h3><span>${list.length} ${list.length === 1 ? 'video' : 'videos'}${list.length ? ` · ${minutes} min` : ''}</span>${finished !== null ? `<b>${finished} of 36 finished</b>` : ''}`));
-    const grid = el('div', 'grid');
-    list.forEach(task => {
-      grid.append(runCard(set, task, { mark: F.status === 'all', type: F.job === 'all' }));
+    const sub = (TEAMS[set] || [])[1];
+    const head = el('div', 'team-head', `<h3>${teamHTML(set)}</h3>` +
+      `<span class="team-sub">${sub ? `${sub} · ` : ''}${list.length}\u00a0${list.length === 1 ? 'video' : 'videos'}</span>` +
+      (finished === null ? '' : `<span class="team-score"><b>${finished}</b> of 36 finished</span>`));
+    head.setAttribute('data-reveal', '');
+    const grid = el('div', 'vgrid');
+    list.forEach((task, i) => {
+      const card = runCard(set, task, { mark: F.status === 'all', type: F.job === 'all' });
+      card.setAttribute('data-reveal', ''); card.style.setProperty('--i', i % cols); grid.append(card);
     });
-    if (soon.length) grid.append(el('div', 'rest', `<b><span class="soon">Coming soon</span>${soon.length} more ${soon.length === 1 ? 'video' : 'videos'}</b><ul>${soon.map(t => `<li class="t-${typeOf(t)}"><i></i>${F.job === 'all' ? `${cap(typeOf(t))} · ` : ''}${short(t)}</li>`).join('')}</ul>`));
-    section.append(grid); box.append(section);
+    if (soon.length) grid.append(el('div', 'rest', `<b><span class="soon">${WORDS.soon}</span>${soon.length} more ${soon.length === 1 ? 'video' : 'videos'}</b><ul>${soon.map(t => `<li class="t-${typeOf(t)}"><i></i>${F.job === 'all' ? `${cap(typeOf(t))} · ` : ''}${short(t)}</li>`).join('')}</ul>`));
+    section.append(head, grid);
+    if (fold) {
+      const row = el('div', 'more-row'), more = el('button', 'btn more', `Show all ${list.length} videos<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg>`);
+      more.type = 'button'; more.setAttribute('aria-label', `Show all ${list.length} videos of ${teamName(set)}`);
+      more.addEventListener('click', () => {
+        OPEN.add(set); section.classList.remove('folded'); row.remove();
+        const next = grid.children[cols]; if (next) next.focus({ preventScroll: true });
+      });
+      row.append(more); section.append(row);
+    }
+    box.append(section);
   });
-  if (!box.children.length) box.append(el('p', 'empty', 'No run matches these filters.'));
-  $('count').textContent = `${shown} ${shown === 1 ? 'video' : 'videos'} shown`;
+  if (!box.children.length) {
+    const empty = el('p', 'empty', 'No video matches these filters. <button class="link-btn" type="button">Clear filters</button>');
+    empty.querySelector('button').addEventListener('click', clearFilters); box.append(empty);
+  }
+  countLine(shown); syncBar();
+  if (!fade) { reveal(box); return; }
+  // A filter change cross-fades the list in place; nothing slides in again.
+  box.querySelectorAll('[data-reveal]').forEach(e => e.classList.add('is-in', 'rv-done'));
+  if (motionOK()) { box.classList.remove('xfade'); void box.offsetWidth; box.classList.add('xfade'); }
+  if (scroll && $('filters').classList.contains('stuck')) scrollTo({ top: $('count').getBoundingClientRect().top + scrollY - $('rail').offsetHeight - $('filters').offsetHeight - 8, behavior: 'instant' });
 }
-
+function countLine(shown) {
+  const total = tally({ status: 'all', team: 'all', job: 'all' }), on = F.status !== 'all' || F.team !== 'all' || F.job !== 'all';
+  const names = [F.status !== 'all' && statusWord(F.status === 'yes'), F.team !== 'all' && teamHTML(F.team), F.job !== 'all' && cap(F.job)].filter(Boolean);
+  $('count').innerHTML = on
+    ? `<span><b>${shown}</b> of ${total} videos</span><span class="count-on">${names.join(' · ')}</span><button class="link-btn" type="button">Clear filters</button>`
+    : `<span>All <b>${total}</b> videos</span>`;
+  const clear = $('count').querySelector('button'); if (clear) clear.addEventListener('click', clearFilters);
+}
 /* ---------- the player: three cameras on one clock ---------- */
-const P = { videos: [], main: 0, speed: 10, set: null, task: null, timer: null };
+const P = { videos: [], main: 0, speed: 10, set: null, task: null, timer: null, opener: null };
 
 function playerVideos() { return P.videos.filter(v => v.isConnected); }
 function eachVideo(f) { playerVideos().forEach(f); }
 function setSpeed(times) {
-  P.speed = times; eachVideo(v => { v.playbackRate = times / 10; });
+  P.speed = times; eachVideo(v => { v.defaultPlaybackRate = v.playbackRate = times / 10; });
   document.querySelectorAll('#player-views .speed').forEach(s => { s.textContent = `${times}× real time`; });
   document.querySelectorAll('#player-speed .chip').forEach(b => b.setAttribute('aria-pressed', +b.dataset.speed === times));
 }
 function tick() {
   const m = P.videos[P.main]; if (!m) return;
-  if (m.duration) { $('player-seek').value = Math.round(1000 * m.currentTime / m.duration); $('player-time').textContent = `${clock(m.currentTime)} / ${clock(m.duration)}`; }
-  $('player-play').classList.toggle('playing', !m.paused);
-  eachVideo(v => { if (v !== m && Math.abs(v.currentTime - m.currentTime) > 0.25) v.currentTime = m.currentTime; });
+  if (m.duration) {
+    const seek = $('player-seek'), at = m.currentTime / m.duration;
+    seek.value = Math.round(1000 * at); seek.style.setProperty('--p', `${(100 * at).toFixed(2)}%`);
+    $('player-time').textContent = `${clock(m.currentTime)} / ${clock(m.duration)}`;
+  }
+  eachVideo(v => { if (v !== m && !v.seeking && Math.abs(v.currentTime - m.currentTime) > 0.25) v.currentTime = m.currentTime; });
 }
+// The button shows pause only once the main view really plays, never while it is still loading.
+function playIcon(on) { const b = $('player-play'); b.classList.toggle('playing', on); b.setAttribute('aria-label', on ? 'Pause' : 'Play'); }
 function togglePlay() {
   const m = P.videos[P.main]; if (!m) return;
-  if (m.paused) eachVideo(v => v.play().catch(() => {})); else eachVideo(v => v.pause());
+  if (m.paused || m.ended) { if (m.ended) eachVideo(v => { v.currentTime = 0; }); eachVideo(v => v.play().catch(() => {})); } else eachVideo(v => v.pause());
+}
+function seekBy(s) {
+  const m = P.videos[P.main]; if (!m || !m.duration) return;
+  const t = Math.min(m.duration - 0.05, Math.max(0, m.currentTime + s)); eachVideo(v => { v.currentTime = t; }); tick();
+}
+function viewLabels() {
+  const single = P.videos.length === 1;
+  $('player-views').querySelectorAll('.view').forEach((f, j) => {
+    const name = f.querySelector('.view-tag').textContent;
+    f.setAttribute('aria-label', single ? 'Play or pause' : j === P.main ? `${cap(name)} camera: play or pause` : `Show the ${name} camera large`);
+  });
 }
 function buildViews(sources) {
   const box = $('player-views'); box.innerHTML = ''; box.classList.toggle('single', sources.length === 1); P.videos = []; P.main = 0;
+  const seek = $('player-seek'); seek.value = 0; seek.style.setProperty('--p', '0%'); $('player-time').textContent = '0:00';
   sources.forEach(([label, src, posterUrl], i) => {
-    const frame = el('button', `view${i === 0 ? ' main' : ''}`); frame.type = 'button';
-    const v = el('video'); v.muted = true; v.playsInline = true; v.preload = 'metadata'; v.src = src; if (posterUrl) v.poster = posterUrl;
-    v.addEventListener('ended', () => eachVideo(x => x.pause()));
-    frame.append(v, el('span', 'view-tag', label), el('span', 'speed', ''));
+    const frame = el('button', `view loading${i === 0 ? ' main' : ''}`); frame.type = 'button';
+    const v = el('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.disablePictureInPicture = true;
+    if (posterUrl) v.poster = posterUrl;
+    v.src = src;
+    // Each view shimmers until it can play; the play button follows the main view.
+    v.addEventListener('canplay', () => frame.classList.remove('loading'), { once: true });
+    v.addEventListener('playing', () => { if (P.videos[P.main] === v) playIcon(true); });
+    v.addEventListener('pause', () => { if (P.videos[P.main] === v) playIcon(false); });
+    v.addEventListener('ended', () => { eachVideo(x => x.pause()); if (P.videos[P.main] === v) playIcon(false); });
+    frame.append(v, el('span', 'chip view-tag', label), el('span', 'chip speed', ''));
     frame.addEventListener('click', () => {
       if (i === P.main) return togglePlay();
-      document.querySelectorAll('#player-views .view').forEach((f, j) => f.classList.toggle('main', j === i)); P.main = i;
+      box.querySelectorAll('.view').forEach((f, j) => f.classList.toggle('main', j === i)); P.main = i;
+      playIcon(!v.paused && v.readyState > 2); viewLabels();
     });
     box.append(frame); P.videos.push(v);
   });
+  viewLabels(); playIcon(false);
 }
 function showPlayer() {
-  const p = $('player'); if (!p.open) p.showModal();
+  const p = $('player');
+  if (!p.open) { P.opener = document.activeElement; p.showModal(); p.focus({ preventScroll: true }); }
   clearInterval(P.timer); P.timer = setInterval(tick, 200);
   eachVideo(v => v.play().catch(() => {}));
 }
 
 function openRun(set, task) {
-  hideTip(); P.set = set; P.task = task;
+  hideTip(); peekStop(); P.set = set; P.task = task;
   const finished = done(set, task), o = outcome(set, task), r = run(set, task), p = $('player');
   p.className = `player t-${typeOf(task)}`;
-  $('player-title').innerHTML = `<i></i>${nice(task)}` + (finished !== null ? ` <span class="state${finished ? ' done' : ''}">${finished ? 'Finished' : 'Not finished'}</span>` : '');
-  $('player-sub').textContent = `${teamName(set)} · ${facts(task)}${o && o.hours != null ? ` · ${o.hours} hours of work` : ''} · ${clock(r.seconds)} of video`;
+  $('player-title').innerHTML = `<i></i>${nice(task)}` + (finished !== null ? ` ${statusChip(finished, 'flat')}` : '');
+  $('player-sub').innerHTML = [teamHTML(set), facts(task), o && o.hours != null ? workText(o.hours) : '', `${clock(r.seconds)} of video`].filter(Boolean).join(' · ');
   buildViews(D.media.views.map(view => [view, video(set, task, view), view === 'side' ? '' : poster(set, task, view)]));
   $('player-speed').hidden = false; $('player-compare').hidden = false;
   $('player-speed').innerHTML = SPEEDS.map(s => `<button class="chip" type="button" data-speed="${s}">${s}×</button>`).join('');
   $('player-speed').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => setSpeed(+b.dataset.speed)));
-  $('player-compare').innerHTML = D.sets.map(s => `<button class="chip" type="button" data-set="${s}" aria-pressed="${s === set}" ${run(s, task) ? '' : 'disabled title="Video coming soon"'}><i class="sq${done(s, task) ? ' done' : ''}"></i>${teamName(s)}</button>`).join('');
+  $('player-compare').innerHTML = D.sets.map(s => {
+    const f = done(s, task);
+    return `<button class="chip" type="button" data-set="${s}" aria-pressed="${s === set}" ${run(s, task) ? '' : `disabled title="${WORDS.soon}"`}>${f === null ? '' : `<i class="st${f ? ' done' : ''}"></i>`}${teamHTML(s)}</button>`;
+  }).join('');
   $('player-compare').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { if (!b.disabled && b.dataset.set !== P.set) openRun(b.dataset.set, task); }));
   setSpeed(P.speed); showPlayer();
   document.querySelectorAll('.cell.cur').forEach(c => c.classList.remove('cur'));
@@ -338,25 +698,59 @@ function openRun(set, task) {
 }
 
 function openFilm(src, posterUrl) {
+  hideTip(); peekStop();
   const p = $('player'); p.className = 'player';
   $('player-title').textContent = 'RoboTeam'; $('player-sub').textContent = 'The film';
   buildViews([['film', src, posterUrl]]);
   $('player-speed').hidden = true; $('player-compare').hidden = true;
-  P.videos[0].playbackRate = 1; showPlayer();
+  P.videos[0].defaultPlaybackRate = P.videos[0].playbackRate = 1; showPlayer();
 }
 
+function toggleFull() {
+  const box = $('player-in'); // a dialog cannot go full screen itself, so its inner box does
+  if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return; }
+  if (document.fullscreenEnabled && box.requestFullscreen) { box.requestFullscreen().catch(() => {}); return; }
+  const m = P.videos[P.main]; if (m && m.webkitEnterFullscreen) m.webkitEnterFullscreen(); // iPhone: the video alone
+}
 function playerControls() {
-  const p = $('player');
-  const close = () => { clearInterval(P.timer); eachVideo(v => { v.pause(); v.removeAttribute('src'); v.load(); }); $('player-views').innerHTML = ''; if (p.open) p.close(); document.querySelectorAll('.cell.cur').forEach(c => c.classList.remove('cur')); };
+  const p = $('player'), seek = $('player-seek'), full = $('player-full');
+  const close = () => {
+    if (!p.open || p.classList.contains('is-leaving')) return;
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    clearInterval(P.timer); eachVideo(v => v.pause());
+    leave(p).then(() => {
+      eachVideo(v => { v.removeAttribute('src'); v.load(); }); $('player-views').innerHTML = '';
+      p.classList.remove('is-leaving'); if (p.open) p.close();
+      document.querySelectorAll('.cell.cur').forEach(c => c.classList.remove('cur'));
+      // Back to the card (or square) that opened the player
+      const back = P.opener; P.opener = null;
+      if (back && back.isConnected && back !== document.body) back.focus({ preventScroll: true });
+    });
+  };
   $('player-close').addEventListener('click', close);
-  p.addEventListener('click', e => { if (e.target === p) close(); });
+  p.addEventListener('click', e => { if (outside(p, e)) close(); });
   p.addEventListener('cancel', e => { e.preventDefault(); close(); });
   $('player-play').addEventListener('click', togglePlay);
-  $('player-seek').addEventListener('input', e => { const m = P.videos[P.main]; if (m && m.duration) eachVideo(v => { v.currentTime = m.duration * e.target.value / 1000; }); });
+  seek.addEventListener('input', () => {
+    const m = P.videos[P.main]; seek.style.setProperty('--p', `${seek.value / 10}%`);
+    if (m && m.duration) eachVideo(v => { v.currentTime = m.duration * seek.value / 1000; });
+  });
+  full.hidden = !(document.fullscreenEnabled || 'webkitEnterFullscreen' in HTMLVideoElement.prototype);
+  full.addEventListener('click', toggleFull);
+  document.addEventListener('fullscreenchange', () => {
+    const on = document.fullscreenElement === $('player-in'); full.setAttribute('aria-label', on ? 'Leave full screen' : 'Full screen'); full.title = on ? 'Leave full screen' : 'Full screen';
+  });
+  // Space plays or pauses, F is full screen, the arrow keys go 5 s back or on, Esc closes.
+  p.addEventListener('keydown', e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const onControl = e.target !== p && e.target.closest('button, a');
+    if (e.key === ' ' && !onControl) { e.preventDefault(); togglePlay(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); seekBy(e.key === 'ArrowLeft' ? -5 : 5); }
+    else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFull(); }
+  });
 }
 
-
-/* ---------- charts: drawn at the width they are shown, so text is always 12 px ---------- */
+/* ---------- charts: bars in HTML, lines and points in SVG drawn at the width they are shown ---------- */
 const FINDINGS_URL = mediaUrl(MEDIA + 'findings.json');
 let FD = null;
 const svg = (w, h, body, label) => `<svg class="chart" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}">${body}</svg>`;
@@ -364,220 +758,504 @@ const txt = (x, y, s, cls = '', anchor = 'start', extra = '') => `<text x="${x.t
 const fmt1 = n => (Math.round(n * 10) / 10).toString();
 const pct = v => (v < 1 ? fmt1(v) : Math.round(v)) + '%';
 const widthOf = box => Math.max(280, Math.floor(box.clientWidth));
-function setText(id, cap, title, say, key) {
-  $(id).querySelector('.f-text').innerHTML = `<p class="kicker">${cap}</p><h3>${title}</h3><p class="say">${say}</p>` + (key ? `<div class="key"><b>${key[0]}</b><span>${key[1]}</span></div>` : '');
+const mname = m => `<span class="model">${m}</span>`;
+function setText(id, kicker, claim, say, key) {
+  $(id).querySelector('.f-text').innerHTML = `<p class="kicker">${kicker}</p><h3>${claim}</h3>` +
+    (key ? `<p class="key"><b>${key[0]}</b><span>${key[1]}</span></p>` : '') + `<p class="say">${say}</p>`;
 }
 
-/* Hover details: elements carry data-tip, an index into TIPS; one tooltip follows the pointer. */
+/* Tooltips are notes: violet-tinted, with a stem to what they describe. Chart parts carry data-tip,
+   an index into TIPS; a bar's note points at the end of the bar. */
 const TIPS = [];
 const tipAt = html => `data-tip="${TIPS.push(html) - 1}"`;
-const tipLines = (title, rows, extra = '') => `<b>${title}</b>${rows.map(([k, v]) => `<div class="tl"><span>${k}</span><span>${v}</span></div>`).join('')}${extra}`;
+const tipLines = (title, rows, extra = '', source = '') => `<b>${title}</b>${rows.map(([k, v]) => `<div class="tl"><span>${k}</span><span>${v}</span></div>`).join('')}${extra}${source ? `<p class="ts">${source}</p>` : ''}`;
+let tipTimer = 0;
+function showNote(html, anchor, cls = '') {
+  const t = $('tip'); clearTimeout(tipTimer);
+  const fresh = t.hidden || !t.classList.contains('show');
+  t.className = `tip${cls ? ` ${cls}` : ''}`; t.innerHTML = html; t.hidden = false;
+  placeNote(t, anchor);
+  if (fresh) void t.offsetWidth;
+  t.classList.add('show');
+}
+function placeNote(t, anchor) {
+  const r = anchor.getBoundingClientRect(), w = t.offsetWidth, h = t.offsetHeight;
+  const bars = [document.querySelector('.rail'), innerWidth <= 1100 ? $('toc') : null].filter(Boolean);
+  const minTop = Math.max(0, ...bars.map(b => b.getBoundingClientRect().bottom)) + 8;
+  const end = anchor.classList && anchor.classList.contains('anchor');
+  const ax = end ? r.right - Math.min(10, r.width / 2) : r.left + r.width / 2;
+  const left = Math.round(Math.min(Math.max(8, ax - w / 2), innerWidth - w - 8));
+  let top = r.top - h - 12; const below = top < minTop; if (below) top = r.bottom + 12;
+  t.style.left = `${left}px`; t.style.top = `${Math.round(top)}px`;
+  t.style.setProperty('--sx', `${Math.round(Math.min(Math.max(14, ax - left), w - 14))}px`);
+  t.classList.toggle('below', below);
+}
+function hideTip() {
+  const t = $('tip'); if (t.hidden) return;
+  t.classList.remove('show'); clearTimeout(tipTimer);
+  tipTimer = setTimeout(() => { if (!t.classList.contains('show')) t.hidden = true; }, 160);
+}
+addEventListener('scroll', hideTip, { passive: true });
 function bindTips(root) {
-  const t = $('tip');
-  const place = e => { const w = t.offsetWidth, h = t.offsetHeight; let x = e.clientX + 14, y = e.clientY + 14;
-    if (x + w > innerWidth - 8) x = e.clientX - w - 14; if (y + h > innerHeight - 8) y = e.clientY - h - 14; t.style.left = `${x}px`; t.style.top = `${y}px`; };
   root.querySelectorAll('svg.chart').forEach(svgEl => {
+    if (svgEl.dataset.tips) return; svgEl.dataset.tips = '1';
     svgEl.addEventListener('pointerover', e => { const g = e.target.closest('[data-tip]'); if (!g) return;
-      t.className = 'tip chart-tip'; t.innerHTML = TIPS[+g.dataset.tip]; t.hidden = false; place(e);
+      showNote(TIPS[+g.dataset.tip], g.querySelector('.anchor') || g.querySelector('circle') || g, 'chart-tip');
       svgEl.classList.add('focus'); svgEl.querySelectorAll('.hot').forEach(x => x.classList.remove('hot')); g.classList.add('hot'); });
-    svgEl.addEventListener('pointermove', e => { if (!t.hidden) place(e); });
-    svgEl.addEventListener('pointerleave', () => { t.hidden = true; svgEl.classList.remove('focus'); svgEl.querySelectorAll('.hot').forEach(x => x.classList.remove('hot')); });
+    svgEl.addEventListener('pointerleave', () => { hideTip(); svgEl.classList.remove('focus'); svgEl.querySelectorAll('.hot').forEach(x => x.classList.remove('hot')); });
+  });
+  root.querySelectorAll('[data-tip]').forEach(row => {
+    if (row.closest('svg') || row.dataset.bound) return; row.dataset.bound = '1';
+    const show = () => showNote(TIPS[+row.dataset.tip], (row.dataset.anchor && row.querySelector(row.dataset.anchor)) || row.querySelector('.anchor') || row, 'chart-tip');
+    row.addEventListener('pointerenter', show); row.addEventListener('pointerleave', hideTip);
   });
 }
 const yesNo = v => (v === 'yes' ? 'Yes' : v === 'partly' ? 'Partly' : 'No');
 const runLength = (minutes, approx) => { const t = minutes >= 60 ? `${Math.round(minutes / 60)} h` : minutes >= 1 ? `${Math.round(minutes)} min` : `${Math.round(minutes * 60)} s`; return (approx ? `${approx} ` : '') + t; };
 
+/* ---------- What is new: RoboTeam next to the ten other benchmarks of the paper ----------
+   Robot arms (0 to 20) against how long one run can last (0 to 30 h), both on plain linear axes.
+   The others share one small corner; RoboTeam stands alone, far up and far right. Drawn at the
+   width it is shown; the entrance plays once. Pointing at, focusing or tapping a dot shows its
+   note, and where dots pile up the note lists every benchmark in the pile. The README draws the
+   same chart by the same rules (readme-draft-tools/findings_figures.py, compare()). */
+const WN_FAMOUS = ['PARTNR', 'RoboTwin']; // named as well where they fit; never on phones
+const WN_FONT = { name: '500 13px "IBM Plex Sans", system-ui, sans-serif', em: '700 13px "IBM Plex Sans", system-ui, sans-serif',
+  mono: '500 12px "JetBrains Mono", ui-monospace, monospace' };
+const textWidth = (() => { let c = null; return (s, font) => { c = c || document.createElement('canvas').getContext('2d'); c.font = font; return c.measureText(s).width; }; })();
+const benches = F => F.benchmarks.rows.map(([name, arms, multi, real, vision, minutes, approx, group]) => ({ name, arms, multi, real, vision, minutes, approx, group, ours: group === 'ours' }));
+const armsText = a => `${a} arm${a === 1 ? '' : 's'}`;
+const lenText = b => runLength(b.minutes, b.approx).replace(/ /g, ' ');
+const benchNote = b => tipLines(b.name, [['Robot arms', b.arms], ['One run lasts', lenText(b)], ['Cameras only', yesNo(b.vision)], ['Never pauses', yesNo(b.real)], ['Several agents', yesNo(b.multi)]]);
+const WN_PROPS = [['vision', 'cameras only'], ['real', 'never pauses'], ['multi', 'several agents']];
+const propsText = b => WN_PROPS.filter(([k]) => b[k] !== 'no').map(([k, n]) => (b[k] === 'partly' ? `${n} (partly)` : n).replace(/ /g, '\u00a0')).join(' · ');
+const pileNote = bs => `<b>${bs.length} benchmarks in this spot</b><div class="wn-nl">${bs.map(b => `<span>${b.name}</span><span>${armsText(b.arms)} · ${lenText(b)}${propsText(b) ? `<small>${propsText(b)}</small>` : ''}</span>`).join('')}</div>`;
+const px = v => Math.round(v) + 0.5;
+const f1 = v => (Math.round(v * 10) / 10).toString();
+let WN_UNITS = [], wnOn = null;
+/* Its notes use the page's one note helper, showNote() and hideTip() (with the Results tooltips). */
+
 function chartCompare(F, box) {
-  const narrow = box.clientWidth < 560, W = narrow ? 560 : widthOf(box), H = 330, L = 40, R = 26, T = 22, B = 44;
-  const lx = m => Math.log10(m), x0 = lx(0.06), x1 = lx(2400);
-  const X = m => L + (lx(m) - x0) / (x1 - x0) * (W - L - R), Y = a => T + (1 - a / 17) * (H - T - B);
-  let g = '';
-  [[0.1, '6 s'], [1, '1 min'], [10, '10 min'], [60, '1 h'], [240, '4 h'], [1440, '24 h']].forEach(([m, l]) => { g += `<line class="grid" x1="${X(m)}" x2="${X(m)}" y1="${T}" y2="${H - B}"/>` + txt(X(m), H - B + 18, l, '', 'middle'); });
-  [0, 4, 8, 12, 16].forEach(a => { g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(a)}" y2="${Y(a)}"/>` + txt(L - 8, Y(a) + 4, a, '', 'end'); });
-  g += txt(L - 8, T - 8, 'Arms', '', 'end') + txt(W - R, H - 6, 'How long a run lasts →', '', 'end');
-  const place = { ReflexBench: [0, -13, 'middle'], EmbodiedBench: [-7, 17, 'end'], VLABench: [7, 17, 'start'], RoboTwin: [10, 4, 'start'], RoboFactory: [0, -13, 'middle'], RoCoBench: [0, -13, 'middle'],
-    RobotWorld: [-9, 17, 'end'], RoboColiseum: [0, -13, 'middle'], PARTNR: [9, 17, 'start'], 'Embodied First Exam': [0, 22, 'middle'], RoboTeam: [-18, 5, 'end'] };
-  const nudge = { EmbodiedBench: 0.86, VLABench: 1.16 };
-  F.benchmarks.rows.forEach(([name, arms, multi, real, vision, minutes, approx, group]) => {
-    const cx = X(minutes * (nudge[name] || 1)), cy = Y(arms), ours = group === 'ours', r = ours ? 8 : 5.5;
-    const cls = ours ? 'c-hi' : group === 'agent' ? 'c-s2' : 'c-s3';
-    const tipHtml = tipLines(name, [['Most arms', arms], ['Several agents', yesNo(multi)], ['Never pauses', yesNo(real)], ['Cameras only', yesNo(vision)], ['Run length', runLength(minutes, approx)]],
-      `<div class="tl"><span>${group === 'policy' ? 'Tests trained robot policies' : 'Tests AI agents'}</span><span></span></div>`);
-    let p = '';
-    if (real !== 'no') p += `<circle cx="${cx}" cy="${cy}" r="${r + 5}" class="${cls}" stroke-width="1.6" ${real === 'partly' ? 'stroke-dasharray="2 3"' : ''} style="fill:none"/>`;
-    p += `<circle cx="${cx}" cy="${cy}" r="${r}" class="${cls}${vision === 'yes' ? '' : ' hollow'}" stroke-width="2"/><circle cx="${cx}" cy="${cy}" r="14" style="fill:transparent"/>`;
-    const [dx, dy, an] = place[name] || [8, 4, 'start'];
-    p += txt(cx + dx, cy + dy, name, ours ? 'big' : 'ink2', an);
-    g += `<g class="pt" ${tipAt(tipHtml)}>${p}</g>`;
+  const fig = box.closest('.wn'), rows = benches(F);
+  // Labels are placed with measured text widths, so draw again once the fonts are in.
+  if (document.fonts && document.fonts.status !== 'loaded' && !fig.dataset.fontWait) {
+    fig.dataset.fontWait = '1'; document.fonts.ready.then(() => { delete drawnAt['chart-compare']; drawCharts(current); });
+  }
+  wnSet(fig, null);
+  const W = Math.max(280, Math.floor(box.clientWidth)), compact = W < 440;
+  const H = Math.round(compact ? W * 1.12 : Math.min(W * 0.76, 540));
+  const r = compact ? 4 : 4.5, UR = compact ? 8 : 9, HALO = 2 * UR, pad = compact ? 9 : 12, lh = 16;
+  const L = 36, R = compact ? 16 : 20, T = 38, B = 52;
+  const X = h => L + h / 30 * (W - L - R), Y = a => T + (20 - a) / 20 * (H - T - B), y0 = Y(0);
+  const others = rows.filter(b => !b.ours), us = rows.find(b => b.ours);
+  const most = others.reduce((a, b) => (b.arms > a.arms ? b : a)), far = others.reduce((a, b) => (b.minutes > a.minutes ? b : a));
+
+  // Equal arms and nearly equal run lengths would hide one another: each dot sits at least half a dot
+  // right of the one before, so a pile stays countable. The notes give the true values.
+  const pts = others.map(b => ({ b, x: X(b.minutes / 60), y: Y(b.arms) })).sort((p, q) => q.b.arms - p.b.arms || p.x - q.x);
+  pts.forEach((p, i) => { const q = pts[i - 1]; if (q && q.b.arms === p.b.arms && p.x < q.x + r) p.x = q.x + r; });
+  // Dots of one row that touch form a pile: one note, one focus stop.
+  const units = [];
+  pts.forEach(p => { const u = units[units.length - 1], q = u && u.pts[u.pts.length - 1];
+    if (q && q.b.arms === p.b.arms && p.x - q.x <= 2 * r + 2) u.pts.push(p); else units.push({ pts: [p], lab: [] }); });
+  const unitOf = p => units.find(u => u.pts.includes(p));
+  const UX = X(us.minutes / 60), UY = Y(us.arms), gx = X(0) - r - 3; // gx: the corner's left edge; the arm numbers sit left of it
+
+  // Everything placed so far, so that no text lands on a dot, a line or another text.
+  const taken = [], texts = [];
+  const bx = (x0, y0_, x1, y1) => ({ x0, y0: y0_, x1, y1 });
+  const hits = (a, q) => a.x0 < q.x1 && a.x1 > q.x0 && a.y0 < q.y1 && a.y1 > q.y0;
+  const free = (a, also = []) => a.x0 >= 0 && a.x1 <= W && a.y0 >= T - 8 && a.y1 <= y0 - 1 && ![...taken, ...also].some(q => hits(a, q));
+  const take = (a, text) => { taken.push(a); if (text) texts.push(a); return a; };
+  // A name is never level with another dot close by, where it could pass for that dot's name.
+  // (Dots of its own pile do not count: the pile has one note that names them all.)
+  const clear = (a, p) => { const own = unitOf(p).pts, cy = (a.y0 + a.y1) / 2;
+    return pts.every(q => own.includes(q) || Math.abs(q.y - cy) >= lh / 2 + r - 1 || Math.max(a.x0 - q.x, q.x - a.x1) - r >= 20); };
+  pts.forEach(p => take(bx(p.x - r - 1.5, p.y - r - 1.5, p.x + r + 1.5, p.y + r + 1.5)));
+  take(bx(UX - HALO, UY - HALO, UX + HALO, UY + HALO)); take(bx(0, T - 8, gx - 3, y0 + 4));
+
+  // RoboTeam's name and chip: left of its dot with the chip below it, or (when that does not fit,
+  // as on a phone) the name over the dot and the chip in three parts beside it.
+  const nameFont = `700 ${compact ? 19 : 22}px "Space Grotesk", system-ui, sans-serif`, LH = compact ? 24 : 28, nw = textWidth(us.name, nameFont) + 12;
+  const right = UX - HALO - 6, chipW = s => textWidth(s, WN_FONT.mono) + 20;
+  const facts = [`${us.arms} arms · ${Math.round(us.minutes / 60)} h`, 'cameras only', 'never pauses'];
+  const layouts = [{ chips: [facts.join(' · ')] }, { chips: [facts[0], facts.slice(1).join(' · ')] }, { chips: facts, over: true }];
+  layouts.forEach(l => { l.name = l.over ? [UX - nw / 2, UY - HALO - 2 - LH] : [right + 6 - nw, UY - LH / 2]; l.top = l.over ? UY - 11 : UY + LH / 2 + 8;
+    l.boxes = [bx(l.name[0], l.name[1], l.name[0] + nw, l.name[1] + LH), ...l.chips.map((c, i) => bx(right - chipW(c), l.top + i * 30, right, l.top + 22 + i * 30))]; });
+  const lay = layouts.find(l => l.boxes.every(a => free(a))) || layouts[2];
+  lay.boxes.forEach(a => take(a, true));
+
+  const placeName = (p, cands, also = []) => {
+    const w = textWidth(p.b.name, WN_FONT.name);
+    for (const [x, y] of cands) {
+      const a = bx(x - 2, y - 2, x + w + 2, y + lh + 2);
+      if (free(a, also) && clear(a, p)) { take(a, true); unitOf(p).lab.push({ name: p.b.name, x, y }); return a; }
+    }
+    return null;
+  };
+  const beside = p => [p.x + r + 6, p.y - lh / 2], over = p => [p.x - 3, p.y - r - 5 - lh], under = p => [p.x - 3, p.y + r + 5];
+
+  // "6× longer": from the longest run of the others to 24 h, on that benchmark's row. The line starts
+  // at its dot, with a tick at each end; the name sits over the dot (or under it).
+  const fp = pts.find(p => p.b === far), ny = fp.y;
+  const dimW = (em, rest) => textWidth(`${em} `, WN_FONT.em) + textWidth(rest, WN_FONT.name);
+  const e6 = `${Math.round(us.minutes / far.minutes)}×`, e4 = `${Math.round(us.arms / most.arms)}×`, w6 = dimW(e6, 'longer'), w4 = dimW(e4, 'the arms');
+  const xs = px(fp.x + r + 5), hm = (xs + UX) / 2;
+  const line = [bx(xs, ny - 4, UX + 1, ny + 4), bx(xs - 2, ny - 6.5, xs + 2, ny + 6.5), bx(UX - 2, ny - 8, UX + 2, ny + 8)];
+  placeName(fp, [over(fp), under(fp)], line);
+
+  // The most arms of the others always has its name; on a phone it sits over the dot, inside the corner.
+  const mp = pts.find(p => p.b === most), mostLab = placeName(mp, compact ? [over(mp), beside(mp)] : [beside(mp), over(mp)], line);
+  // The corner where every other benchmark sits: 0 to the longest run, 0 to the most arms.
+  let ry = Y(most.arms) - r - pad; if (mostLab && mostLab.y1 <= mp.y) ry = Math.min(ry, mostLab.y0 - 4);
+  const rg = { x0: gx, y0: ry, x1: X(far.minutes / 60) + r + pad };
+  const regionText = 'EVERY OTHER BENCHMARK', rw = textWidth(regionText, WN_FONT.mono) + 1.2 * (regionText.length - 1);
+  take(bx(rg.x0, rg.y0 - 21, rg.x0 + rw + 4, rg.y0 - 5), true);
+
+  // The words of "6× longer" sit in a gap in the line, else just under or over it.
+  const hb = y => bx(hm - w6 / 2 - 6, y - 8, hm + w6 / 2 + 6, y + 8);
+  const hy = [ny, ny + 13, ny - 13].find((y, i) => free(hb(y), i ? line : [])) ?? ny;
+  take(hb(hy), true); line.forEach(a => take(a));
+  const hPath = (hy === ny ? `M${xs} ${px(ny)}H${f1(hm - w6 / 2 - 7)}M${f1(hm + w6 / 2 + 7)} ${px(ny)}H${px(UX)}` : `M${xs} ${px(ny)}H${px(UX)}`) +
+    `M${xs} ${px(ny) - 6}V${px(ny) + 6}M${px(UX)} ${px(ny) - 6}V${px(ny) + 6}`;
+
+  // "4× the arms": from the most arms of the others up to RoboTeam, along 24 h; the words sit in a gap in the line.
+  const yb = Y(most.arms), yt = UY + HALO + 4, vb = y => bx(UX - w4 / 2 - 6, y - 10, UX + w4 / 2 + 6, y + 10), vmid = (yb + yt) / 2;
+  let vm = vmid;
+  for (let k = 0; k <= 40; k++) { const y = vmid + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 3; if (y - 10 > yt + 6 && y + 10 < yb - 6 && free(vb(y))) { vm = y; break; } }
+  take(vb(vm), true); take(bx(UX - 6, yt, UX + 6, yb + 1));
+  const vPath = `M${px(UX) - 6} ${px(yb)}H${px(UX) + 6}M${px(UX)} ${px(yb)}V${f1(vm + 11)}M${px(UX)} ${f1(vm - 11)}V${f1(yt)}`;
+
+  // The famous two, only where they fit, never on a phone.
+  if (!compact) WN_FAMOUS.forEach(n => { const p = pts.find(q => q.b.name === n && q !== fp && q !== mp); if (p) placeName(p, [beside(p), over(p), under(p)]); });
+
+  // Light gridlines at the ticks only, cut where a text or a dimension line crosses them.
+  const cuts = [...texts, bx(UX - 1, yt - 2, UX + 1, yb + 8), bx(UX - 1, ny - 8, UX + 1, ny + 8)];
+  const segs = (a, b, gaps) => gaps.sort((p, q) => p[0] - q[0]).reduce((ss, [g0, g1]) =>
+    ss.flatMap(([s0, s1]) => (g1 <= s0 || g0 >= s1 ? [[s0, s1]] : [[s0, g0], [g1, s1]].filter(([c0, c1]) => c1 - c0 > 2))), [[a, b]]);
+  let grid = '';
+  [0, 6, 12, 18, 24, 30].forEach(h => { const x = X(h);
+    grid += segs(T, y0, cuts.filter(c => c.x0 - 2 < x && x < c.x1 + 2).map(c => [c.y0 - 2, c.y1 + 2])).map(([a, b]) => `M${px(x)} ${f1(a)}V${f1(b)}`).join(''); });
+  [4, 8, 12, 16, 20].forEach(a => { const y = Y(a);
+    grid += segs(rg.x0, W - R, cuts.filter(c => c.y0 - 2 < y && y < c.y1 + 2).map(c => [c.x0 - 2, c.x1 + 2])).map(([p, q]) => `M${f1(p)} ${px(y)}H${f1(q)}`).join(''); });
+  let axes = '';
+  [0, 4, 8, 12, 16, 20].forEach(a => { axes += txt(rg.x0 - 7, Y(a) + 4, a, 'tick', 'end'); });
+  [0, 6, 12, 18, 24, 30].forEach(h => { axes += txt(X(h), y0 + 20, `${h} h`, 'tick', 'middle'); });
+  axes += txt(0, 13, 'Robot arms on one task', 'axis-t') + txt(W - 2, H - 6, 'How long one run can last', 'axis-t', 'end');
+
+  const region = `<g class="an" style="--d:.12s"><rect class="region" x="${f1(rg.x0)}" y="${f1(rg.y0)}" width="${f1(rg.x1 - rg.x0)}" height="${f1(y0 - rg.y0)}" rx="10"/>` +
+    txt(rg.x0 + 1, rg.y0 - 9, regionText, 'region-t') + '</g>' + `<line class="base an" x1="${f1(rg.x0)}" x2="${W - R}" y1="${px(y0)}" y2="${px(y0)}"/>`;
+  const dims = `<path class="dim an grow-x" style="--d:1.45s" d="${hPath}"/><path class="dim an grow-up" style="--d:1.45s" d="${vPath}"/>` +
+    txt(hm, hy + 4.5, `<tspan class="em">${e6}</tspan> longer`, 'dim-t an', 'middle', 'style="--d:1.8s"') +
+    txt(UX, vm + 4.5, `<tspan class="em">${e4}</tspan> the arms`, 'dim-t an', 'middle', 'style="--d:1.8s"');
+
+  // The others enter in a short stagger from the corner outwards; RoboTeam lands last with its halo.
+  units.sort((a, b) => a.pts[0].x - b.pts[0].x || b.pts[0].y - a.pts[0].y);
+  const ring = (xa, xb, cy, rr) => (xa === xb ? `<circle class="ring" cx="${f1(xa)}" cy="${f1(cy)}" r="${rr + 4}"/>`
+    : `<rect class="ring" x="${f1(xa - rr - 4)}" y="${f1(cy - rr - 4)}" width="${f1(xb - xa + 2 * rr + 8)}" height="${2 * rr + 8}" rx="${rr + 4}"/>`);
+  let dots = '';
+  units.forEach((u, k) => {
+    const d = 0.3 + k * 0.06, xs_ = u.pts.map(p => p.x), bs = u.pts.map(p => p.b);
+    const say = bs.length > 1 ? `${bs.length} benchmarks: ${bs.map(b => `${b.name}, ${armsText(b.arms)}, ${lenText(b)}`).join('; ')}` : `${bs[0].name}: ${armsText(bs[0].arms)}, runs ${lenText(bs[0])}`;
+    dots += `<g class="wn-u" data-b="${k}" tabindex="0" role="img" aria-label="${say.replace(/ /g, ' ')}">` +
+      u.pts.map((p, j) => `<circle class="dot an pop" style="--d:${(d + j * 0.04).toFixed(2)}s" cx="${f1(p.x)}" cy="${f1(p.y)}" r="${r}"/>`).join('') +
+      u.lab.map(l => txt(l.x, l.y + 12, l.name, 'nm an', 'start', `style="--d:${(d + 0.16).toFixed(2)}s"`)).join('') +
+      ring(Math.min(...xs_), Math.max(...xs_), u.pts[0].y, r) + '</g>';
   });
-  box.innerHTML = `<div class="${narrow ? 'scroll-x' : ''}">${svg(W, H, g, 'Benchmarks by number of arms and run length; RoboTeam is the only one with 16 arms and runs of up to 24 hours')}</div>` +
-    `<div class="keyrow"><span>● cameras only</span><span>○ given object positions, fully or partly</span><span>◎ the world never pauses</span><span><i style="--c:var(--s2)"></i>AI agents</span><span><i style="--c:var(--s3)"></i>trained policies</span></div>` +
-    `<p class="src">From the paper's comparison table; point at a benchmark for details. ${F.benchmarks.left_out}</p>`;
-  bindTips(box);
+  const uk = units.length, t = 1.05;
+  dots += `<g class="wn-u us" data-b="${uk}" tabindex="0" role="img" aria-label="${us.name}: ${us.arms} arms, runs ${lenText(us).replace(/ /g, ' ')}, cameras only, never pauses, several agents">` +
+    `<circle class="halo an halo" style="--d:${t}s" cx="${f1(UX)}" cy="${f1(UY)}" r="${HALO}"/><circle class="ours an land" style="--d:${t}s" cx="${f1(UX)}" cy="${f1(UY)}" r="${UR}"/>${ring(UX, UX, UY, UR)}</g>`;
+  WN_UNITS = [...units.map(u => ({ pts: u.pts.map(p => [p.x, p.y, r]), note: u.pts.length > 1 ? pileNote(u.pts.map(p => p.b)) : benchNote(u.pts[0].b) })),
+    { pts: [[UX, UY, HALO]], note: benchNote(us) }];
+
+  const nameAt = lay.over ? `left:${Math.round(lay.name[0])}px` : `right:${Math.round(W - right - 6)}px`;
+  const over_ = `<b class="wn-name an rise" data-b="${uk}" aria-hidden="true" style="${nameAt};top:${Math.round(lay.name[1])}px;--d:${t + 0.3}s">${us.name}</b>` +
+    `<div class="wn-chips" data-b="${uk}" aria-hidden="true" style="right:${Math.round(W - right)}px;top:${Math.round(lay.top)}px">` +
+    lay.chips.map((c, i) => `<span class="chip an rise" style="--d:${(t + 0.38 + i * 0.08).toFixed(2)}s">${c}</span>`).join('') + '</div>';
+  const label = `Benchmarks by robot arms and how long one run can last. Every other benchmark has 1 to ${most.arms} arms and runs of at most ${Math.round(far.minutes / 60)} hours; RoboTeam has ${us.arms} arms and runs of up to ${Math.round(us.minutes / 60)} hours.`;
+  box.innerHTML = `<div class="wn-plot${compact ? ' compact' : ''}" style="height:${H}px"><svg class="chart" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="group" aria-label="${label}">` +
+    `<g class="an"><path class="grid" d="${grid}"/>${axes}</g>${region}${dims}${dots}</svg>${over_}</div>`;
+  wnBind(fig); playOnce(fig, 2400);
 }
 
+// One dot or pile at a time: it grows a little, the rest dim, and its note opens above it.
+function wnSet(fig, k) {
+  if (k === wnOn) return; wnOn = k;
+  fig.classList.toggle('hl', k != null);
+  fig.querySelectorAll('[data-b]').forEach(e => e.classList.toggle('on', k != null && e.dataset.b === String(k)));
+  const s = fig.querySelector('svg.chart'); if (s) s.style.cursor = k != null ? 'pointer' : '';
+  if (k == null) { hideTip(); return; }
+  const g = fig.querySelector(`.wn-u[data-b="${k}"]`);
+  if (g && WN_UNITS[k]) showNote(WN_UNITS[k].note, g.querySelector('.ring'), 'chart-tip wn-tip');
+}
+function wnBind(fig) {
+  if (fig.dataset.bound) return; fig.dataset.bound = '1';
+  // The unit under the pointer: a dot or a name it touches, else the nearest dot within reach.
+  const at = (e, reach) => {
+    const g = e.target.closest && e.target.closest('.wn-u'); if (g && fig.contains(g)) return +g.dataset.b;
+    const s = fig.querySelector('svg.chart'); if (!s) return null;
+    const rc = s.getBoundingClientRect(), k = s.viewBox.baseVal.width / rc.width, x = (e.clientX - rc.left) * k, y = (e.clientY - rc.top) * k;
+    let best = null, dist = reach;
+    WN_UNITS.forEach((u, i) => u.pts.forEach(([ux, uy, ur]) => { const d = Math.hypot(ux - x, uy - y) - ur; if (d < dist) { dist = d; best = i; } }));
+    return best;
+  };
+  fig.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') wnSet(fig, at(e, 8)); });
+  fig.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') wnSet(fig, null); });
+  // A tap opens a dot's note, or closes it when it was open before the tap. Focus that a pointer
+  // causes is left to the pointer, so the order of focus and pointerup does not matter.
+  let downAt = 0, downOn = null;
+  fig.addEventListener('pointerdown', () => { downAt = performance.now(); downOn = wnOn; });
+  fig.addEventListener('pointerup', e => { if (e.pointerType === 'mouse') return; const k = at(e, 18); wnSet(fig, k === downOn ? null : k); });
+  fig.addEventListener('focusin', e => { if (performance.now() - downAt < 800) return; const g = e.target.closest('.wn-u'); if (g) wnSet(fig, +g.dataset.b); });
+  fig.addEventListener('focusout', e => { if (!e.relatedTarget || !fig.contains(e.relatedTarget)) wnSet(fig, null); });
+  fig.addEventListener('keydown', e => { if (e.key === 'Escape') wnSet(fig, null); });
+  document.addEventListener('pointerdown', e => { if (!fig.contains(e.target)) wnSet(fig, null); });
+  addEventListener('scroll', () => wnSet(fig, null), { passive: true });
+}
+
+/* ---------- Results findings: a claim, one number, at most two sentences and one chart each ---------- */
+const SOURCE = 'From the paper';
+// A bar chart in HTML: per row a label, a 14 px bar on a track and a right-aligned value, one row
+// every 32 px. Rows enter 0.4 s apart; a row's note shows on hover. A row with `stack` splits its bar.
+function barRows(rows, { max = 100, head = '', cls = '', from = 0 } = {}) {
+  return `<div class="bars${cls ? ` ${cls}` : ''}">${head}${rows.map((r, i) =>
+    `<div class="bar-row${r.cls ? ` ${r.cls}` : ''}" data-reveal="fade" style="--i:${from + i}"${r.tip ? ` ${tipAt(r.tip)}` : ''}>` +
+    `<span class="bl">${r.label}</span><span class="bt">` +
+    (r.stack ? `<span class="stk anchor" data-reveal="grow-x">${r.stack.map(([v, f]) => `<i class="f-${f}" style="flex:${v} 1 0"></i>`).join('')}</span>`
+      : `<i class="bf anchor f-${r.fill}" data-reveal="grow-x" style="width:${Math.max(0.6, 100 * r.value / max).toFixed(2)}%"></i>`) +
+    `</span><span class="bv">${r.text}</span></div>`).join('')}</div>`;
+}
+
+// Seeing: the same AI given every position, with sharp pictures, with 128 × 80 pictures and without code.
+// Rows, spot, enlarged pixel and words match the README's figure.
+const VISION = [['oracle', 'Reference: given every position', 'soft', 'ref'], ['adaptive', 'Sharp pictures and its own code', 'vio', 'lead'],
+  ['low-resolution', 'Pictures of 128 × 80', 's2', ''], ['robot-tool-only', 'No code, robot tool only', 's2', '']];
+function chartVision(F, box) {
+  const V = Object.fromEntries(F.vision.map(v => [v.key, v])), f = F.vision_facts;
+  setText('f-vision', 'Seeing', 'Seeing is the hard part.',
+    `Given the position of every object, the same AI finishes all ${V.oracle.completed} tasks; from its cameras, ${V.adaptive.completed}. At 128 × 80 pixels one pixel covers about ${f.pixel_mm} mm, more than twice the ${f.tolerance_mm} mm it has for placing a cube, and it finishes ${V['low-resolution'].completed}.`,
+    [`${V.oracle.completed} → ${V.adaptive.completed}`, 'tasks finished once it must see for itself']);
+  const why = { oracle: 'The same AI, given the position of every object instead of pictures.', adaptive: 'Sharp camera pictures, and it may write its own code.', 'low-resolution': 'Every picture shrunk to 128 × 80 pixels.', 'robot-tool-only': 'Sharp pictures, but no code of its own: only the robot tool.' };
+  const rows = VISION.filter(([key]) => V[key]).map(([key, label, fill, cls], i) => {
+    const v = V[key], tip = tipLines(label, [['Tasks finished', `${v.completed} of 36`], ['Grasps that fail', pct(v.grasp_fail)]], `<p class="tw">${why[key]}</p>`, `${mname('gpt-6.1-sol')}, Adaptive team. ${SOURCE}.`);
+    return `<div class="vrow${cls ? ` ${cls}` : ''}" data-reveal="fade" style="--i:${i}" ${tipAt(tip)}><span class="vl">${label}</span>` +
+      `<span class="bt"><i class="bf anchor f-${fill}" data-reveal="grow-x" style="width:${(100 * v.completed / 36).toFixed(2)}%"></i></span>` +
+      `<span class="bv">${v.completed}</span><span class="bv">${pct(v.grasp_fail)}</span></div>`;
+  }).join('');
+  box.innerHTML = `<div class="vbars"><span class="kicker">Finished</span><span class="kicker vg">Grasps fail</span>${rows}</div>${zoomFigure(f)}`;
+  zoomSetup(box.querySelector('.zoom'));
+}
+// The same spot of one camera picture at 1280 × 800 and at 128 × 80: a board and three red cubes.
+// SPOT is the left, top, columns and rows of the spot in pixels of the 128 × 80 picture. The outlined
+// pixel (PICK, inside the spot) is shown enlarged under each view: 100 sharp pixels against one colour.
+// Dragging moves the picture under both views in whole pixels of the small picture.
+const SPOT = [42, 29, 44, 28], PICK = [4, 25], LOUPE = 64, CONE = 18;
+function zoomFigure(f) {
+  const base = mediaUrl(MEDIA + 'findings/'), bar = (LOUPE * f.tolerance_mm / f.pixel_mm).toFixed(1);
+  const view = (file, res, low, words) => `<div class="zv${low ? ' low' : ''}"><p class="kicker">${res}</p>` +
+    `<div class="zv-pic"><div class="zoom-view"><img src="${base}${file}" alt="" draggable="false" decoding="async"><span class="zmark"></span></div>` +
+    `<svg class="cone" aria-hidden="true"><path/></svg></div>` +
+    `<div class="zl"><span class="loupe"><canvas width="${low ? 1 : 10}" height="${low ? 1 : 10}"></canvas><i style="width:${bar}px"></i></span><span class="zw">${words}</span></div></div>`;
+  return `<figure class="zoom" data-reveal="up" tabindex="0" aria-label="The same spot of one camera picture, a board and three red cubes, at 1280 by 800 and at 128 by 80 pixels. One pixel of the small picture covers 100 pixels of the sharp one, about ${f.pixel_mm} mm, more than twice the ${f.tolerance_mm} mm a cube may be off. Drag or use the arrow keys to look around.">` +
+    view('camera-sharp.webp', '1280 × 800', false, `100 pixels<br>≈ ${f.pixel_mm / 10} mm each`) +
+    view('camera-128x80.png', '128 × 80', true, `one pixel<br>≈ ${f.pixel_mm} mm`) +
+    `<p class="zkey"><i style="width:${bar}px"></i>${f.tolerance_mm} mm, the most a cube may be off</p>` +
+    '<figcaption>Drag either picture, or use the arrow keys, to look around.</figcaption></figure>';
+}
+function zoomSetup(fig) {
+  const [, , cols, rows] = SPOT, views = [...fig.querySelectorAll('.zoom-view')], imgs = views.map(v => v.querySelector('img'));
+  const cans = [...fig.querySelectorAll('.loupe canvas')];
+  let x = SPOT[0], y = SPOT[1], fx = x, fy = y, s = 0, last = null;
+  // Each loupe shows the outlined pixel: the sharp picture box-filtered to 10 × 10 (2560 × 1600 → 1280 × 800), the small one as it is.
+  const loupes = () => cans.forEach((c, j) => {
+    const img = imgs[j]; if (!img.complete || !img.naturalWidth) return;
+    const k = img.naturalWidth / 128, ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = k > c.width; ctx.imageSmoothingQuality = 'low';
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, (x + PICK[0]) * k, (y + PICK[1]) * k, k, k, 0, 0, c.width, c.height);
+  });
+  const place = () => {
+    x = Math.min(Math.max(Math.round(fx), 0), 128 - cols); y = Math.min(Math.max(Math.round(fy), 0), 80 - rows);
+    fig.style.setProperty('--zx', x); fig.style.setProperty('--zy', y); loupes();
+  };
+  // The cone runs from the outlined pixel down to the loupe under the view.
+  const layout = () => {
+    const w = views[0].getBoundingClientRect().width; if (!w || Math.abs(w / cols - s) < 0.01) return;
+    s = w / cols; fig.style.setProperty('--s', `${s.toFixed(3)}px`);
+    const top = (PICK[1] + 1) * s, h = (rows - PICK[1] - 1) * s + CONE, wide = Math.max(LOUPE, (PICK[0] + 1) * s);
+    fig.querySelectorAll('.cone').forEach(c => {
+      c.setAttribute('width', wide); c.setAttribute('height', h.toFixed(1)); c.setAttribute('viewBox', `0 0 ${wide} ${h.toFixed(1)}`); c.style.top = `${top.toFixed(1)}px`;
+      c.querySelector('path').setAttribute('d', `M${(PICK[0] * s).toFixed(1)} 0L0 ${h.toFixed(1)}M${((PICK[0] + 1) * s).toFixed(1)} 0L${LOUPE} ${h.toFixed(1)}`);
+    });
+  };
+  views.forEach(v => {
+    v.addEventListener('pointerdown', e => { if (e.button) return; last = [e.clientX, e.clientY]; fx = x; fy = y; v.setPointerCapture(e.pointerId); fig.classList.add('grabbing'); });
+    v.addEventListener('pointermove', e => { if (!last || !s) return; fx -= (e.clientX - last[0]) / s; fy -= (e.clientY - last[1]) / s; last = [e.clientX, e.clientY]; place(); });
+    const end = () => { last = null; fig.classList.remove('grabbing'); };
+    v.addEventListener('pointerup', end); v.addEventListener('pointercancel', end);
+  });
+  fig.addEventListener('keydown', e => {
+    const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key]; if (!d) return;
+    e.preventDefault(); fx = x + d[0]; fy = y + d[1]; place();
+  });
+  imgs.forEach(i => i.addEventListener('load', loupes));
+  if ('ResizeObserver' in window) new ResizeObserver(layout).observe(views[0]);
+  layout(); place();
+}
+
+// Waiting: how each model's agents spend their time.
+let sortTime = 'model';
+function chartTime(F, box) {
+  const t = F.timeline_facts, shares = F.time_shares.rows;
+  setText('f-time', 'Waiting', 'The arms mostly wait.', `The world never pauses, yet in one run an arm moves only ${t.arms_moving_pct}% of the time, while an agent is thinking for ${t.thinking_pct}% of it. Faster decisions would shorten tasks more than faster arms.`, [`${t.thinking_pct}%`, 'of one run, an agent is thinking']);
+  const rows = shares.map(([m, th, rb, cd]) => ({ label: mname(m), text: `${Math.round(th)}%`, cls: m === 'gpt-6.1-sol' ? 'lead' : '', stack: [[th, 'vio'], [rb, 's2'], [cd, 's3']],
+    tip: tipLines(mname(m), [['Thinking', `${fmt1(th)}%`], ['Robot tool', `${fmt1(rb)}%`], ['Own code', `${fmt1(cd)}%`]], '', `Share of agent time, Adaptive team. ${SOURCE}.`) }));
+  box.innerHTML = `<div class="chart-top"><p class="chart-cap kicker">Share of agent time</p><div class="seg" role="group" aria-label="Order of the rows">` +
+    [['model', 'Strongest first'], ['think', 'Most thinking first']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${k === sortTime}">${n}</button>`).join('') + '</div></div>' +
+    '<p class="keyrow"><span><i class="f-vio"></i>Thinking</span><span><i class="f-s2"></i>Robot tool</span><span><i class="f-s3"></i>Own code</span></p>' + barRows(rows, { cls: 'stacked' });
+  // A new order moves the rows to their places; they keep the order they were drawn in.
+  const order = () => {
+    const th = shares.map(r => r[1]), rank = th.map((v, i) => (sortTime === 'think' ? th.filter((w, j) => w > v || (w === v && j < i)).length : i));
+    box.querySelectorAll('.bar-row').forEach((row, i) => { row.style.transform = rank[i] === i ? '' : `translateY(${(rank[i] - i) * 32}px)`; });
+    box.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === sortTime));
+  };
+  box.querySelector('.seg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; sortTime = b.dataset.v; order(); });
+  order();
+}
+
+// Retrying: the share of steps that fail at least once, in a typical task of each job.
+function chartFailure(F, box) {
+  const f = F.failure_by_type, P = f.median_atomic_failure_pct;
+  const relayDone = D.outcomes ? D.tasks.filter(t => typeOf(t) === 'relay' && done(f.set, t)).length : 8;
+  setText('f-failure', 'Retrying', 'Failing and retrying is normal.', `A grasp slips or a handover misses, and the agents see it in the pictures and try again. In a typical Relay task every step fails at least once, yet ${relayDone} of the 9 Relay tasks are finished.`, [`${P.relay}%`, 'of steps fail at least once in a typical Relay task']);
+  const steps = f.median_steps_note || {};
+  const rows = TYPES.map(([type, name]) => ({ label: `<i class="dot t-${type}"></i>${name}`, value: P[type], text: `${P[type]}%`, fill: type === 'relay' ? 'vio' : 's2', cls: type === 'relay' ? 'lead' : '',
+    tip: tipLines(name, [['Steps that fail at least once', `${P[type]}%`]].concat(steps[type] ? [['Steps in a typical task', `about ${steps[type]}`]] : []), '', `Typical task of ${mname(f.set)}, Adaptive team. ${SOURCE}.`) }));
+  box.innerHTML = '<p class="chart-cap kicker">Steps that fail at least once</p>' + barRows(rows, { max: 100 });
+}
+
+// Team size: tasks finished at each level and at each team size.
+function chartLevels(F, box) {
+  const lv = F.levels;
+  setText('f-levels', 'Team size', 'Bigger teams are harder than harder levels.', `${mname(lv.set)} finishes about as many tasks at every level, but fewer as the team grows. More arms must share the space and the work.`, [`${lv.by_size[0]}\u2009→\u2009${lv.by_size[2]}`, `of ${lv.of} tasks, from small to large teams`]);
+  const tasksOf = (kind, i) => D.tasks.filter(t => (kind === 'level' ? t.endsWith(`-l${i + 1}`) : t.split('-')[1] === SIZES[i]));
+  const minis = list => `<div class="minis">${list.map(t => `<i class="t-${typeOf(t)}${done(lv.set, t) ? ' done' : ''}"></i>`).join('')}</div>`;
+  const block = (title, labels, vals, fill, kind, from) => barRows(vals.map((v, i) => ({ label: labels[i], value: v, text: v, fill,
+    tip: tipLines(labels[i], [['Tasks finished', `${v} of ${lv.of}`]], D.outcomes ? `${minis(tasksOf(kind, i))}<p class="tw">Filled squares are finished tasks.</p>` : '', `${mname(lv.set)}, Adaptive team. ${SOURCE}.`) })),
+    { max: lv.of, head: `<p class="bar-head">${title}</p>`, from });
+  box.innerHTML = `<p class="chart-cap kicker">Tasks finished, of ${lv.of}</p><div class="levels">` +
+    block('By level', ['Level 1', 'Level 2', 'Level 3'], lv.by_level, 's2', 'level', 0) + block('By team size', ['Small', 'Medium', 'Large'], lv.by_size, 'vio', 'size', 3) + '</div>';
+}
+
+// Team design: the four designs over eight arms, as in the film. Arms are squares, agents are dots.
+const DESIGNS = [['single-agent', 'Single agent', 'One agent drives every arm'], ['hierarchical', 'Hierarchical', 'A controller and one worker per arm'],
+  ['decentralized', 'Decentralized', 'One worker per arm, no controller'], ['adaptive', 'Adaptive', 'A controller that lends arms to helpers']];
+function teamDrawing(kind) {
+  const arms = [...Array(8)].map((_, i) => [18 + i * 244 / 7, 112]), top = [140, 22], up = q => [q[0], q[1] - 9];
+  const ln = (a, b, c = '') => `<line x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}"${c ? ` class="${c}"` : ''}/>`;
+  const dot = (p, r) => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${r}"/>`;
+  let lines = '', dots = '';
+  if (kind === 'single-agent') { arms.forEach(q => { lines += ln(top, up(q)); }); dots = dot(top, 13); }
+  else if (kind === 'hierarchical') { const mids = arms.map(q => [q[0], 66]); mids.forEach((m, i) => { lines += ln(top, m) + ln(m, up(arms[i])); }); dots = dot(top, 12) + mids.map(m => dot(m, 6.5)).join(''); }
+  else if (kind === 'decentralized') {
+    // A mesh: one worker per arm on two alternating heights, each linked to its neighbours i ± 1 and i ± 2.
+    const mids = arms.map((q, i) => [q[0], i % 2 ? 70 : 44]);
+    mids.forEach((m, i) => { [1, 2].forEach(d => { if (mids[i + d]) lines += ln(m, mids[i + d]); }); lines += ln(m, up(arms[i])); });
+    dots = mids.map(m => dot(m, 6.5)).join('');
+  } else {
+    // Adaptive: the controller has lent arms 2-3 and 5-7 to two helpers.
+    const helpers = [[[75.6, 63], [1, 2]], [[204.4, 63], [4, 5, 6]]], lent = {};
+    helpers.forEach(([h, idx]) => { lines += ln(top, h, 'lend'); idx.forEach(i => { lent[i] = h; }); });
+    arms.forEach((q, i) => { lines += ln(lent[i] || top, up(q), lent[i] ? 'lend' : ''); });
+    dots = dot(top, 12) + helpers.map(([h]) => dot(h, 8)).join('');
+  }
+  const squares = arms.map(q => `<rect x="${(q[0] - 9).toFixed(1)}" y="${q[1] - 9}" width="18" height="18" rx="4"/>`).join('');
+  return `<svg class="team-draw${kind === 'adaptive' ? ' ours' : ''}" viewBox="0 0 280 124" aria-hidden="true"><g class="tl">${lines}</g><g class="tn">${dots}</g><g class="ta">${squares}</g></svg>`;
+}
+function chartSystems(F, box) {
+  const S = Object.fromEntries(F.systems.map(s => [s.key, s])), fin = F.systems.map(s => s.completed);
+  const hMax = Math.max(...F.systems.map(s => s.total_hours)), tMax = Math.max(...F.systems.map(s => s.input_tokens_b));
+  const timeX = Math.round(S['single-agent'].total_hours / S.decentralized.total_hours), tokX = Math.round(S.hierarchical.input_tokens_b / S['single-agent'].input_tokens_b);
+  setText('f-systems', 'Team design', 'Same score, very different bill.', `However the agents are organized, they finish ${Math.min(...fin)} to ${Math.max(...fin)} of the 36 tasks. A single agent takes ${timeX}× the time of a decentralized team. A hierarchical team reads ${tokX}× the tokens of a single agent. Tokens read are the text a model reads, which sets the cost.`, [`${tokX}×`, 'the tokens for nearly the same score']);
+  const call = { 'single-agent': ['hours', `${timeX}× the time`], hierarchical: ['tokens', `${tokX}× the tokens`] };
+  const measure = (key, m, v, vmax, text, i) => {
+    const w = 100 * v / vmax, note = call[key] && call[key][0] === m ? call[key][1] : '';
+    return `<div class="team-m${note ? ' has-note' : ''}"><span class="ml">${m === 'hours' ? 'Hours' : 'Tokens read'}</span><span class="bt bare"><i class="bf f-${key === 'adaptive' ? 'vio' : 's2'}" data-reveal="grow-x" style="width:${w.toFixed(2)}%"></i>` +
+      (note ? `<span class="note stem-up callout" data-reveal="up" style="--i:${i + 0.75};right:${(100 - w).toFixed(2)}%">${note}</span>` : '') + `</span><span class="bv">${text}</span></div>`;
+  };
+  const rows = DESIGNS.map(([key, name, line], i) => {
+    const s = S[key];
+    const tip = tipLines(name, [['Tasks finished', `${s.completed} of 36`], ['Finished within 6 hours', s.within_6h], ['Hours, all 36 tasks', fmt1(s.total_hours)], ['Tokens read, all tasks', `${fmt1(s.input_tokens_b)} billion`], ['Agent messages, typical task', s.median_messages]],
+      key === 'adaptive' ? '<p class="tw">The team used everywhere else on this page.</p>' : '', `${mname('gpt-6.1-sol')}, all 36 tasks. ${SOURCE}.`);
+    return `<div class="team-row${key === 'adaptive' ? ' ours' : ''}" data-reveal="fade" style="--i:${i}" data-anchor=".team-id b" ${tipAt(tip)}>` +
+      `<div class="team-id">${teamDrawing(key)}<div><b>${name}</b><small>${line}</small></div></div>` +
+      `<div class="team-fin"><span class="ml">Finished</span><b>${s.completed}</b></div>` +
+      measure(key, 'hours', s.total_hours, hMax, `${s.total_hours.toFixed(1)}\u00a0h`, i) + measure(key, 'tokens', s.input_tokens_b, tMax, `${s.input_tokens_b.toFixed(1)}\u00a0B`, i) + '</div>';
+  }).join('');
+  box.innerHTML = `<div class="teams"><div class="teams-head" aria-hidden="true"><span></span><span class="kicker">Finished</span><span class="kicker">Hours, all 36 tasks</span><span class="kicker">Tokens read, all tasks</span></div>${rows}</div>` +
+    `<p class="chart-foot">B is billions. Each team is ${mname('gpt-6.1-sol')} on all 36 tasks; hours count unfinished tasks up to the cutoff.</p>`;
+}
+
+// Explore every run: the steps each run finished over its hours, one small chart per job.
 let pickProgress = 'both';
-const modelCls = m => (m === 'gpt-6.1-sol' ? 'c-hi' : m === 'opus-5.5' ? 'c-s1' : 'c-s3');
 function chartProgress(F, box) {
-  setText('f-progress', 'Every run, step by step', 'Each line is one run of a job.', 'A line rises when an arm finishes a step, such as one cube placed. A circle ends a finished job, a cross one that ran out of time or was given up. Point at a line to see the run; click it to watch.');
-  box.innerHTML = '';
-  const top = el('div', 'chart-bar');
-  const seg = el('div', 'seg');
-  [['both', 'Both'], ['gpt-6.1-sol', 'gpt-6.1-sol'], ['opus-5.5', 'opus-5.5']].forEach(([k, n]) => { const b = el('button', '', n); b.type = 'button'; b.setAttribute('aria-pressed', k === pickProgress); b.onclick = () => { pickProgress = k; chartProgress(F, box); }; seg.append(b); });
-  top.append(seg, el('div', 'keyrow', ['gpt-6.1-sol', 'opus-5.5'].filter(m => pickProgress === 'both' || pickProgress === m).map(m => `<span><i class="k-line" style="--c:var(--${m === 'gpt-6.1-sol' ? 'hi' : 's1'})"></i>${m}</span>`).join('')));
-  const grid = el('div', 'small-multiples'), info = el('p', 'src', 'Both with the adaptive agent system. Point at a line for its run.');
-  box.append(top, grid, info);
-  const cols = box.clientWidth >= 1060 ? 4 : box.clientWidth >= 520 ? 2 : 1, W = Math.floor((box.clientWidth - 16 * (cols - 1)) / cols), H = Math.round(Math.min(230, W * 0.72)), L = 34, R = 10, T = 10, B = 24;
+  setText('f-progress', 'Every run', 'Explore every run.', 'Each line is one run of one task. It climbs each time an arm finishes a step, such as one cube placed; a dot ends a finished run, a cross one that was not finished.', [String(F.timelines.length), `runs of ${mname('gpt-6.1-sol')} and ${mname('opus-5.5')}`]);
+  const hint = matchMedia('(hover: none)').matches ? 'Tap a line to watch its run.' : 'Point at a line to see its run; click it to watch.';
+  box.innerHTML = `<div class="chart-top"><div class="seg" role="group" aria-label="Show the runs of">` +
+    [['both', 'Both'], ['gpt-6.1-sol', mname('gpt-6.1-sol'), 'vio'], ['opus-5.5', mname('opus-5.5'), 's1']].map(([k, n, c]) => `<button type="button" data-v="${k}" aria-pressed="${k === pickProgress}">${c ? `<i class="sw f-${c}"></i>` : ''}${n}</button>`).join('') +
+    `</div><p class="run-info">${hint}</p></div><div class="small-multiples" data-stagger data-show="${pickProgress}"></div>`;
+  const grid = box.querySelector('.small-multiples'), info = box.querySelector('.run-info');
+  const cols = grid.clientWidth >= 960 ? 4 : grid.clientWidth >= 480 ? 2 : 1, gap = 24, W = Math.floor((grid.clientWidth - gap * (cols - 1)) / cols);
+  const H = Math.round(Math.min(210, Math.max(160, W * 0.68))), L = 32, R = 8, T = 8, B = 24;
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
   TYPES.forEach(([type, typeName]) => {
-    const runs = F.timelines.filter(r => typeOf(r.task) === type && (pickProgress === 'both' || r.set === pickProgress));
-    const most = Math.max(...F.timelines.filter(r => typeOf(r.task) === type).map(r => r.steps), 1);
+    const runs = F.timelines.filter(r => typeOf(r.task) === type), most = Math.max(...runs.map(r => r.steps), 1);
     const X = h => L + Math.min(h, 24) / 24 * (W - L - R), Y = v => T + (1 - v / most) * (H - T - B);
     let g = '';
-    [0, 6, 12, 18, 24].forEach(h => { g += `<line class="grid" x1="${X(h)}" x2="${X(h)}" y1="${T}" y2="${H - B}"/>` + txt(X(h), H - B + 16, h + ' h', '', 'middle'); });
-    g += txt(L - 6, Y(most) + 4, most, '', 'end') + txt(L - 6, Y(0) + 4, 0, '', 'end');
+    [0, 6, 12, 18, 24].forEach(h => { g += `<line class="grid" x1="${X(h)}" x2="${X(h)}" y1="${T}" y2="${H - B}"/>` + txt(X(h), H - B + 17, h ? `${h} h` : '0', '', 'middle'); });
+    g += `<line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>` + txt(L - 8, Y(most) + 4, most, '', 'end');
     // gpt-6.1-sol last, so its violet lines sit on top
     runs.slice().sort((a, b) => (a.set === 'gpt-6.1-sol') - (b.set === 'gpt-6.1-sol')).forEach(r => {
       let d = `M${X(0).toFixed(1)} ${Y(0).toFixed(1)}`;
       r.points.forEach(([h, v]) => { d += `H${X(h).toFixed(1)}V${Y(v).toFixed(1)}`; });
-      const ex = X(r.hours), ey = Y(r.steps), c = modelCls(r.set);
-      const end = r.done ? `<circle cx="${ex}" cy="${ey}" r="3.2" class="${c} hollow" stroke-width="1.5"/>` : `<path d="M${ex - 3} ${ey - 3}l6 6m0-6l-6 6" class="${c}" stroke-width="1.5" style="fill:none"/>`;
-      g += `<g data-i="${F.timelines.indexOf(r)}"><path d="${d}" class="line ${c}" style="fill:none"/>${end}<path d="${d}" class="hit"/></g>`;
+      const ex = X(r.hours), ey = Y(r.steps), c = r.set === 'gpt-6.1-sol' ? 'c-hi' : 'c-s1';
+      const end = r.done ? `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="3.4" class="${c} end"/>` : `<path d="M${(ex - 3).toFixed(1)} ${(ey - 3).toFixed(1)}l6 6m0-6l-6 6" class="${c} x"/>`;
+      g += `<g data-i="${F.timelines.indexOf(r)}" data-set="${r.set}"><path d="${d}" class="line ${c}"/>${end}<path d="${d}" class="hit"/></g>`;
     });
-    const fig = el('div', `t-${type}`); fig.innerHTML = `<p class="mini-head"><i></i>${typeName}<span>steps done, 0 to ${most}</span></p>` + svg(W, H, g, `${typeName}: progress of each run`);
-    const s = fig.querySelector('svg');
-    s.addEventListener('pointerover', e => { const gEl = e.target.closest('g[data-i]'); if (!gEl) return; const r = F.timelines[+gEl.dataset.i];
-      s.classList.add('dimmed'); gEl.querySelector('.line').classList.add('hot');
-      info.innerHTML = `<b>${nice(r.task)}</b> · ${teamName(r.set)} · ${r.steps} steps in ${fmt1(r.hours)} h · ${r.done ? 'finished' : 'not finished'} · click to watch`; });
-    s.addEventListener('pointerout', e => { const gEl = e.target.closest('g[data-i]'); if (gEl) gEl.querySelector('.line').classList.remove('hot'); s.classList.remove('dimmed'); });
-    s.addEventListener('click', e => { const gEl = e.target.closest('g[data-i]'); if (!gEl) return; const r = F.timelines[+gEl.dataset.i]; if (run(r.set, r.task)) openRun(r.set, r.task); });
+    const fig = el('figure', `sm t-${type}`); fig.dataset.reveal = 'up';
+    fig.innerHTML = `<figcaption class="mini-head"><i></i>${typeName}<span>steps, 0 to ${most}</span></figcaption>` + svg(W, H, g, `${typeName}: the progress of each run`);
     grid.append(fig);
   });
-  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
-}
-
-function chartVision(F, box) {
-  const v0 = F.vision;
-  setText('f-vision', 'Vision', 'Seeing is the hard part.', `Told where every object is, the same AI finishes all ${v0[0].completed} jobs. From cameras it finishes ${v0[1].completed}. With blurred pictures or without its own code, it falls to about a third. Drag across the picture to see what 128 × 80 pixels leave.`, [`${v0[0].completed} → ${v0[1].completed}`, 'jobs, when the AI must find objects itself']);
-  const W = widthOf(box), rowH = 46, H = v0.length * rowH + 18, BW = W - 96;
-  let g = txt(W, 12, 'Grasps that fail', '', 'end');
-  v0.forEach((v, i) => {
-    const y = 22 + i * rowH, bw = Math.max(4, (BW - 40) * v.completed / 36);
-    const why = { oracle: 'Gets the true position of every object instead of pictures.', adaptive: 'Sharp camera pictures, and it may write its own code.', 'low-resolution': 'Every picture shrunk to 128 × 80 pixels.', 'robot-tool-only': 'Sharp pictures, but no code: only the robot tool.' }[v.key] || '';
-    g += `<g class="bar-row pt" ${tipAt(tipLines(v.label, [['Jobs finished', `${v.completed} of 36`], ['Grasps that fail', pct(v.grasp_fail)]], `<div class="tl"><span>${why}</span><span></span></div>`))}><rect x="0" y="${y - 8}" width="${W}" height="${rowH - 6}" style="fill:transparent"/>` +
-      txt(0, y + 4, v.label, v.key === 'oracle' ? '' : 'ink') + `<rect x="0" y="${y + 12}" width="${BW - 40}" height="10" rx="2" class="track"/><rect x="0" y="${y + 12}" width="${bw}" height="10" rx="2" class="${v.key === 'oracle' ? 'c-soft' : v.key === 'adaptive' ? 'c-hi' : 'c-s2'}"/>` +
-      txt(bw + 8, y + 21, v.completed, v.key === 'adaptive' ? 'lab' : 'num') + txt(W, y + 21, pct(v.grasp_fail), 'num', 'end') + '</g>';
+  const clear = () => { grid.querySelectorAll('.hot').forEach(x => x.classList.remove('hot')); grid.querySelectorAll('.dimmed').forEach(x => x.classList.remove('dimmed')); };
+  grid.addEventListener('pointerover', e => {
+    const gEl = e.target.closest('g[data-i]'); if (!gEl) return;
+    const r = F.timelines[+gEl.dataset.i]; clear(); gEl.closest('svg').classList.add('dimmed'); gEl.querySelector('.line').classList.add('hot');
+    info.innerHTML = `<b>${nice(r.task)}</b><span>${mname(r.set)} · ${r.steps} steps in ${fmtHours(r.hours)}</span>${statusChip(r.done, 'flat')}`;
   });
-  const base = mediaUrl(MEDIA + 'findings/');
-  box.innerHTML = svg(W, H, g, 'Tasks completed out of 36 under four vision conditions'); bindTips(box);
-  const cmp = el('div', 'compare', `<img src="${base}camera-full.webp" alt="A Transport camera picture at 1280 by 800 pixels" loading="lazy"><img class="low" src="${base}camera-128x80.png" alt="The same picture at 128 by 80 pixels" loading="lazy"><i class="bar"></i><span class="l">1280 × 800</span><span class="r">128 × 80</span>`);
-  const move = e => { const r = cmp.getBoundingClientRect(); cmp.style.setProperty('--cut', `${Math.min(100, Math.max(0, (e.clientX - r.left) / r.width * 100))}%`); };
-  cmp.addEventListener('pointerdown', e => { cmp.setPointerCapture(e.pointerId); move(e); }); cmp.addEventListener('pointermove', e => { if (e.buttons) move(e); });
-  box.append(cmp, el('p', 'src', `At 128 × 80 one pixel covers about ${F.vision_facts.pixel_mm} mm, more than twice the ${F.vision_facts.tolerance_mm} mm an agent has for placing a cube. In ${F.vision_facts.runs_with_measuring_code} of its 36 runs, gpt-6.1-sol writes its own code to measure positions in pictures.`));
-}
-
-let sortTime = 'model';
-function chartTime(F, box) {
-  const t = F.timeline_facts;
-  setText('f-time', 'Where the time goes', 'The arms mostly wait.', 'The world never pauses, but the arms spend most of it standing still while the agents think. Faster decisions would shorten jobs more than faster motion would.', [`${t.thinking_pct}% vs ${t.arms_moving_pct}%`, 'of one run: an agent thinking, an arm moving']);
-  const rows = F.time_shares.rows.slice(); if (sortTime === 'think') rows.sort((a, b) => b[1] - a[1]);
-  const W = widthOf(box), rowH = 30, H = rows.length * rowH, L = Math.min(150, W * 0.34), BW = W - L - 4; let g = '';
-  rows.forEach(([name, th, rb, cd], i) => {
-    const y = i * rowH + 6; let x = L;
-    const tipHtml = tipLines(name, [['Thinking', `${fmt1(th)}%`], ['Robot tool', `${fmt1(rb)}%`], ['Own code', `${fmt1(cd)}%`]]);
-    g += `<g class="pt" data-model="${name}" ${tipAt(tipHtml)}><rect x="0" y="${y - 4}" width="${W}" height="${rowH}" style="fill:transparent"/>` + txt(L - 10, y + 14, name, name === 'gpt-6.1-sol' || name === 'opus-5.5' ? 'ink' : 'ink2', 'end');
-    [[th, 'c-hi', 'on-dark'], [rb, 'c-s1', 'on-dark'], [cd, 'c-s3', 'on-light']].forEach(([v, c, tc]) => { const w = BW * v / 100; g += `<rect x="${x}" y="${y + 2}" width="${Math.max(w - 2, 0)}" height="16" class="${c}" rx="2"/>`; if (w > 36) g += txt(x + 6, y + 14, Math.round(v) + '%', tc); x += w; });
-    g += '</g>';
+  grid.addEventListener('pointerout', e => { const gEl = e.target.closest('g[data-i]'); if (!gEl || gEl.contains(e.relatedTarget)) return; clear(); info.textContent = hint; });
+  grid.addEventListener('click', e => { const gEl = e.target.closest('g[data-i]'); if (!gEl) return; const r = F.timelines[+gEl.dataset.i]; if (run(r.set, r.task)) openRun(r.set, r.task); });
+  box.querySelector('.seg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; pickProgress = b.dataset.v; grid.dataset.show = pickProgress;
+    box.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b));
   });
-  box.innerHTML = '';
-  const top = el('div', 'chart-bar'), seg = el('div', 'seg');
-  [['model', 'Strongest first'], ['think', 'Most thinking first']].forEach(([k, n]) => { const b = el('button', '', n); b.type = 'button'; b.setAttribute('aria-pressed', k === sortTime); b.onclick = () => { sortTime = k; chartTime(F, box); }; seg.append(b); });
-  top.append(el('div', 'keyrow', '<span><i class="k-think"></i>Thinking</span><span><i class="k-robot"></i>Robot tool</span><span><i class="k-code"></i>Own code</span>'), seg);
-  box.append(top);
-  box.insertAdjacentHTML('beforeend', svg(W, H, g, 'Share of agent time spent thinking, using the robot tool and running code, per model') +
-    `<p class="src">Share of agent time with the adaptive system. opus-5.5 thinks least and computes most.</p>`);
-  bindTips(box);
-}
-
-const SYS_ICON = {
-  'single-agent': '<circle cx="60" cy="16" r="9" class="c-s1"/><path d="M60 25 L18 62 M60 25 L39 62 M60 25 L60 62 M60 25 L81 62 M60 25 L102 62" class="axis"/>',
-  hierarchical: '<circle cx="60" cy="14" r="8" class="c-s1"/>' + [18, 39, 60, 81, 102].map(x => `<path d="M60 22 L${x} 40" class="axis"/><circle cx="${x}" cy="44" r="5" class="c-s2"/><path d="M${x} 49 L${x} 60" class="axis"/>`).join(''),
-  decentralized: [18, 39, 60, 81, 102].map(x => `<circle cx="${x}" cy="40" r="5" class="c-s2"/><path d="M${x} 45 L${x} 60" class="axis"/>`).join('') + '<path d="M23 40 H34 M44 40 H55 M65 40 H76 M86 40 H97 M18 34 Q60 4 102 34" class="axis" style="fill:none"/>',
-  adaptive: '<circle cx="60" cy="14" r="8" class="c-s1"/><path d="M60 22 L33 38 M60 22 L87 38 M60 22 L60 60" class="axis"/><circle cx="33" cy="42" r="5" class="c-s2"/><circle cx="87" cy="42" r="5" class="c-s2"/><path d="M33 47 L18 60 M33 47 L39 60 M87 47 L81 60 M87 47 L102 60" class="axis"/>',
-};
-function chartSystems(F, box) {
-  const sp = F.spend, s6 = F.systems.slice(0, 3).map(x => x.within_6h);
-  setText('f-systems', 'Team design', 'More agents: faster, but more tokens.', `How the team is organized barely changes how many jobs get done (27 to 29), but it trades time for cost. Within 6 hours the three multi-agent systems finish ${Math.min(...s6)} or ${Math.max(...s6)} jobs, the single agent ${F.systems[3].within_6h}. Spending alone does not buy success: ${sp[1].set} used ${fmt1(sp[1].input_tokens_b)} billion tokens and ${Math.round(sp[1].total_hours)} hours for ${sp[1].completed} job.`, ['1.6×', 'as long for a single agent; up to 1.9× the tokens with an agent per arm']);
-  const W = widthOf(box), H = 230, L = 46, R = 16, T = 18, B = 40, xm = 60, ym = 450;
-  const X = v => L + v / xm * (W - L - R), Y = v => T + (1 - v / ym) * (H - T - B); let g = '';
-  [0, 20, 40, 60].forEach(v => { g += `<line class="grid" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}"/>` + txt(X(v), H - B + 16, v + ' B', '', 'middle'); });
-  [0, 150, 300, 450].forEach(v => { g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/>` + txt(L - 6, Y(v) + 4, v + ' h', '', 'end'); });
-  g += txt(W - R, H - 4, 'Input tokens, all 36 jobs →', '', 'end');
-  const off = { adaptive: [-14, 4, 'end'], hierarchical: [0, -13, 'middle'], decentralized: [-12, 18, 'end'], 'single-agent': [12, 4, 'start'] };
-  F.systems.forEach(s => {
-    const cx = X(s.input_tokens_b), cy = Y(s.total_hours), ours = s.key === 'adaptive';
-    const [dx, dy, an] = off[s.key];
-    g += `<g class="pt" data-sys="${s.key}" ${tipAt(tipLines(s.label, [['Jobs finished', `${s.completed} of 36`], ['Finished within 6 hours', s.within_6h], ['Hours, all 36 jobs', fmt1(s.total_hours)], ['Input tokens, all jobs', `${fmt1(s.input_tokens_b)} billion`], ['Messages, typical job', s.median_messages]]))}>` +
-      (ours ? `<circle cx="${cx}" cy="${cy}" r="10" class="c-hi" stroke-width="1.5" style="fill:none"/>` : '') +
-      `<circle cx="${cx}" cy="${cy}" r="${ours ? 5.5 : 5}" class="${ours ? 'c-hi' : 'c-s2'}"/><circle cx="${cx}" cy="${cy}" r="16" style="fill:transparent"/>` + txt(cx + dx, cy + dy, `${s.label} · ${s.completed} done`, ours ? 'lab' : 'num', an) + '</g>';
-  });
-  const sys = { 'single-agent': ['Single agent', 'One agent drives every arm'], hierarchical: ['Hierarchical', 'A controller and one worker per arm'], decentralized: ['Decentralized', 'One worker per arm, no controller'], adaptive: ['Adaptive', 'A controller that creates helpers when work can be shared'] };
-  box.innerHTML = `<div class="sys">${Object.entries(sys).map(([k, [n, d]]) => `<div data-sys="${k}" class="${k === 'adaptive' ? 'on' : ''}"><svg viewBox="0 0 120 66" class="chart" aria-hidden="true">${SYS_ICON[k]}</svg><b>${n}</b><span>${d}</span></div>`).join('')}</div>` +
-    `<p class="panel-cap">Hours against input tokens, all 36 jobs</p>` + svg(W, H, g, 'Total hours against total input tokens for the four agent systems of gpt-6.1-sol') + `<p class="src">gpt-6.1-sol on all 36 jobs. Point at a card or a point for details; the ring marks the adaptive system, used everywhere else on this page.</p>`;
-  bindTips(box);
-  // A card and its point light up together.
-  const chart = box.querySelector('svg.chart[role="img"]');
-  const light = key => { box.querySelectorAll('[data-sys]').forEach(x => x.classList.toggle('hot', x.dataset.sys === key)); chart.classList.toggle('focus', !!key); };
-  box.querySelectorAll('.sys [data-sys]').forEach(c => { c.addEventListener('pointerenter', () => light(c.dataset.sys)); c.addEventListener('pointerleave', () => light(null)); });
-  chart.addEventListener('pointerover', e => { const p = e.target.closest('[data-sys]'); if (p) box.querySelectorAll('.sys [data-sys]').forEach(x => x.classList.toggle('hot', x.dataset.sys === p.dataset.sys)); });
-  chart.addEventListener('pointerleave', () => box.querySelectorAll('.sys .hot').forEach(x => x.classList.remove('hot')));
-}
-
-function chartFailure(F, box) {
-  const f = F.failure_by_type;
-  setText('f-failure', 'Steps that fail', 'Failing and retrying is normal.', 'A grasp slips, a handover misses, and the agents notice from the pictures and try again. In the median Relay job every handover fails at least once, yet 8 of the 9 Relay jobs are finished. The four weaker models rarely recover.', ['100%', 'of handovers fail at least once in a typical Relay job']);
-  const W = widthOf(box), rowH = 28, L = 96, BW = W - L - 48; let g = '';
-  const steps = { relay: `about ${f.median_steps_note.relay} steps in a typical job`, mosaic: `about ${f.median_steps_note.mosaic} steps in a typical job` };
-  TYPES.forEach(([type, name], i) => { const v = f.median_atomic_failure_pct[type], y = i * rowH + 4, w = BW * v / 100;
-    g += `<g class="bar-row pt" ${tipAt(tipLines(name, [['Steps that fail at least once', `${v}%`]], steps[type] ? `<div class="tl"><span>${cap(steps[type])}</span><span></span></div>` : ''))}><rect x="0" y="${y - 4}" width="${W}" height="${rowH}" style="fill:transparent"/>` +
-      txt(L - 10, y + 13, name, 'ink', 'end') + `<rect x="${L}" y="${y + 3}" width="${BW}" height="12" rx="2" class="track"/><rect x="${L}" y="${y + 3}" width="${w}" height="12" rx="2" class="c-${type}"/>` + txt(L + w + 8, y + 13, v + '%', 'num') + '</g>'; });
-  const LB = Math.min(160, W * 0.36), BW2 = W - LB - 52, H2 = F.grasp_failure.length * 24 + 4; let g2 = '';
-  F.grasp_failure.forEach(([m, v], i) => { const y = 4 + i * 24, w = BW2 * v / 100;
-    g2 += `<g class="bar-row pt" data-model="${m}" ${tipAt(tipLines(m, [['Grasps that fail', `${fmt1(v)}%`], ['Jobs finished', D.outcomes && D.outcomes[m] ? `${D.tasks.filter(t => done(m, t)).length} of 36` : '–']]))}><rect x="0" y="${y - 4}" width="${W}" height="24" style="fill:transparent"/>` +
-      txt(LB - 10, y + 11, m, i < 2 ? 'ink' : 'ink2', 'end') + `<rect x="${LB}" y="${y + 2}" width="${w}" height="10" rx="2" class="${modelCls(m)}"/>` + txt(LB + w + 6, y + 11, Math.round(v) + '%', 'num') + '</g>'; });
-  box.innerHTML = `<p class="panel-cap">Steps that fail at least once, median job, gpt-6.1-sol</p>` + svg(W, 4 * rowH + 4, g, 'Median share of steps that fail at least once, by task type') +
-    `<p class="panel-cap">Grasps that fail, by model</p>` + svg(W, H2, g2, 'Share of grasps that fail, per model') +
-    `<p class="src">A Relay job has about ${f.median_steps_note.relay} steps, a Mosaic job about ${f.median_steps_note.mosaic}. Point at a bar for details.</p>`;
-  bindTips(box);
-}
-
-function chartLevels(F, box) {
-  const lv = F.levels;
-  setText('f-levels', 'Team size and level', 'Bigger teams are harder than harder jobs.', 'For gpt-6.1-sol, adding arms costs more than making the job harder. It finishes about the same share at every level, but fewer jobs as the team grows, because more arms must share the space and the work.', [`${lv.by_size[0]} → ${lv.by_size[2]}`, `of ${lv.of} jobs, from small to large teams`]);
-  const two = box.clientWidth >= 400, W = two ? Math.floor((box.clientWidth - 28) / 2) : widthOf(box), H = 190, T = 34, B = 28;
-  const jobsOf = (kind, i) => D.tasks.filter(t => (kind === 'level' ? t.endsWith(`-l${i + 1}`) : t.split('-')[1] === SIZES[i]));
-  const minis = list => `<div class="minis">${list.map(t => `<i class="t-${typeOf(t)}${done(lv.set, t) ? ' done' : ''}" title="${nice(t)}"></i>`).join('')}</div>`;
-  const group = (title, labels, vals, cls, kind) => {
-    const bw = Math.min(40, (W - 40) / 3 - 24), gap = (W - 3 * bw) / 4; let g = '';
-    vals.forEach((v, i) => { const x = gap + i * (bw + gap), h = (H - T - B) * v / lv.of, y = H - B - h, list = jobsOf(kind, i);
-      const tipHtml = tipLines(labels[i], [['Jobs finished', `${v} of ${lv.of}`]], D.outcomes ? `${minis(list)}<div class="tl"><span>Filled: finished, by gpt-6.1-sol</span><span></span></div>` : '');
-      g += `<g class="pt" ${tipAt(tipHtml)}><rect x="${x - 14}" y="${T - 4}" width="${bw + 28}" height="${H - T - B + 26}" style="fill:transparent"/><line class="axis" x1="${x - 6}" x2="${x + bw + 6}" y1="${T}" y2="${T}" stroke-dasharray="2 3"/><rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="2" class="${cls}"/>` + txt(x + bw / 2, y - 7, `${v}`, cls === 'c-hi' ? 'lab' : 'num', 'middle') + txt(x + bw / 2, H - B + 17, labels[i], 'ink2', 'middle') + '</g>'; });
-    g += `<line class="axis" x1="0" x2="${W}" y1="${H - B}" y2="${H - B}"/>`;
-    return `<figure class="level-fig"><figcaption class="panel-cap">${title}</figcaption>${svg(W, H, g, `${title}: ${vals.join(', ')} of ${lv.of}`)}</figure>`; };
-  box.innerHTML = `<div class="levels" style="grid-template-columns:repeat(${two ? 2 : 1}, minmax(0, 1fr))">${group('By level, 12 jobs each', ['Level 1', 'Level 2', 'Level 3'], lv.by_level, 'c-s2', 'level')}${group('By team size, 12 jobs each', ['Small', 'Medium', 'Large'], lv.by_size, 'c-hi', 'size')}</div><p class="src">Jobs finished out of 12; the dashed line is all 12. Point at a bar to see its twelve jobs.</p>`;
-  bindTips(box);
 }
 
 const CHARTS = {
   overview: [['chart-compare', chartCompare, true]],
-  results: [['f-progress', chartProgress], ['f-vision', chartVision], ['f-time', chartTime], ['f-systems', chartSystems], ['f-failure', chartFailure], ['f-levels', chartLevels]],
+  results: [['f-vision', chartVision, 'fluid'], ['f-time', chartTime, 'fluid'], ['f-failure', chartFailure, 'fluid'], ['f-levels', chartLevels, 'fluid'], ['f-systems', chartSystems, 'fluid'], ['f-progress', chartProgress]],
 };
 const drawnAt = {};
 function drawCharts(view) {
   if (!FD || !CHARTS[view]) return;
-  CHARTS[view].forEach(([id, draw, direct]) => {
-    const box = direct ? $(id).querySelector('.f-chart') : $(id).querySelector('.f-chart');
-    const w = Math.floor(box.clientWidth); if (!w || drawnAt[id] === w) return;
-    drawnAt[id] = w; draw(FD, box);
+  CHARTS[view].forEach(([id, draw, how]) => {
+    const box = $(id).querySelector('.f-chart'), w = Math.floor(box.clientWidth), key = how === 'fluid' ? how : w;
+    if (!w || drawnAt[id] === key) return;
+    // A chart drawn again (a wider window, results arriving) does not play its entrance twice.
+    const played = !!box.querySelector('.is-in');
+    drawnAt[id] = key; draw(FD, box);
+    if (how === true) return;
+    bindTips(box);
+    if (played || !motionOK()) box.querySelectorAll('[data-reveal]').forEach(e => e.classList.add('is-in', 'rv-done')); else reveal(box);
   });
 }
 let resizeTimer;
@@ -592,19 +1270,23 @@ async function findings() {
 /* ---------- the nine tasks of a job, at their start ---------- */
 function nine() {
   const box = $('nine'), base = mediaUrl(MEDIA + 'tasks/');
-  document.querySelectorAll('.job .more').forEach(b => b.addEventListener('click', () => {
-    const type = b.closest('.job').dataset.type, open = b.getAttribute('aria-expanded') === 'true';
-    document.querySelectorAll('.job .more').forEach(x => { x.setAttribute('aria-expanded', 'false'); x.textContent = 'See all nine tasks'; });
-    if (open) { box.hidden = true; return; }
-    b.setAttribute('aria-expanded', 'true'); b.textContent = 'Hide the nine tasks';
-    const name = TYPES.find(t => t[0] === type)[1], rows = [1, 2, 3];
-    const cell = (size, level) => { const id = `${type}-${size}-l${level}`, f = D.facts[id] || {};
-      return `<img loading="lazy" src="${base}${id}.webp" alt="${nice(id)} at its start" title="${nice(id)}">`; };
-    const head = SIZES.map(size => { const f = D.facts[`${type}-${size}-l1`] || {}; return `<div class="chd">${cap(size)}<small>${f.arms} arms · ${f.workload} ${UNIT[f.unit] || ''}</small></div>`; }).join('');
+  const arms = (type, size) => { const a = [1, 2, 3].map(l => (D.facts[`${type}-${size}-l${l}`] || {}).arms).filter(Boolean); const lo = Math.min(...a), hi = Math.max(...a); return lo === hi ? `${lo}` : `${lo}–${hi}`; };
+  const fill = type => {
+    const name = TYPES.find(t => t[0] === type)[1];
+    const head = SIZES.map(size => { const f = D.facts[`${type}-${size}-l1`] || {}; return `<div class="chd">${cap(size)} team<small>${arms(type, size)} arms · ${f.workload} ${UNIT[f.unit] || ''}</small></div>`; }).join('');
+    const cell = (size, level) => { const id = `${type}-${size}-l${level}`; return `<img loading="lazy" src="${base}${id}.webp" srcset="${base}${id}.webp 1x, ${base}800/${id}.webp 2x" alt="${nice(id)} at its start" title="${nice(id)}" width="400" height="250">`; };
     box.className = `nine t-${type}`;
     box.innerHTML = `<div class="nine-head"><h3>${name}: three team sizes, three levels</h3><span class="src">Each task at its start, as the cameras see it.</span></div>` +
-      `<div class="nine-grid"><span class="corner"></span>${head}${rows.map(l => { const f = D.facts[`${type}-small-l${l}`] || {}; return `<div class="rh">Level ${l}<b>${f.level_note || ''}</b></div>` + SIZES.map(size => cell(size, l)).join(''); }).join('')}</div>`;
-    box.hidden = false; box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      `<div class="nine-grid"><span class="corner"></span>${head}${[1, 2, 3].map(l => { const f = D.facts[`${type}-small-l${l}`] || {}; return `<div class="rh">Level ${l}<b>${f.level_note || ''}</b></div>` + SIZES.map(size => cell(size, l)).join(''); }).join('')}</div>`;
+  };
+  const buttons = [...document.querySelectorAll('.job .more')];
+  const set = open => buttons.forEach(x => { const on = x === open; x.setAttribute('aria-expanded', on); x.textContent = on ? 'Hide the nine tasks' : 'See all nine tasks'; });
+  buttons.forEach(b => b.addEventListener('click', () => {
+    const type = b.closest('.job').dataset.type, open = b.getAttribute('aria-expanded') === 'true';
+    if (open) { set(null); leave(box).then(() => { box.hidden = true; box.classList.remove('is-leaving'); }); return; }
+    const was = !box.hidden; set(b); fill(type); box.hidden = false;
+    if (motionOK()) box.animate(was ? [{ opacity: 0.2 }, { opacity: 1 }] : [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: was ? 150 : 300, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    box.scrollIntoView({ block: 'nearest', behavior: motionOK() ? 'smooth' : 'auto' });
   }));
 }
 
@@ -629,19 +1311,21 @@ async function load(url) { const r = await fetch(url); if (!r.ok) throw new Erro
 
 async function start() {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  chrome(); playerControls(); nine(); modelHover();
+  // A local preview (?media=) swaps the published media host in the pictures the page starts with.
+  if (override) document.querySelectorAll(`img[src^="${MEDIA}"]`).forEach(i => { i.src = mediaUrl(i.getAttribute('src')); });
+  chrome(); reveal(); playerControls(); nine(); modelHover(); boardControls();
   const [tasks, media] = await Promise.all([load('data/tasks.json'), load('data/media.json')]);
   D.media = media; D.sets = media.sets.map(s => s.key);
   D.tasks = TYPES.flatMap(([type]) => SIZES.flatMap(size => [1, 2, 3].map(level => `${type}-${size}-l${level}`)));
   tasks.tasks.forEach(t => { D.facts[t.id] = t; });
   media.sets.forEach(s => { D.runs[s.key] = s.runs; });
-  film(); clips(); board(); library(); featured(); tocSpy();
+  film(); clips(); board(); library(); glance(); nextThumbs(); howCamera(); tocSpy();
   addEventListener('hashchange', route); route();
   findings();
   try {
     const results = await load(RESULTS_URL);
-    D.outcomes = results.outcomes; numbers(results); board(); library(); featured(); Object.keys(drawnAt).forEach(k => delete drawnAt[k]); drawCharts(current);
-    const best = results.conditions.find(c => c.key === 'adaptive'); if (best) $('stat-best').textContent = `${best.completed} / 36`;
+    D.outcomes = results.outcomes; numbers(results); board(); library(); glance(); nextThumbs(); Object.keys(drawnAt).forEach(k => delete drawnAt[k]); drawCharts(current);
+    const best = results.conditions.find(c => c.key === 'adaptive'); if (best) statBest(best.completed);
   } catch { /* the board and the library stay without results */ }
 }
 
