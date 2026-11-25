@@ -172,28 +172,44 @@ function clipVideo(src, posterUrl, label) {
   onScreen.observe(v); return v;
 }
 
+/* ---------- the hero film ----------
+   A hero-only loop (a "hero" entry in film.json: the hall to the grid, joined by a cross-fade)
+   plays with loop on. Until it is published, the 30 s loop plays only its footage window: just
+   before the end card it dips to the poster, which shows the frame the window starts on, and
+   starts the window again. With reduced motion only the poster shows. */
+const LOOP_WINDOW = [6.2, 26.6];
 function film() {
-  const f = D.media.film, box = $('film'); if (!f || !f.loop) return;
-  // The 720p file is sharp enough unless the box is wider than about 1400 device pixels.
+  const f = D.media.film, box = $('film'); if (!f) return;
   const base = mediaUrl(f.base), wide = box.clientWidth * (devicePixelRatio || 1) > 1400;
-  // The poster is the hall seen from above with the four jobs marked, 6.3 s into the loop; the first play starts there.
-  // The loop is fetched only once the page has loaded, so it never slows the page down.
-  const poster = box.querySelector('.film-poster');
-  if (override) { poster.src = mediaUrl(poster.getAttribute('src')); $('how-camera').src = mediaUrl($('how-camera').getAttribute('src')); }
-  const begin = () => {
-    const v = el('video'); v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('aria-label', 'The RoboTeam film');
-    v.src = base + (wide || !f.loop.small ? f.loop.video : f.loop.small);
-    v.addEventListener('loadedmetadata', () => { v.currentTime = 6.2; }, { once: true });
-    v.addEventListener('playing', () => v.classList.add('ready'), { once: true });
-    box.append(v); onScreen.observe(v);
-  };
-  const later = () => ('requestIdleCallback' in window ? requestIdleCallback(begin, { timeout: 1500 }) : setTimeout(begin, 300));
-  if (document.readyState === 'complete') later(); else addEventListener('load', later, { once: true });
   if (f.film) {
-    const b = $('watch-film'); b.hidden = false;
-    if (f.film.seconds) b.querySelector('span').textContent = `Watch the film · ${clock(f.film.seconds)}`;
-    b.addEventListener('click', () => openFilm(base + f.film.video, base + f.film.poster));
-  }
+    const label = f.film.seconds ? `Watch the film · ${clock(f.film.seconds)}` : 'Watch the film';
+    const open = () => openFilm(base + f.film.video, base + f.film.poster);
+    $('watch-film').querySelector('span').textContent = label;
+    $('watch-film').addEventListener('click', open);
+    $('film-play').setAttribute('aria-label', label); $('film-play').addEventListener('click', open);
+  } else { $('watch-film').hidden = true; $('film-play').hidden = true; }
+  if (!motionOK()) return;
+  const begin = hero => {
+    const clip = hero || f.loop; if (!clip) return;
+    const v = el('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('aria-hidden', 'true');
+    v.src = base + (wide || !clip.small ? clip.video : clip.small);
+    v.addEventListener('playing', () => v.classList.add('ready'), { once: true });
+    if (hero) v.loop = true;
+    else {
+      const [from, to] = LOOP_WINDOW; let dip = false;
+      v.addEventListener('loadedmetadata', () => { v.currentTime = from; }, { once: true });
+      v.addEventListener('seeked', () => { if (dip) { dip = false; v.classList.add('ready'); } });
+      // Checked on every frame where the browser allows it, and on timeupdate as a backup (frame callbacks pause in background tabs).
+      const check = () => { if (!dip && v.currentTime >= to) { dip = true; v.classList.remove('ready'); setTimeout(() => { v.currentTime = from; }, 340); } };
+      const frame = () => { check(); v.requestVideoFrameCallback(frame); };
+      if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(frame);
+      v.addEventListener('timeupdate', check);
+    }
+    box.querySelector('.film-poster').after(v); onScreen.observe(v);
+  };
+  const go = () => (f.hero ? Promise.resolve(f.hero) : load(base + 'film.json').then(j => j.hero || null, () => null)).then(begin);
+  const later = () => ('requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 1500 }) : setTimeout(go, 300));
+  if (document.readyState === 'complete') later(); else addEventListener('load', later, { once: true });
 }
 
 function clips() {
@@ -283,11 +299,68 @@ function runCard(set, task, { mark = true, type = true, team = false } = {}) {
   card.addEventListener('click', () => openRun(set, task));
   return card;
 }
-const FEATURED = [['gpt-6.1-sol', 'transport-large-l3'], ['opus-5.5', 'mosaic-large-l1'], ['gpt-6.1-sol', 'relay-large-l1'], ['gpt-6.1-sol', 'dial-large-l3'],
-  ['opus-5.5', 'transport-large-l2'], ['gpt-6.1-sol', 'mosaic-small-l3'], ['opus-5.5', 'relay-medium-l2'], ['opus-5.5', 'dial-medium-l3']];
-function featured() {
-  const box = $('featured'); box.innerHTML = '';
-  FEATURED.filter(([set, task]) => D.runs[set] && run(set, task)).forEach(([set, task]) => box.append(runCard(set, task, { mark: false, team: true })));
+/* ---------- Overview: the results at a glance, and the two cards that lead on ---------- */
+// Plays a container's entrance once, when it first comes into view: its .an children start
+// hidden, animate while it has .play, and stay still once it has .played.
+const playOnce = (() => {
+  const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    const n = e.target; io.unobserve(n); n.classList.add('play');
+    setTimeout(() => n.classList.replace('play', 'played'), +n.dataset.playMs || 2000);
+  }), { rootMargin: '0px 0px -12% 0px' }) : null;
+  return (n, ms) => {
+    if (n.classList.contains('play') || n.classList.contains('played')) return;
+    if (!motionOK() || !io) { n.classList.add('played'); return; }
+    n.classList.add('pl'); n.dataset.playMs = ms; io.observe(n);
+  };
+})();
+function statBest(n) {
+  const s = $('stat-best'); if (!s || s.textContent === String(n)) return;
+  s.textContent = n;
+  if (motionOK()) s.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: 'linear' });
+}
+const GLANCE = [['gpt-6.1-sol', 'vio'], ['opus-5.5', 's1'], [REFERENCE, 'ref']];
+function glance() {
+  const box = $('glance-rows'); if (!box) return;
+  const known = !!D.outcomes, count = set => D.tasks.filter(t => done(set, t)).length;
+  const head = `<div class="tz-head" aria-hidden="true"><span></span><span class="tz-strip">${TYPES.map(([k, n]) => `<span class="t-${k}"><i></i>${n}</span>`).join('')}</span><span></span></div>`;
+  const row = ([set, tone], r) => {
+    const who = set === REFERENCE ? `<b>Oracle<span class="tag">Reference</span></b><small>the same AI, given the position of every object</small>` : `<b class="model">${teamName(set)}</b><small>${TEAMS[set][1]}</small>`;
+    let k = 0;
+    const cells = TYPES.map(([type]) => `<span class="tz-grp">${SIZES.flatMap(size => [1, 2, 3].map(l => `${type}-${size}-l${l}`)).map(task =>
+      `<button type="button" class="tz-cell${done(set, task) ? ' d' : ''}" style="--k:${k++}" data-set="${set}" data-task="${task}" aria-label="${teamName(set)}, ${nice(task)}: ${stateText(set, task) || WORDS.soon}"></button>`).join('')}</span>`).join('');
+    return `<div class="tz-row ${tone}" style="--r:${r}"><div class="tz-who">${who}</div><div class="tz-strip">${cells}</div><div class="tz-n"><b class="an rise">${known ? count(set) : '–'}</b><span>of 36</span></div></div>`;
+  };
+  box.innerHTML = head + GLANCE.filter(([s]) => D.runs[s]).map(row).join('') + '<p class="tz-foot">Each square is one of the 36 tasks, grouped by job. Point at a square to see the run.</p>';
+  const best = GLANCE[0][0];
+  if (known) $('glance-lede').innerHTML = `From cameras alone, <span class="model">${teamName(best)}</span> finished ${count(best)} of 36 tasks. Given the position of every object, the same AI finished ${count(REFERENCE) === 36 ? 'all 36' : `${count(REFERENCE)} of 36`}.`;
+  if (!box.dataset.bound) {
+    box.dataset.bound = '1';
+    const cell = e => e.target.closest('.tz-cell');
+    const on = e => { const c = cell(e); if (c) tip(c, c.dataset.set, c.dataset.task); };
+    box.addEventListener('mouseover', on); box.addEventListener('focusin', on);
+    box.addEventListener('mouseout', e => { if (cell(e)) hideTip(); }); box.addEventListener('focusout', hideTip);
+    box.addEventListener('click', e => { const c = cell(e); if (!c) return; if (run(c.dataset.set, c.dataset.task)) openRun(c.dataset.set, c.dataset.task); else tip(c, c.dataset.set, c.dataset.task); });
+  }
+  playOnce(box, 2300);
+}
+const MOSAIC = [['gpt-6.1-sol', 'transport-large-l3'], ['opus-5.5', 'mosaic-large-l1'], ['gpt-6.1-sol', 'relay-large-l1'], ['gpt-6.1-sol', 'dial-large-l3']];
+function nextThumbs() {
+  const b = $('go-board');
+  if (b) b.innerHTML = D.sets.map(set => `<span class="mb-row${set === REFERENCE ? ' ref' : ''}">${TYPES.map(([type]) =>
+    `<span class="t-${type}">${D.tasks.filter(t => typeOf(t) === type).map(t => `<i${done(set, t) ? ' class="d"' : ''}></i>`).join('')}</span>`).join('')}</span>`).join('');
+  const m = $('go-mosaic');
+  if (m && !m.childElementCount) m.innerHTML = MOSAIC.filter(([s, t]) => D.runs[s] && run(s, t)).map(([s, t]) => `<img alt="" loading="lazy" src="${poster(s, t, 'front')}">`).join('');
+}
+// Step 1 of the walk-through: the run-start picture and the one that came back after the first call take turns while it is in view.
+function howCamera() {
+  const fig = $('how-cam'); if (!fig || !motionOK()) return;
+  let timer = 0, on = false;
+  const flip = () => { const now = fig.classList.toggle('new'); timer = setTimeout(flip, now ? 3600 : 2400); };
+  new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting && !on) { on = true; timer = setTimeout(flip, 1300); }
+    else if (!e.isIntersecting && on) { on = false; clearTimeout(timer); }
+  }), { threshold: 0.6 }).observe(fig);
 }
 
 function chipRow(id, key, options) {
@@ -435,33 +508,182 @@ function bindTips(root) {
 const yesNo = v => (v === 'yes' ? 'Yes' : v === 'partly' ? 'Partly' : 'No');
 const runLength = (minutes, approx) => { const t = minutes >= 60 ? `${Math.round(minutes / 60)} h` : minutes >= 1 ? `${Math.round(minutes)} min` : `${Math.round(minutes * 60)} s`; return (approx ? `${approx} ` : '') + t; };
 
+/* ---------- What is new: RoboTeam next to the benchmarks in the paper ----------
+   Two versions for review: ?whatsnew=a (the default) plots arms against run length; ?whatsnew=b
+   lines the benchmarks up on two strips beside a checklist. Both are drawn at the width they are
+   shown, play their entrance once and show a benchmark's details on hover or tap. */
+const WN = (new URLSearchParams(location.search).get('whatsnew') || 'a').toLowerCase() === 'b' ? 'b' : 'a';
+const WN_TIPS = [];
+const textWidth = (() => { let c = null; return (s, font) => { c = c || document.createElement('canvas').getContext('2d'); c.font = font; return c.measureText(s).width; }; })();
+const NAME_FONT = '500 12.5px "IBM Plex Sans", system-ui, sans-serif', NOTE_FONT = '500 13px "IBM Plex Sans", system-ui, sans-serif';
+const GLYPH = {
+  cam: '<path d="M1.3 3.8h2.1l1-1.5h3.2l1 1.5h2.1v6H1.3z"/><circle cx="6" cy="6.7" r="1.7"/>',
+  clock: '<circle cx="6" cy="6" r="4.5"/><path d="M6 3.5V6l1.7 1.1"/>',
+};
+const glyph = (k, x, y) => `<g class="gl" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">${GLYPH[k]}</g>`;
+const glyphKey = (k, label) => `<span><svg class="gl-k" viewBox="0 0 12 12" aria-hidden="true">${GLYPH[k]}</svg>${label}</span>`;
+const benches = F => F.benchmarks.rows.map(([name, arms, multi, real, vision, minutes, approx, group]) => ({ name, arms, multi, real, vision, minutes, approx, group, ours: group === 'ours' }));
+const benchTip = b => tipLines(b.name, [['Robot arms', b.arms], ['One run lasts', runLength(b.minutes, b.approx)], ['Cameras only', yesNo(b.vision)], ['Never pauses', yesNo(b.real)], ['Several agents', yesNo(b.multi)]],
+  b.ours ? '' : `<div class="tl"><span>${b.group === 'policy' ? 'Tests trained robot policies' : 'Tests AI agents'}</span><span></span></div>`);
+const px = v => Math.round(v) + 0.5;
+const note = (x, y, em, rest, anchor, d) => txt(x, y, `<tspan class="em">${em}</tspan> ${rest}`, 'dim-t an', anchor, `style="--d:${d}s"`);
+
 function chartCompare(F, box) {
-  const narrow = box.clientWidth < 560, W = narrow ? 560 : widthOf(box), H = 330, L = 40, R = 26, T = 22, B = 44;
-  const lx = m => Math.log10(m), x0 = lx(0.06), x1 = lx(2400);
-  const X = m => L + (lx(m) - x0) / (x1 - x0) * (W - L - R), Y = a => T + (1 - a / 17) * (H - T - B);
-  let g = '';
-  [[0.1, '6 s'], [1, '1 min'], [10, '10 min'], [60, '1 h'], [240, '4 h'], [1440, '24 h']].forEach(([m, l]) => { g += `<line class="grid" x1="${X(m)}" x2="${X(m)}" y1="${T}" y2="${H - B}"/>` + txt(X(m), H - B + 18, l, '', 'middle'); });
-  [0, 4, 8, 12, 16].forEach(a => { g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(a)}" y2="${Y(a)}"/>` + txt(L - 8, Y(a) + 4, a, '', 'end'); });
-  g += txt(L - 8, T - 8, 'Arms', '', 'end') + txt(W - R, H - 6, 'How long a run lasts →', '', 'end');
-  const place = { ReflexBench: [0, -13, 'middle'], EmbodiedBench: [-7, 17, 'end'], VLABench: [7, 17, 'start'], RoboTwin: [10, 4, 'start'], RoboFactory: [0, -13, 'middle'], RoCoBench: [0, -13, 'middle'],
-    RobotWorld: [-9, 17, 'end'], RoboColiseum: [0, -13, 'middle'], PARTNR: [9, 17, 'start'], 'Embodied First Exam': [0, 22, 'middle'], RoboTeam: [-18, 5, 'end'] };
-  const nudge = { EmbodiedBench: 0.86, VLABench: 1.16 };
-  F.benchmarks.rows.forEach(([name, arms, multi, real, vision, minutes, approx, group]) => {
-    const cx = X(minutes * (nudge[name] || 1)), cy = Y(arms), ours = group === 'ours', r = ours ? 8 : 5.5;
-    const cls = ours ? 'c-hi' : group === 'agent' ? 'c-s2' : 'c-s3';
-    const tipHtml = tipLines(name, [['Most arms', arms], ['Several agents', yesNo(multi)], ['Never pauses', yesNo(real)], ['Cameras only', yesNo(vision)], ['Run length', runLength(minutes, approx)]],
-      `<div class="tl"><span>${group === 'policy' ? 'Tests trained robot policies' : 'Tests AI agents'}</span><span></span></div>`);
-    let p = '';
-    if (real !== 'no') p += `<circle cx="${cx}" cy="${cy}" r="${r + 5}" class="${cls}" stroke-width="1.6" ${real === 'partly' ? 'stroke-dasharray="2 3"' : ''} style="fill:none"/>`;
-    p += `<circle cx="${cx}" cy="${cy}" r="${r}" class="${cls}${vision === 'yes' ? '' : ' hollow'}" stroke-width="2"/><circle cx="${cx}" cy="${cy}" r="14" style="fill:transparent"/>`;
-    const [dx, dy, an] = place[name] || [8, 4, 'start'];
-    p += txt(cx + dx, cy + dy, name, ours ? 'big' : 'ink2', an);
-    g += `<g class="pt" ${tipAt(tipHtml)}>${p}</g>`;
+  const rows = benches(F), fig = box.closest('.wn');
+  WN_TIPS.length = 0; rows.forEach(b => WN_TIPS.push(benchTip(b)));
+  // Labels are placed with measured text widths, so draw again once the fonts are in.
+  if (document.fonts && document.fonts.status !== 'loaded' && !fig.dataset.fontWait) {
+    fig.dataset.fontWait = '1'; document.fonts.ready.then(() => { delete drawnAt['chart-compare']; drawCharts(current); });
+  }
+  (WN === 'b' ? whatsNewB : whatsNewA)(rows, box);
+  wnBind(fig); playOnce(fig, WN === 'b' ? 2700 : 2200);
+}
+
+// A: arms (0-16) against run length (6 s to 24 h, log). The others sit in one soft region; RoboTeam lands last, far up and right.
+function whatsNewA(rows, box) {
+  const W = Math.max(280, Math.floor(box.clientWidth)), compact = W < 540;
+  const H = compact ? 360 : Math.round(Math.min(450, Math.max(380, W * 0.66)));
+  const L = 30, R = compact ? 18 : 24, T = compact ? 42 : 46, B = 46;
+  const lg = Math.log10, x0 = lg(0.1) - (compact ? 0.13 : 0.26), x1 = lg(1440) + 0.03;
+  const X = m => L + (lg(m) - x0) / (x1 - x0) * (W - L - R), Y = a => T + (17 - a) / 17.7 * (H - T - B);
+  const r = compact ? 4.5 : 5.5, UR = compact ? 8 : 9.5, ui = rows.findIndex(b => b.ours), UX = X(1440), UY = Y(16), lh = 15;
+  const NUDGE = { EmbodiedBench: 0.87, VLABench: 1.15 }; // both "about 1 min" with one arm: side by side instead of on top of each other
+  let grid = '';
+  const xt = compact ? [[0.1, '6 s'], [1, '1 min'], [60, '1 h'], [1440, '24 h']] : [[0.1, '6 s'], [1, '1 min'], [10, '10 min'], [60, '1 h'], [1440, '24 h']];
+  xt.forEach(([m, l]) => { grid += `<line class="grid" x1="${px(X(m))}" x2="${px(X(m))}" y1="${T - 12}" y2="${H - B}"/>` + txt(X(m), H - B + 19, l, 'tick', 'middle'); });
+  [4, 8, 12, 16].forEach(a => { grid += `<line class="grid" x1="${L}" x2="${W - R}" y1="${px(Y(a))}" y2="${px(Y(a))}"/>` + txt(L - 9, Y(a) + 4, a, 'tick', 'end'); });
+  grid += `<line class="base" x1="${L}" x2="${W - R}" y1="${px(H - B)}" y2="${px(H - B)}"/>`;
+  grid += txt(L - 9 - 12, T - 26, 'Robot arms', 'axis-t', 'start') + txt(W - R, H - 5, 'How long one run can last →', 'axis-t', 'end');
+  // The others: a name beside each dot where it fits, never on top of a dot or another name.
+  const pts = rows.map((b, i) => ({ b, i })).filter(p => !p.b.ours).map(p => ({ ...p, x: X(p.b.minutes * (NUDGE[p.b.name] || 1)), y: Y(p.b.arms) }));
+  const taken = pts.map(p => ({ x0: p.x - r - 3, y0: p.y - r - 3, x1: p.x + r + 3, y1: p.y + r + 3 }));
+  taken.push({ x0: UX - 30, y0: UY - 30, x1: W, y1: UY + 30 });
+  const free = a => a.x0 >= L + 4 && a.x1 <= W - R + 4 && a.y0 >= Y(4.8) - 30 && a.y1 <= H - B - 3 && !taken.some(q => a.x0 < q.x1 && a.x1 > q.x0 && a.y0 < q.y1 && a.y1 > q.y0);
+  // A name never sits level with another dot close by, where it could be read as that dot's name.
+  const clear = (a, p) => pts.every(q => q === p || q.y < a.y0 - 3 || q.y > a.y1 + 3 || Math.max(a.x0 - q.x, q.x - a.x1) - r >= 22);
+  // Try the points in many orders and keep the placement that names the most of them, preferring names beside their dot.
+  // On a phone only the two nearest rivals get a name; the others show theirs on tap.
+  const named = compact ? ['RoboFactory', 'Embodied First Exam'] : null;
+  {
+    const fixed = taken.slice();
+    const cands = pts.map(p => {
+      if (named && !named.includes(p.b.name)) return [];
+      const tw = textWidth(p.b.name, NAME_FONT), w = tw + (p.b.vision === 'yes' ? 16 : 0) + (p.b.real === 'yes' ? 16 : 0);
+      return [[p.x + r + 6, p.y - lh / 2], [p.x - r - 6 - w, p.y - lh / 2], [p.x - w / 2, p.y - r - 4 - lh], [p.x - w / 2, p.y + r + 3],
+        [p.x + r - 1, p.y - r - 2 - lh], [p.x - r + 1 - w, p.y - r - 2 - lh], [p.x + r - 1, p.y + r + 1], [p.x - r + 1 - w, p.y + r + 1]].map(([x, y]) => ({ x, y, w, tw }));
+    });
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const idx = pts.map((p, i) => i), orders = [idx, [...idx].sort((a, b) => pts[a].x - pts[b].x), [...idx].sort((a, b) => pts[b].x - pts[a].x)];
+    for (let n = 0; n < 60; n++) orders.push([...idx].sort(() => rnd() - 0.5));
+    let best = null;
+    orders.forEach(order => {
+      taken.length = 0; taken.push(...fixed); const pick = []; let score = 0;
+      order.forEach(i => { const k = cands[i].findIndex(c => { const a = { x0: c.x - 3, y0: c.y, x1: c.x + c.w + 3, y1: c.y + lh }; return free(a) && clear(a, pts[i]); });
+        if (k < 0) return; const c = cands[i][k]; pick[i] = c; taken.push({ x0: c.x - 3, y0: c.y, x1: c.x + c.w + 3, y1: c.y + lh }); score += 100 - (k > 1 ? 3 + k : k); });
+      if (!best || score > best.score) best = { score, pick };
+    });
+    pts.forEach((p, i) => { if (best.pick[i]) p.lab = best.pick[i]; });
+  }
+  let ex0 = Infinity, ey0 = Infinity, ex1 = -Infinity, ey1 = -Infinity;
+  const grow = (a, b, c, d) => { ex0 = Math.min(ex0, a); ey0 = Math.min(ey0, b); ex1 = Math.max(ex1, c); ey1 = Math.max(ey1, d); };
+  pts.forEach(p => { grow(p.x - r, p.y - r, p.x + r, p.y + r); if (p.lab) grow(p.lab.x, p.lab.y, p.lab.x + p.lab.w, p.lab.y + lh); });
+  const pad = compact ? 9 : 13, rg = { x: Math.max(L + 2, ex0 - pad), y: ey0 - pad, x2: Math.min(W - R, ex1 + pad), y2: Math.min(H - B - 4, ey1 + pad) };
+  const region = `<rect class="region" x="${rg.x.toFixed(1)}" y="${rg.y.toFixed(1)}" width="${(rg.x2 - rg.x).toFixed(1)}" height="${(rg.y2 - rg.y).toFixed(1)}" rx="14"/>` + txt(rg.x + 1, rg.y - 10, 'EVERY OTHER BENCHMARK', 'region-t', 'start');
+  const dots = [...pts].sort((a, b) => a.x - b.x).map((p, k) => {
+    const d = 0.3 + k * 0.07, c = `cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}"`;
+    let s = `<g class="wn-pt" data-b="${p.i}"><circle class="hit" ${c} r="${r + 8}"/><circle class="dot an pop" style="--d:${d.toFixed(2)}s" ${c} r="${r}"/>`;
+    if (p.lab) {
+      s += `<g class="an" style="--d:${(d + 0.12).toFixed(2)}s">` + txt(p.lab.x, p.lab.y + 11.5, p.b.name, 'nm');
+      let gx = p.lab.x + p.lab.tw + 5;
+      if (p.b.vision === 'yes') { s += glyph('cam', gx, p.lab.y + 1.5); gx += 16; }
+      if (p.b.real === 'yes') s += glyph('clock', gx, p.lab.y + 1.5);
+      s += '</g>';
+    }
+    return s + '</g>';
+  }).join('');
+  // Two quiet dimensions from the next best (4 arms, 4 h) to RoboTeam, which lands last.
+  const nx = X(240), ny = Y(4), t = 1.15;
+  const chips = compact ? ['16 arms · 24 h', 'cameras only · never pauses'] : ['16 arms · 24 h · cameras only · never pauses'];
+  let fore = '';
+  if (!compact && rg.y - UY > 36) fore += `<line class="guide an grow-y" style="--d:${t}s" x1="${px(nx)}" x2="${px(nx)}" y1="${UY + 5}" y2="${rg.y.toFixed(1)}"/>`;
+  if (!compact && UX - rg.x2 > 20) fore += `<line class="guide an grow-x" style="--d:${t}s" x1="${rg.x2.toFixed(1)}" x2="${UX - 5}" y1="${px(ny)}" y2="${px(ny)}"/>`;
+  fore += `<path class="dim an grow-up" style="--d:${t + 0.1}s" d="M${px(UX) - 4} ${px(ny)}h8M${px(UX)} ${px(ny)}V${(UY + UR + 6).toFixed(1)}"/>`;
+  fore += `<path class="dim an grow-x" style="--d:${t + 0.1}s" d="M${px(nx)} ${px(UY) - 4}v8M${px(nx)} ${px(UY)}H${(UX - UR - 6).toFixed(1)}"/>`;
+  const span = UX - UR - 6 - nx, w6 = textWidth('6× longer', NOTE_FONT);
+  // The arms note sits halfway up its line, or under RoboTeam's chips when they reach that far (phones).
+  const y4 = Math.max((UY + ny) / 2 + 4, UY + 18 + 24 + 8 + chips.length * 30 + 18);
+  fore += note(UX - 10, y4, '4×', 'the arms', 'end', t + 0.35);
+  fore += span > w6 + 12 ? note(nx + span / 2, UY - 10, '6×', 'longer', 'middle', t + 0.35) : note(UX - UR - 8, UY - 10, '6×', 'longer', 'end', t + 0.35);
+  fore += `<g class="wn-pt us" data-b="${ui}"><circle class="halo an halo" style="--d:${t + 0.05}s" cx="${UX.toFixed(1)}" cy="${UY.toFixed(1)}" r="${(UR * 2.1).toFixed(1)}"/><circle class="ours an land" style="--d:${t + 0.05}s" cx="${UX.toFixed(1)}" cy="${UY.toFixed(1)}" r="${UR}"/><circle class="hit" cx="${UX.toFixed(1)}" cy="${UY.toFixed(1)}" r="${UR * 2.3}"/></g>`;
+  const over = `<div class="wn-us an rise" style="--d:${t + 0.35}s;right:${Math.round(W - UX + UR + 12)}px;top:${Math.round(UY + 18)}px"><b>RoboTeam</b>${chips.map(c => `<span class="chip">${c}</span>`).join('')}</div>`;
+  const label = 'Benchmarks by robot arms and run length. Every other benchmark has 1 to 4 arms and runs of at most 4 hours; RoboTeam has 16 arms and runs of up to 24 hours.';
+  box.innerHTML = `<div class="wn-plot" style="height:${H}px">${svg(W, H, `<g class="an">${grid}</g><g class="an" style="--d:.12s">${region}</g>${dots}${fore}`, label)}${over}</div>` +
+    `<div class="wn-key">${glyphKey('cam', 'Cameras only')}${glyphKey('clock', 'Never pauses')}<span class="src">From the paper’s comparison table</span></div>`;
+}
+
+// B: two aligned strips (arms, run length) and a checklist where only RoboTeam ticks every row.
+function whatsNewB(rows, box) {
+  const W = Math.max(280, Math.floor(box.clientWidth)), compact = W < 540, side = W >= 860, LW = 350;
+  const SW = side ? W - LW - 44 : W, L = 2, R = compact ? 14 : 18;
+  const r = compact ? 4.5 : 5.5, step = 2 * r + 3, UR = compact ? 8 : 9.5, ui = rows.findIndex(b => b.ours), lg = Math.log10;
+  const x0 = L + 8, x1 = SW - R - UR;
+  const strips = [
+    { title: 'Robot arms on one task', X: a => x0 + (a - 1) / 15 * (x1 - x0), val: b => b.arms, ticks: [[1, '1'], [4, '4'], [8, '8'], [12, '12'], [16, '16']], from: 4, max: 16, em: '4×', rest: 'the arms', us: '16 arms' },
+    { title: 'How long one run can last', X: m => x0 + (lg(m) - lg(0.1)) / (lg(1440) - lg(0.1)) * (x1 - x0), val: b => b.minutes,
+      ticks: compact ? [[0.1, '6 s'], [1, '1 min'], [60, '1 h'], [240, '4 h'], [1440, '24 h']] : [[0.1, '6 s'], [1, '1 min'], [10, '10 min'], [60, '1 h'], [240, '4 h'], [1440, '24 h']], from: 240, max: 1440, em: '6×', rest: 'longer', us: '24 h' },
+  ];
+  let y = 0, g = '';
+  strips.forEach((s, si) => {
+    const t0 = 0.1 + si * 0.45;
+    const pts = rows.map((b, i) => ({ b, i, x: s.X(s.val(b)) })).filter(p => !p.b.ours).sort((a, b) => a.x - b.x);
+    const lv = []; pts.forEach(p => { let k = 0; while (lv.some(q => q.k === k && Math.abs(q.x - p.x) < step)) k++; p.k = k; lv.push(p); });
+    const levels = Math.max(...pts.map(p => p.k)) + 1;
+    const titleY = y + 14, base = titleY + 24 + (levels - 1) * step + r, axisY = base + UR + 9, tickY = axisY + 18, brY = tickY + 13, labY = brY + 18;
+    const ux = s.X(s.max), fx = s.X(s.from);
+    g += `<g class="an" style="--d:${t0}s">${txt(L, titleY, s.title, 'st-t')}${s.ticks.map(([v, l]) => `<line class="base" x1="${px(s.X(v))}" x2="${px(s.X(v))}" y1="${px(axisY)}" y2="${px(axisY) + 4}"/>` + txt(s.X(v), tickY, l, 'tick', 'middle')).join('')}</g>`;
+    g += `<line class="base an grow-x" style="--d:${t0}s" x1="${x0 - 8}" x2="${x1 + 8}" y1="${px(axisY)}" y2="${px(axisY)}"/>`;
+    g += pts.map((p, k) => { const c = `cx="${p.x.toFixed(1)}" cy="${(base - p.k * step).toFixed(1)}"`;
+      return `<g class="wn-pt" data-b="${p.i}"><circle class="hit" ${c} r="${r + 5}"/><circle class="dot an rise" style="--d:${(t0 + 0.12 + k * 0.05).toFixed(2)}s" ${c} r="${r}"/></g>`; }).join('');
+    const t1 = 1.25 + si * 0.1;
+    g += `<g class="wn-pt us" data-b="${ui}"><circle class="halo an halo" style="--d:${t1}s" cx="${ux.toFixed(1)}" cy="${base.toFixed(1)}" r="${(UR * 2).toFixed(1)}"/><circle class="ours an land" style="--d:${t1}s" cx="${ux.toFixed(1)}" cy="${base.toFixed(1)}" r="${UR}"/><circle class="hit" cx="${ux.toFixed(1)}" cy="${base.toFixed(1)}" r="${UR * 2.2}"/></g>`;
+    g += txt(ux + UR, base - UR * 2 - 8, s.us, 'us-t an rise', 'end', `style="--d:${t1 + 0.2}s"`);
+    g += `<path class="dim an grow-x" style="--d:${t1 + 0.15}s" d="M${px(fx)} ${px(brY) - 5}V${px(brY)}H${px(ux)}V${px(brY) - 5}"/>`;
+    const span = ux - fx, wn = textWidth(`${s.em} ${s.rest}`, NOTE_FONT);
+    g += span > wn + 6 ? note(fx + span / 2, labY, s.em, s.rest, 'middle', t1 + 0.35) : note(ux + 2, labY, s.em, s.rest, 'end', t1 + 0.35);
+    y = labY + 26;
   });
-  box.innerHTML = `<div class="${narrow ? 'scroll-x' : ''}">${svg(W, H, g, 'Benchmarks by number of arms and run length; RoboTeam is the only one with 16 arms and runs of up to 24 hours')}</div>` +
-    `<div class="keyrow"><span>● cameras only</span><span>○ given object positions, fully or partly</span><span>◎ the world never pauses</span><span><i style="--c:var(--s2)"></i>AI agents</span><span><i style="--c:var(--s3)"></i>trained policies</span></div>` +
-    `<p class="src">From the paper's comparison table; point at a benchmark for details. ${F.benchmarks.left_out}</p>`;
-  bindTips(box);
+  const H = y - 8;
+  const props = [['vision', 'Cameras only'], ['real', 'Never pauses'], ['multi', 'Several agents']];
+  const score = b => props.reduce((n, [k]) => n + (b[k] === 'yes' ? 2 : b[k] === 'partly' ? 1 : 0), 0);
+  const order = rows.map((b, i) => i).filter(i => !rows[i].ours).sort((a, b) => score(rows[b]) - score(rows[a]) || rows[a].name.localeCompare(rows[b].name));
+  const pip = (i, v) => `<i class="pip ${v === 'yes' ? 'y' : v === 'partly' ? 'p' : 'n'}" data-b="${i}"></i>`;
+  // RoboTeam's column sits at the right edge, under its dots on the strips.
+  const tick = `<span class="ok" data-b="${ui}"></span>`;
+  const list = `<div class="wn-list" style="--us-col:${side ? 64 : Math.round((R + UR) * 2)}px"><div class="wn-lh"><span></span><span>The other ${order.length}</span><span class="us">RoboTeam</span></div>` +
+    props.map(([k, lab], j) => `<div class="wn-li an rise" style="--d:${(0.9 + j * 0.4).toFixed(1)}s"><span class="lab">${lab}</span><span class="pips">${order.map(i => pip(i, rows[i][k])).join('')}</span>${tick}</div>`).join('') +
+    `<div class="wn-li all an rise" style="--d:2.1s"><span class="lab">All three</span><span class="none">None of them</span>${tick}</div></div>`;
+  const label = 'Benchmarks on two strips: robot arms on one task, and how long one run can last. RoboTeam is far right on both, and the only one that is cameras only, never pauses and has several agents.';
+  box.innerHTML = `<div class="wn-b${side ? ' side' : ''}"><div class="wn-plot" style="height:${H}px">${svg(SW, H, g, label)}</div>${list}</div>` +
+    `<div class="wn-key"><span><i class="pip y"></i>Yes</span><span><i class="pip p"></i>Partly</span><span><i class="pip n"></i>No</span><span class="src">From the paper’s comparison table</span></div>`;
+}
+
+// One benchmark at a time: point at a dot, a name or a checklist mark and everything about it lights up.
+function wnBind(fig) {
+  if (fig.dataset.bound) return; fig.dataset.bound = '1';
+  const t = $('tip');
+  const mark = i => { fig.classList.toggle('hl', i != null); fig.querySelectorAll('[data-b]').forEach(e => e.classList.toggle('on', e.dataset.b === i)); };
+  const place = (x, y) => { const w = t.offsetWidth, h = t.offsetHeight; let l = x + 14, tp = y + 14;
+    if (l + w > innerWidth - 8) l = x - w - 14; if (tp + h > innerHeight - 8) tp = y - h - 14; t.style.left = `${Math.max(8, l)}px`; t.style.top = `${Math.max(8, tp)}px`; };
+  const show = (i, x, y) => { mark(i); t.className = 'tip chart-tip'; t.innerHTML = WN_TIPS[+i]; t.hidden = false; place(x, y); };
+  const hide = () => { if (fig.classList.contains('hl')) { mark(null); t.hidden = true; } };
+  const at = e => e.target.closest && e.target.closest('[data-b]');
+  fig.addEventListener('pointerover', e => { if (e.pointerType !== 'mouse') return; const g = at(e); if (g) show(g.dataset.b, e.clientX, e.clientY); });
+  fig.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' && fig.classList.contains('hl')) place(e.clientX, e.clientY); });
+  fig.addEventListener('pointerout', e => { if (e.pointerType !== 'mouse') return; const g = at(e), to = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest('[data-b]') : null;
+    if (g && (!to || to.dataset.b !== g.dataset.b)) hide(); });
+  fig.addEventListener('click', e => { const g = at(e); if (g) show(g.dataset.b, e.clientX, e.clientY); else hide(); });
+  document.addEventListener('pointerdown', e => { if (!fig.contains(e.target)) hide(); });
+  addEventListener('scroll', hide, { passive: true });
 }
 
 let pickProgress = 'both';
@@ -640,19 +862,23 @@ async function findings() {
 /* ---------- the nine tasks of a job, at their start ---------- */
 function nine() {
   const box = $('nine'), base = mediaUrl(MEDIA + 'tasks/');
-  document.querySelectorAll('.job .more').forEach(b => b.addEventListener('click', () => {
-    const type = b.closest('.job').dataset.type, open = b.getAttribute('aria-expanded') === 'true';
-    document.querySelectorAll('.job .more').forEach(x => { x.setAttribute('aria-expanded', 'false'); x.textContent = 'See all nine tasks'; });
-    if (open) { box.hidden = true; return; }
-    b.setAttribute('aria-expanded', 'true'); b.textContent = 'Hide the nine tasks';
-    const name = TYPES.find(t => t[0] === type)[1], rows = [1, 2, 3];
-    const cell = (size, level) => { const id = `${type}-${size}-l${level}`, f = D.facts[id] || {};
-      return `<img loading="lazy" src="${base}${id}.webp" alt="${nice(id)} at its start" title="${nice(id)}">`; };
-    const head = SIZES.map(size => { const f = D.facts[`${type}-${size}-l1`] || {}; return `<div class="chd">${cap(size)}<small>${f.arms} arms · ${f.workload} ${UNIT[f.unit] || ''}</small></div>`; }).join('');
+  const arms = (type, size) => { const a = [1, 2, 3].map(l => (D.facts[`${type}-${size}-l${l}`] || {}).arms).filter(Boolean); const lo = Math.min(...a), hi = Math.max(...a); return lo === hi ? `${lo}` : `${lo}–${hi}`; };
+  const fill = type => {
+    const name = TYPES.find(t => t[0] === type)[1];
+    const head = SIZES.map(size => { const f = D.facts[`${type}-${size}-l1`] || {}; return `<div class="chd">${cap(size)} team<small>${arms(type, size)} arms · ${f.workload} ${UNIT[f.unit] || ''}</small></div>`; }).join('');
+    const cell = (size, level) => { const id = `${type}-${size}-l${level}`; return `<img loading="lazy" src="${base}${id}.webp" alt="${nice(id)} at its start" title="${nice(id)}" width="1280" height="800">`; };
     box.className = `nine t-${type}`;
     box.innerHTML = `<div class="nine-head"><h3>${name}: three team sizes, three levels</h3><span class="src">Each task at its start, as the cameras see it.</span></div>` +
-      `<div class="nine-grid"><span class="corner"></span>${head}${rows.map(l => { const f = D.facts[`${type}-small-l${l}`] || {}; return `<div class="rh">Level ${l}<b>${f.level_note || ''}</b></div>` + SIZES.map(size => cell(size, l)).join(''); }).join('')}</div>`;
-    box.hidden = false; box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      `<div class="nine-grid"><span class="corner"></span>${head}${[1, 2, 3].map(l => { const f = D.facts[`${type}-small-l${l}`] || {}; return `<div class="rh">Level ${l}<b>${f.level_note || ''}</b></div>` + SIZES.map(size => cell(size, l)).join(''); }).join('')}</div>`;
+  };
+  const buttons = [...document.querySelectorAll('.job .more')];
+  const set = open => buttons.forEach(x => { const on = x === open; x.setAttribute('aria-expanded', on); x.textContent = on ? 'Hide the nine tasks' : 'See all nine tasks'; });
+  buttons.forEach(b => b.addEventListener('click', () => {
+    const type = b.closest('.job').dataset.type, open = b.getAttribute('aria-expanded') === 'true';
+    if (open) { set(null); leave(box).then(() => { box.hidden = true; box.classList.remove('is-leaving'); }); return; }
+    const was = !box.hidden; set(b); fill(type); box.hidden = false;
+    if (motionOK()) box.animate(was ? [{ opacity: 0.2 }, { opacity: 1 }] : [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: was ? 150 : 300, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    box.scrollIntoView({ block: 'nearest', behavior: motionOK() ? 'smooth' : 'auto' });
   }));
 }
 
@@ -677,19 +903,21 @@ async function load(url) { const r = await fetch(url); if (!r.ok) throw new Erro
 
 async function start() {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  // A local preview (?media=) swaps the published media host in the pictures the page starts with.
+  if (override) document.querySelectorAll(`img[src^="${MEDIA}"]`).forEach(i => { i.src = mediaUrl(i.getAttribute('src')); });
   chrome(); reveal(); playerControls(); nine(); modelHover();
   const [tasks, media] = await Promise.all([load('data/tasks.json'), load('data/media.json')]);
   D.media = media; D.sets = media.sets.map(s => s.key);
   D.tasks = TYPES.flatMap(([type]) => SIZES.flatMap(size => [1, 2, 3].map(level => `${type}-${size}-l${level}`)));
   tasks.tasks.forEach(t => { D.facts[t.id] = t; });
   media.sets.forEach(s => { D.runs[s.key] = s.runs; });
-  film(); clips(); board(); library(); featured(); tocSpy();
+  film(); clips(); board(); library(); glance(); nextThumbs(); howCamera(); tocSpy();
   addEventListener('hashchange', route); route();
   findings();
   try {
     const results = await load(RESULTS_URL);
-    D.outcomes = results.outcomes; numbers(results); board(); library(); featured(); Object.keys(drawnAt).forEach(k => delete drawnAt[k]); drawCharts(current);
-    const best = results.conditions.find(c => c.key === 'adaptive'); if (best) $('stat-best').textContent = `${best.completed} / 36`;
+    D.outcomes = results.outcomes; numbers(results); board(); library(); glance(); nextThumbs(); Object.keys(drawnAt).forEach(k => delete drawnAt[k]); drawCharts(current);
+    const best = results.conditions.find(c => c.key === 'adaptive'); if (best) statBest(best.completed);
   } catch { /* the board and the library stay without results */ }
 }
 
