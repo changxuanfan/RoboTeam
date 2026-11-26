@@ -1068,3 +1068,29 @@ p,li,dd,small,figcaption{text-wrap:pretty}
   :is(button.cell,.tz-cell):active{transform:scale(.9)}
   .job .clip.opens:active video{transform:scale(1.01)}
 }
+
+/* EN | 中, next to the theme button */
+.lang-switch{display:inline-flex;align-items:center;height:32px;margin-left:4px;padding:0 3px;border-radius:8px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line);font:600 13px/1 var(--sans)}
+.lang-switch>*{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:26px;padding:0 6px;border-radius:6px}
+.lang-switch b{color:var(--vio-ink);background:var(--vio-tint)}
+.lang-switch a{color:var(--dim);transition:color var(--t-hover) var(--ease)}
+.lang-switch a:hover{color:var(--ink);text-decoration:none}
+.lang-switch [lang="zh-CN"]{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;font-size:14px}
+
+/* Chinese page (zh/): Latin letters keep the page's fonts, Chinese characters come from the visitor's
+   system fonts. Chinese gets no negative tracking, 600 for bold, roomier lines, and line breaks that
+   keep closing punctuation off the start of a line. */
+:root:lang(zh-CN){
+  --display:"Space Grotesk","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  --sans:"IBM Plex Sans","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  --mono:"JetBrains Mono","PingFang SC","Hiragino Sans GB","Microsoft YaHei",ui-monospace,monospace}
+:lang(zh-CN) body{line-break:strict}
+:lang(zh-CN) :is(h1,h2,h3,.points b,.wn-cap b,.go b,.card>b){letter-spacing:0;font-weight:600}
+:lang(zh-CN) :is(p,li,dd,figcaption,.go-sub,.wn-cap span,.stat>span){line-height:1.7}
+:lang(zh-CN) .hero-body .lede{max-width:26em}
+:lang(zh-CN) .note{max-width:24em}
+:lang(zh-CN) .stat>span{max-width:14em}
+:lang(zh-CN) :is(.model,code,kbd){white-space:nowrap}
+/* Short Chinese lines (titles, labels, buttons) break only after punctuation or at a space, so a word
+   such as 更久 never splits; a phrase too long for its box still wraps. */
+:lang(zh-CN) :is(h1,h2,h3,.lede,.points b,.wn-cap b,.go b,.card>b,.stat>span,.big span,.f-text .key span,.btn,.nine-head h3){word-break:keep-all;overflow-wrap:anywhere}

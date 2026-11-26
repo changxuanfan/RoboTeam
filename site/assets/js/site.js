@@ -11,6 +11,60 @@ const override = new URLSearchParams(location.search).get('media');
 const mediaUrl = url => (override && url.startsWith(MEDIA) ? override.replace(/\/?$/, '/') + url.slice(MEDIA.length) : url);
 const RESULTS_URL = mediaUrl(MEDIA + 'results.json');
 
+/* ---------- languages ----------
+   The English page is the source. zh/index.html is built from it by scripts/site/build_zh.py: its
+   fixed text is translated there, and it carries the table (site/data/i18n/zh-CN.json) in
+   <script id="i18n">, so the text this file writes is translated as it appears. A string the
+   table maps to itself stays English on purpose; anything else is tried against the patterns. */
+const ROOT = document.documentElement.dataset.root || '';
+const I18N = (() => {
+  const el = document.getElementById('i18n'); if (!el) return null;
+  const d = JSON.parse(el.textContent);
+  return { text: new Map(Object.entries(d.text)), patterns: d.patterns.map(([p, r]) => [new RegExp(p, 'g'), r]), done: new Set() };
+})();
+function tr(s) {
+  if (!I18N || !s) return s;
+  const [, lead, core, tail] = /^(\s*)([\s\S]*?)(\s*)$/.exec(s);
+  if (!core || I18N.done.has(core)) return s;
+  // Matched with plain spaces; a number keeps its unit on the same line afterwards.
+  const plain = core.replace(/\u00a0/g, ' ');
+  let t = I18N.text.get(plain);
+  if (t === undefined) { t = plain; for (const [re, r] of I18N.patterns) t = t.replace(re, r); }
+  if (t === plain) return s;
+  t = t.replace(/(\d) (?=\S)/g, '$1\u00a0');
+  I18N.done.add(t);
+  // No space next to Chinese punctuation
+  return (/^[，。：；、？！）]/.test(t) ? '' : lead) + t + (/[，。：；、？！（]$/.test(t) ? '' : tail);
+}
+const I18N_ATTRS = ['alt', 'title', 'aria-label', 'placeholder'];
+// Kickers stay English (docs/i18n/glossary.md); so do code and the agents' own words.
+const I18N_SKIP = 'code, pre, script, style, .kicker, [data-i18n-skip]';
+function trAttr(el, a) { const v = el.getAttribute(a); if (v) { const t = tr(v); if (t !== v) el.setAttribute(a, t); } }
+function trTree(n) {
+  if (n.nodeType === 3) { const p = n.parentElement; if (p && !p.closest(I18N_SKIP)) { const t = tr(n.data); if (t !== n.data) n.data = t; } return; }
+  if (n.nodeType !== 1) return;
+  const walk = document.createTreeWalker(n, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  for (let x = n; x; x = walk.nextNode()) { if (x.nodeType === 3) trTree(x); else I18N_ATTRS.forEach(a => trAttr(x, a)); }
+}
+function translatePage() {
+  if (!I18N) return;
+  trTree(document.documentElement);
+  new MutationObserver(ms => ms.forEach(m => {
+    if (m.type === 'childList') m.addedNodes.forEach(trTree);
+    else if (m.type === 'characterData') trTree(m.target);
+    else trAttr(m.target, m.attributeName);
+  })).observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: I18N_ATTRS });
+}
+// EN | 中 keeps the place on the page and is remembered (the English page opens the Chinese one
+// for a visitor who chose it; nothing follows the browser's language).
+function languageLinks() {
+  document.querySelectorAll('[data-lang]').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    try { localStorage.setItem('roboteam-lang', a.dataset.lang); } catch { /* not remembered */ }
+    location.href = a.getAttribute('href') + location.hash;
+  }));
+}
+
 const TYPES = [['transport', 'Transport'], ['mosaic', 'Mosaic'], ['relay', 'Relay'], ['dial', 'Dial']];
 const SIZES = ['small', 'medium', 'large'];
 const UNIT = { targets: 'items', cells: 'cubes', timbers: 'timbers', dials: 'dials' };
@@ -1466,8 +1520,9 @@ async function start() {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   // A local preview (?media=) swaps the published media host in the pictures the page starts with.
   if (override) document.querySelectorAll(`img[src^="${MEDIA}"]`).forEach(i => { i.src = mediaUrl(i.getAttribute('src')); });
+  translatePage(); languageLinks();
   chrome(); reveal(); playerControls(); nine(); modelHover(); boardControls();
-  const [tasks, media] = await Promise.all([load('data/tasks.json'), load('data/media.json')]);
+  const [tasks, media] = await Promise.all([load(ROOT + 'data/tasks.json'), load(ROOT + 'data/media.json')]);
   D.media = media; D.sets = media.sets.map(s => s.key);
   D.tasks = TYPES.flatMap(([type]) => SIZES.flatMap(size => [1, 2, 3].map(level => `${type}-${size}-l${level}`)));
   tasks.tasks.forEach(t => { D.facts[t.id] = t; });

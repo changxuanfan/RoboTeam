@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'site/**'
+      - 'scripts/site/build_zh.py'
       - '.github/workflows/site.yml'
   workflow_dispatch:
 
@@ -30,6 +31,8 @@ jobs:
           assert len(tasks['tasks']) == 36, 'expected the 36 released tasks'
           assert all(s['base'].startswith('https://') for s in media['sets']), 'media must point at published URLs'
           PY
+      - name: Check that the Chinese page is built from the current English page
+        run: python3 -m scripts.site.build_zh --check
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
       - name: Upload the page only (local media, fixtures and explorations are ignored)
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
