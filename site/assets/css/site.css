@@ -797,6 +797,10 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .film-poster,.film video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .film video{opacity:0;transition:opacity .32s var(--ease-move);cursor:pointer}
 .film video.ready{opacity:1}
+/* the film shimmers, as the Videos player's views do, until it really plays */
+.film::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(100deg,transparent 30%,var(--shine) 50%,transparent 70%) 0 0/250% 100% no-repeat;opacity:0;transition:opacity .25s var(--ease)}
+.film.loading::after{opacity:1;animation:shimmer 1.3s linear infinite}
+@media (prefers-reduced-motion:reduce){.film.loading::after{animation:none;opacity:0}}
 /* The control bar: a white chip floating over the bottom edge. */
 .film-bar{position:absolute;left:16px;right:16px;bottom:16px;z-index:2;display:flex;align-items:center;gap:12px;height:44px;padding:0 14px 0 6px;border-radius:var(--r-chip);background:var(--card);box-shadow:var(--sh-chip);opacity:0;transform:translateY(6px);transition:opacity var(--t-hover) var(--ease),transform var(--t-hover) var(--ease)}
 .film:hover .film-bar,.film:focus-within .film-bar,.film.paused .film-bar{opacity:1;transform:none}

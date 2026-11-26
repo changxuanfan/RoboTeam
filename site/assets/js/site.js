@@ -249,9 +249,11 @@ function clipVideo(src, posterUrl, label) {
 }
 
 /* ---------- the hero film ----------
-   The whole film plays large and silent in the hero once the page has loaded and while it is on
-   screen. A white bar (play, a progress bar to drag, the time, full screen) shows on hover and on
-   focus, and stays while paused. With reduced motion the poster shows until someone presses play. */
+   The whole film plays large and silent in the hero while it is on screen. A white bar (play, a
+   progress bar to drag, the time, full screen) shows on hover and on focus, and stays while paused.
+   Its address is asked for and its first seconds buffered as soon as this runs, alongside the rest of
+   the page, and the poster shimmers, as the Videos player does, until the film really plays. With
+   reduced motion the poster shows until someone presses play. */
 function film() {
   const f = D.media.film, box = $('film'); if (!f || !f.film) return;
   const base = mediaUrl(f.base), at = u => /^https?:/.test(u) ? u : base + u, bar = $('film-bar'), seek = $('fb-seek'), time = $('fb-time'), play = $('fb-play');
@@ -259,11 +261,14 @@ function film() {
   box.querySelector('.film-poster').src = base + f.film.poster;
   const v = el('video'); v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'metadata';
   v.setAttribute('aria-label', 'The RoboTeam film, silent'); v.poster = base + f.film.poster;
-  v.addEventListener('playing', () => v.classList.add('ready'), { once: true });
+  v.addEventListener('playing', () => { v.classList.add('ready'); box.classList.remove('loading'); }, { once: true });
   box.querySelector('.film-poster').after(v); bar.hidden = false;
-  let dragging = false, wanted = motionOK();
-  // the film's CDN address is asked for once the page has loaded; play waits for the file if it is not there yet
-  const load = () => { if (v.dataset.src) return; setVideoSrc(v, at(f.film.video)); v.addEventListener('loadedmetadata', () => { if (wanted) v.play().catch(() => {}); }, { once: true }); };
+  let dragging = false, wanted = motionOK(), inView = false;
+  if (wanted) box.classList.add('loading');
+  const load = () => {
+    if (v.dataset.src) return; box.classList.add('loading'); setVideoSrc(v, at(f.film.video));
+    v.addEventListener('loadedmetadata', () => { if (wanted && inView) v.play().catch(() => {}); }, { once: true });
+  };
   const show = () => {
     const d = v.duration || total, t = v.currentTime || 0;
     if (!dragging) seek.value = d ? Math.round(t / d * 1000) : 0;
@@ -284,13 +289,14 @@ function film() {
     else (box.requestFullscreen ? box.requestFullscreen() : v.webkitEnterFullscreen && v.webkitEnterFullscreen());
   });
   v.addEventListener('click', () => play.click());
-  // Start only after the page has loaded, and only while the film is on screen.
+  // Start at once, alongside the rest of the page; play only while the film is on screen.
   const watch = new IntersectionObserver(es => es.forEach(e => {
-    if (e.isIntersecting && wanted) { load(); v.play().catch(() => {}); }
-    else if (!e.isIntersecting && !v.paused) v.pause();
+    inView = e.isIntersecting;
+    if (inView && wanted) { load(); v.play().catch(() => {}); }
+    else if (!inView && !v.paused) v.pause();
   }), { threshold: .25 });
-  const later = () => { direct(at(f.film.video)); watch.observe(box); };
-  if (document.readyState === 'complete') setTimeout(later, 200); else addEventListener('load', () => setTimeout(later, 200), { once: true });
+  if (wanted) { v.preload = 'auto'; load(); } else direct(at(f.film.video));
+  watch.observe(box);
 }
 
 function clips() {
