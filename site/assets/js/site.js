@@ -299,21 +299,63 @@ function film() {
   watch.observe(box);
 }
 
+/* The four job cards. Each shows a run of gpt-6.1-sol at 300x: by default its largest team at Level 3.
+   Pointing at a team size shows that size at Level 3, pointing at a level shows the largest team at
+   that level, and a click (or a tap) keeps that choice. Each of a card's five clips has its own video,
+   stacked in the frame: their posters are fetched once the card is near the screen, and the clips
+   themselves start loading once the pointer is on the card, so a switch only changes which one shows. */
 function clips() {
   const c = D.media.clips; if (!c) return;
   const base = mediaUrl(c.base), byKey = Object.fromEntries(c.items.map(i => [i.key, i]));
-  const speedTag = clip => `<span class="chip speed">${clip.speed.toLocaleString('en-US')}× real time</span>`;
-  document.querySelectorAll('.job[data-clip]').forEach(job => {
-    const clip = byKey[job.dataset.clip]; if (!clip) return;
-    const frame = job.querySelector('.clip'); frame.append(clipVideo(base + clip.video, base + clip.poster, clip.caption)); frame.insertAdjacentHTML('beforeend', speedTag(clip));
-    job.querySelector('.job-text').insertAdjacentHTML('afterbegin', `<p class="clip-of"><span class="model">${teamName(clip.set)}</span> · ${short(clip.task)}</p>`);
-    if (run(clip.set, clip.task)) {
-      const open = () => openRun(clip.set, clip.task);
-      frame.classList.add('opens'); frame.title = 'Open the whole run'; frame.tabIndex = 0; frame.setAttribute('role', 'button');
-      frame.setAttribute('aria-label', `Open the whole run: ${cap(typeOf(clip.task))} · ${short(clip.task)}`);
-      frame.addEventListener('click', open);
-      frame.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
-    }
+  document.querySelectorAll('.job[data-type]').forEach(job => {
+    const type = job.dataset.type, frame = job.querySelector('.clip'), of = job.querySelector('.clip-of');
+    const keys = ['large-l3', 'small-l3', 'medium-l3', 'large-l1', 'large-l2'].map(k => `${type}-${k}`).filter(k => byKey[k]);
+    if (!keys.length) return;
+    let kept = { size: 'large', level: 3 }, shown = null, inView = false;
+    const pool = {};
+    const video = key => {
+      if (pool[key]) return pool[key];
+      const clip = byKey[key], v = el('video');
+      v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'none'; v.disablePictureInPicture = true;
+      v.poster = base + clip.poster; v.src = base + clip.video; v.setAttribute('aria-label', clip.caption);
+      frame.insertBefore(v, frame.querySelector('.chip')); return (pool[key] = v);
+    };
+    frame.insertAdjacentHTML('beforeend', `<span class="chip speed">${byKey[keys[0]].speed.toLocaleString('en-US')}× real time</span>`);
+    const show = ({ size, level }) => {
+      const key = `${type}-${size}-l${level}`; if (!byKey[key] || key === shown) return;
+      const v = video(key); shown = key; frame.dataset.task = key;
+      Object.values(pool).forEach(x => { const on = x === v; x.classList.toggle('on', on); if (!on) x.pause(); });
+      if (inView) { v.preload = 'auto'; v.play().catch(() => {}); }
+      job.querySelectorAll('.pk').forEach(b => b.setAttribute('aria-pressed', b.dataset.size ? b.dataset.size === size : +b.dataset.level === level));
+      const f = D.facts[key] || {}, lvName = (job.querySelector(`.pk[data-level="${level}"]`) || {}).dataset?.name || '';
+      const ok = done('gpt-6.1-sol', key);
+      of.innerHTML = `<span class="model">gpt-6.1-sol</span> · ${f.arms ? `${f.arms} arms` : cap(size)} · Level ${level}${lvName ? `, ${lvName}` : ''}` + (ok === null ? '' : ` ${statusChip(ok, 'flat')}`);
+    };
+    const pick = b => (b.dataset.size ? { size: b.dataset.size, level: 3 } : { size: 'large', level: +b.dataset.level });
+    job.querySelectorAll('.pk').forEach(b => {
+      b.addEventListener('pointerenter', () => show(pick(b)));
+      b.addEventListener('focus', () => show(pick(b)));
+      b.addEventListener('click', () => { kept = pick(b); show(kept); });
+    });
+    const row = job.querySelector('.pick');
+    row.addEventListener('pointerleave', () => show(kept));
+    row.addEventListener('focusout', e => { if (!row.contains(e.relatedTarget)) show(kept); });
+    // near the screen: every poster; pointer on the card: every clip starts loading
+    new IntersectionObserver((es, io) => { if (es.some(e => e.isIntersecting)) { io.disconnect(); keys.forEach(k => { const im = new Image(); im.src = base + byKey[k].poster; }); } }, { rootMargin: '400px 0px' }).observe(job);
+    const warm = () => keys.forEach(k => { const v = video(k); if (v.preload === 'none') v.preload = 'auto'; });
+    job.addEventListener('pointerenter', warm); job.addEventListener('focusin', warm);
+    new IntersectionObserver(es => es.forEach(e => {
+      inView = e.isIntersecting; const v = pool[shown]; if (!v) return;
+      if (inView && motionOK()) { v.preload = 'auto'; v.play().catch(() => {}); } else v.pause();
+    }), { threshold: 0.35 }).observe(frame);
+    show(kept);
+    // the results arrive after the cards: redraw the line under the clip once they are here
+    document.addEventListener('outcomes', () => { const k = shown; shown = null; const [, size, l] = k.match(/-(small|medium|large)-l(\d)$/); show({ size, level: +l }); });
+    const open = () => { if (run('gpt-6.1-sol', frame.dataset.task)) openRun('gpt-6.1-sol', frame.dataset.task); };
+    frame.classList.add('opens'); frame.title = 'Open the whole run'; frame.tabIndex = 0; frame.setAttribute('role', 'button');
+    frame.setAttribute('aria-label', 'Open the whole run');
+    frame.addEventListener('click', open);
+    frame.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
   });
 }
 
@@ -1435,7 +1477,7 @@ async function start() {
   findings();
   try {
     const results = await load(RESULTS_URL);
-    D.outcomes = results.outcomes; numbers(results); board(); library(); glance(); nextThumbs(); Object.keys(drawnAt).forEach(k => delete drawnAt[k]); drawCharts(current);
+    D.outcomes = results.outcomes; numbers(results); board(); library(); glance(); nextThumbs(); document.dispatchEvent(new Event('outcomes')); Object.keys(drawnAt).forEach(k => delete drawnAt[k]); drawCharts(current);
     const best = results.conditions.find(c => c.key === 'adaptive'); if (best) statBest(best.completed);
   } catch { /* the board and the library stay without results */ }
 }
