@@ -1,5 +1,5 @@
 [English](../../harness/README.md) | 简体中文
-> 本文译自英文版（commit 87eae7f1），内容以英文版为准。
+> 本文译自英文版（commit bfa3d045），内容以英文版为准。
 
 <a id="harnesses-codex-and-claude-code"></a>
 # Harness：Codex 和 Claude Code
