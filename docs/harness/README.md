@@ -218,7 +218,7 @@ a harness: its preflight receipt does. Each batch has one model.
 ### Authentication matrix
 
 Defaults: the repository default is Codex `sol` (`gpt-6.1-sol`, effort `high`) with
-`OPENAI_API_KEY`. `--harness claude` with no model in the user TOML or on the command line
+`OPENAI_API_KEY`. `--harness claude` with no model in the site TOML or on the command line
 selects `opus` (`claude-opus-5-5`) with `ANTHROPIC_API_KEY`.
 
 | Harness | Authentication | Models | Credential or setting |
@@ -276,7 +276,7 @@ pay-as-you-go keys.
 
 `doctor` checks the installed CLI, its sandbox or tool backend and a real render; it calls no
 model and does not check credentials. The paid checks are per harness:
-[Codex preflight](codex.md#preflight-and-receipts), [Claude prechecks](claude-code.md#preflight-and-receipts).
+[Codex preflight](codex.md#preflight-and-receipts), [Claude preflight](claude-code.md#preflight-and-receipts).
 A changed model, endpoint, effort, catalog or CLI version needs a new receipt.
 
 ### Selection and concurrency

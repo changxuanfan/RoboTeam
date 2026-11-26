@@ -164,7 +164,7 @@ PYTHONPATH=tests:tests/helpers ROBOTEAM_PHYSICS_SMOKE=1 ROBOTEAM_PHYSICS_BATCH=1
 <a id="authentication-matrix"></a>
 ### 认证矩阵
 
-默认值：仓库默认是 Codex 的 `sol`（`gpt-6.1-sol`，effort `high`），用 `OPENAI_API_KEY`。`--harness claude` 时，如果用户 TOML 和命令行都没指定模型，就选 `opus`（`claude-opus-5-5`），用 `ANTHROPIC_API_KEY`。
+默认值：仓库默认是 Codex 的 `sol`（`gpt-6.1-sol`，effort `high`），用 `OPENAI_API_KEY`。`--harness claude` 时，如果 site TOML 和命令行都没指定模型，就选 `opus`（`claude-opus-5-5`），用 `ANTHROPIC_API_KEY`。
 
 | Harness | 认证方式 | 模型 | 凭据或设置 |
 | --- | --- | --- | --- |
