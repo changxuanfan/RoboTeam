@@ -1371,12 +1371,26 @@ function nine() {
   const fill = type => {
     const name = TYPES.find(t => t[0] === type)[1];
     const head = SIZES.map(size => { const f = D.facts[`${type}-${size}-l1`] || {}; return `<div class="chd">${cap(size)} team<small>${arms(type, size)} arms · ${f.workload} ${UNIT[f.unit] || ''}</small></div>`; }).join('');
-    const cell = (size, level) => { const id = `${type}-${size}-l${level}`; return `<img loading="lazy" src="${base}${id}.webp" srcset="${base}${id}.webp 1x, ${base}800/${id}.webp 2x" alt="${nice(id)} at its start" title="${nice(id)}" width="400" height="250">`; };
+    const cell = (size, level) => { const id = `${type}-${size}-l${level}`; return `<img decoding="async" src="${base}${id}.webp" srcset="${base}${id}.webp 1x, ${base}800/${id}.webp 2x" alt="${nice(id)} at its start" title="${nice(id)}" width="400" height="250">`; };
     box.className = `nine t-${type}`;
     box.innerHTML = `<div class="nine-head"><h3>${name}: three team sizes, three levels</h3><span class="src">Each task at its start, as the cameras see it.</span></div>` +
       `<div class="nine-grid"><span class="corner"></span>${head}${[1, 2, 3].map(l => { const f = D.facts[`${type}-small-l${l}`] || {}; return `<div class="rh">Level ${l}<b>${f.level_note || ''}</b></div>` + SIZES.map(size => cell(size, l)).join(''); }).join('')}</div>`;
   };
+  // Fetch a job's nine pictures before they are asked for: all 36 quietly once the jobs come near the
+  // screen, and a job's own nine at once when the pointer reaches or the keyboard focuses its button.
+  const wide = (devicePixelRatio || 1) > 1, fetched = new Set();
+  const prefetch = (type, priority) => SIZES.forEach(size => [1, 2, 3].forEach(l => {
+    const id = `${type}-${size}-l${l}`; if (fetched.has(id)) return; fetched.add(id);
+    const im = new Image(); im.decoding = 'async'; if ('fetchPriority' in im) im.fetchPriority = priority;
+    im.src = wide ? `${base}800/${id}.webp` : `${base}${id}.webp`;
+  }));
+  const jobs = $('jobs');
+  if (jobs && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); TYPES.forEach(([t]) => prefetch(t, 'low')); } }, { rootMargin: '600px 0px' });
+    io.observe(jobs);
+  }
   const buttons = [...document.querySelectorAll('.job .more')];
+  buttons.forEach(b => ['pointerenter', 'focus'].forEach(ev => b.addEventListener(ev, () => prefetch(b.closest('.job').dataset.type, 'high'))));
   const set = open => buttons.forEach(x => { const on = x === open; x.setAttribute('aria-expanded', on); x.textContent = on ? 'Hide the nine tasks' : 'See all nine tasks'; });
   buttons.forEach(b => b.addEventListener('click', () => {
     const type = b.closest('.job').dataset.type, open = b.getAttribute('aria-expanded') === 'true';
