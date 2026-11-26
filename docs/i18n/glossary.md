@@ -107,3 +107,31 @@
 | 小节的大标题，如 "Seeing is the hard part." | 翻译成中文 | 是完整的句子 |
 | 按钮，如 See the results、Watch every run、See all nine tasks | 翻译成中文 | 是要读懂才会点的操作 |
 | 论文标题 | 保留英文 | 正式名称 |
+
+## 七、技术文档用词
+
+只在 `docs/zh-CN/` 的技术文档里出现。配置项、命令和文件里的同名对象仍按代码写英文。
+
+| 英文 | 中文版写法 | 说明 |
+| --- | --- | --- |
+| batch | batch | 一批运行，CLI 里的对象 |
+| policy environment | policy environment | 给 agent 用的沙箱 Python 环境 |
+| preflight | preflight | 运行前的检查 |
+| evidence | evidence | 一次运行留下的全部记录，例如 evidence ZIP |
+| runs root, site TOML, supervisor | 原文 | 配置项和程序名 |
+| egress, staging, stage-out | 原文 | Slurm 文档开头定义的词 |
+| receipt | 回执 | |
+| seal | 封存 | |
+| continuation, continue | 续跑 | 意外中断后接着跑同一次运行 |
+| active time | 有效时间 | 计分用的工作时长 |
+| cutoff | 时间上限 | 泛指；24 小时那个写"24 小时上限" |
+| working time, hours of work | 工作时长；短标签里写"工时" | |
+| collection | collection | 一个 batch 停下后复制出来的 evidence 副本 |
+| fence | fence | Slurm 线路里停掉作业：停下 harness、封存运行，之后不能恢复 |
+| credential, credential store | 凭据、凭据库 | |
+| lease | 租约 | |
+| sandbox | 沙箱 | |
+| host（机器） | 主机 | 指运行角色的进程时写 host |
+| login node, compute node | 登录节点、计算节点 | |
+| job（Slurm） | 作业 | |
+| container, image | 容器、镜像 | |

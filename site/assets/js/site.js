@@ -309,7 +309,8 @@ function clipVideo(src, posterUrl, label) {
    the page, and the poster shimmers, as the Videos player does, until the film really plays. With
    reduced motion the poster shows until someone presses play. */
 function film() {
-  const f = D.media.film, box = $('film'); if (!f || !f.film) return;
+  // The Chinese page plays the Chinese cut (media.json film-zh-CN) when there is one
+  const f = (document.documentElement.lang === 'zh-CN' && D.media['film-zh-CN']) || D.media.film, box = $('film'); if (!f || !f.film) return;
   const base = mediaUrl(f.base), at = u => /^https?:/.test(u) ? u : base + u, bar = $('film-bar'), seek = $('fb-seek'), time = $('fb-time'), play = $('fb-play');
   const total = f.film.seconds || 0;
   box.querySelector('.film-poster').src = base + f.film.poster;

@@ -1146,5 +1146,25 @@
    "poster": "roboteam-hero.webp",
    "seconds": 21.2
   }
+ },
+ "film-zh-CN": {
+  "base": "https://changxuanfan.github.io/RoboTeam-media/film/zh/",
+  "loop": {
+   "video": "https://huggingface.co/datasets/RoboTeam-Bench/RoboTeam-Videos/resolve/main/film/zh/roboteam-loop-1080p.mp4",
+   "small": "https://huggingface.co/datasets/RoboTeam-Bench/RoboTeam-Videos/resolve/main/film/zh/roboteam-loop-720p.mp4",
+   "poster": "roboteam-loop.webp",
+   "seconds": 30.0
+  },
+  "film": {
+   "video": "https://huggingface.co/datasets/RoboTeam-Bench/RoboTeam-Videos/resolve/main/film/zh/roboteam-film-1080p.mp4",
+   "poster": "roboteam-film.webp",
+   "seconds": 104.2
+  },
+  "hero": {
+   "video": "https://huggingface.co/datasets/RoboTeam-Bench/RoboTeam-Videos/resolve/main/film/zh/roboteam-hero-1080p.mp4",
+   "small": "https://huggingface.co/datasets/RoboTeam-Bench/RoboTeam-Videos/resolve/main/film/zh/roboteam-hero-720p.mp4",
+   "poster": "roboteam-hero.webp",
+   "seconds": 21.2
+  }
  }
 }

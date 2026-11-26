@@ -58,6 +58,7 @@ repository: the data folder, the list of runs and the output paths are arguments
 | --- | --- |
 | `site_media.py` | Make the images and short clips of the project page: `posters`, `clips`, and `starts` for the task guide's thumbnails |
 | `site_data.py` | Generate the project page's `site/data/` files and the task guide's gallery: `tasks`, `media`, `task-gallery` |
+| `build_zh.py` | Build the Chinese project page `site/zh/index.html` from the English one and `site/data/i18n/zh-CN.json`; `--check` fails if it is out of date |
 
 ## Commands inside the package
 

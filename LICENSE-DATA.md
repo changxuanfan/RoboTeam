@@ -31,6 +31,7 @@ These keep their own licenses and are not relicensed here:
 | IBM Plex Sans Regular, Medium and SemiBold (web fonts of the project page, from `@fontsource/ibm-plex-sans` 5.3.0) | `site/assets/fonts/` | SIL Open Font License 1.1 ([`OFL-IBMPlexSans.txt`](site/assets/fonts/OFL-IBMPlexSans.txt)) |
 | Space Grotesk Bold, subset (web font of the project page) | `site/assets/fonts/` | SIL Open Font License 1.1 ([`OFL-SpaceGrotesk.txt`](site/assets/fonts/OFL-SpaceGrotesk.txt)) |
 | JetBrains Mono Medium, subset (web font of the project page) | `site/assets/fonts/` | SIL Open Font License 1.1 ([`OFL-JetBrainsMono.txt`](site/assets/fonts/OFL-JetBrainsMono.txt)) |
+| Noto Sans SC, at weights 500 to 700 (Chinese glyph outlines in `docs/media/readme/*.zh-CN.svg`, and the Chinese text of the Chinese film and hero; no font file is distributed) | `docs/media/readme/` | SIL Open Font License 1.1 ([`OFL-NotoSansSC.txt`](docs/media/readme/OFL-NotoSansSC.txt)) |
 | Poly Haven `concrete_floor_02` texture | `benchmark/hall/source/polyhaven/` | CC0 1.0 ([`LICENSE.txt`](benchmark/hall/source/polyhaven/LICENSE.txt)) |
 
 ## Attribution

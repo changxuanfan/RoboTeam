@@ -85,6 +85,8 @@ def build(source: str, table: dict) -> str:
         if source.count(old) != 1:
             raise SystemExit(f'build_zh: expected exactly one {old!r} in site/index.html')
         source = source.replace(old, new)
+    # the Chinese cut of the film: its posters sit in film/zh/ of the media repository
+    source = source.replace('RoboTeam-media/film/roboteam-', 'RoboTeam-media/film/zh/roboteam-')
     source = re.sub(r'(<meta name="description" content=")[^"]*', lambda m: m.group(1) + html.escape(DESCRIPTION), source, count=1)
     source = re.sub(r'(<meta property="og:description" content=")[^"]*', lambda m: m.group(1) + html.escape(OG_DESCRIPTION), source, count=1)
 

@@ -18,6 +18,8 @@
 <a href="https://huggingface.co/datasets/RoboTeam-Bench/RoboTeam-Videos"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/button-videos-dark.svg"><img src="docs/media/readme/button-videos-light.svg" alt="Videos on Hugging Face" height="36"></picture></a>&nbsp;
 <a href="#license"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/readme/button-license-dark.svg"><img src="docs/media/readme/button-license-light.svg" alt="License: MIT and CC BY 4.0" height="36"></picture></a>
 
+English | [简体中文](README.zh-CN.md)
+
 [Jobs](#the-four-jobs) · [Watch](#watch-whole-runs) · [How it works](#how-a-run-works) · [Findings](#what-we-found) · [Quick start](#quick-start) · [Docs](docs/README.md)
 
 <picture>
