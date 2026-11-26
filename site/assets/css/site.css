@@ -778,17 +778,21 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .more-link{font-weight:600;font-size:15px}
 
 /* ---------- Overview ---------- */
-/* Hero: the title on the left, the line and the buttons on the right, and the whole film large
-   under them. Under 900 px one column. */
-.hero{max-width:var(--max);margin:auto;padding:clamp(24px,3.4vw,44px) var(--gutter) clamp(32px,4vw,48px);display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);grid-template-areas:"head body" "film film";column-gap:clamp(32px,4.6vw,64px);row-gap:clamp(24px,3.2vw,40px);align-items:end}
-.hero-head{grid-area:head;display:grid;gap:16px}
-.hero h1{font-size:clamp(36px,4.2vw,56px);line-height:1.04;letter-spacing:-.022em}
-.hero-body{grid-area:body}
-.lede{margin:0 0 24px;font-size:18px;line-height:1.5;color:var(--ink2);max-width:40ch}
-.cta{display:flex;flex-wrap:wrap;gap:10px}
+/* Hero: the RoboTeam mark and name large, the paper's title under it, one line and two buttons, all
+   centred, then the whole film large under them. */
+.hero{max-width:var(--max);margin:auto;padding:clamp(28px,3.6vw,48px) var(--gutter) clamp(32px,4vw,48px);display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "body" "film";justify-items:center;text-align:center;row-gap:clamp(16px,2vw,24px)}
+.hero-head{grid-area:head;display:grid;justify-items:center;gap:clamp(12px,1.4vw,18px)}
+.hero-wordmark{margin:0;display:inline-flex;align-items:center;gap:.24em;color:var(--ink);font:700 clamp(50px,6vw,84px)/1 var(--display);letter-spacing:-.025em}
+.hero-wordmark svg{width:1.02em;height:1.02em;flex:none}
+.hero h1{font-size:clamp(21px,2.3vw,31px);line-height:1.28;letter-spacing:-.012em;max-width:34em;text-wrap:balance}
+@media (max-width:760px){.hero h1 .br-wide{display:none}.hero-body .lede{text-align:center}}
+.hero-body{grid-area:body;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:14px 28px}
+.hero-body .lede{margin:0;text-align:left;max-width:44ch;font-size:17px}
+.lede{margin:0 auto 22px;font-size:18px;line-height:1.5;color:var(--ink2);max-width:48ch}
+.cta{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
 .cta .btn{height:44px;padding:0 18px}
 .cta .btn svg{width:12px;height:12px}
-.film{grid-area:film;justify-self:center;width:min(100%,max(560px,calc((100svh - 330px) * 16 / 9)));position:relative;border-radius:var(--r-media);overflow:hidden;aspect-ratio:16/9;background:var(--well);box-shadow:var(--sh-plate)}
+.film{grid-area:film;justify-self:center;width:min(100%,max(560px,calc((100svh - 340px) * 16 / 9)));position:relative;border-radius:var(--r-media);overflow:hidden;aspect-ratio:16/9;background:var(--well);box-shadow:var(--sh-plate)}
 .film:fullscreen{border-radius:0;box-shadow:none;background:#000}
 .film-poster,.film video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .film video{opacity:0;transition:opacity .32s var(--ease-move);cursor:pointer}
@@ -812,10 +816,7 @@ p,li,dd,small,figcaption{text-wrap:pretty}
 .fb-seek::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--vio);border:2px solid var(--card)}
 .fb-seek:focus-visible{outline:2px solid var(--vio);outline-offset:2px;border-radius:4px}
 @media (hover:none){.film-bar{opacity:1;transform:none}}
-@media (max-width:900px){
-  .hero{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "body" "film";row-gap:20px}
-  .lede{max-width:48ch}
-}
+
 @media (max-width:480px){.film-bar{left:6px;right:6px;bottom:6px;gap:8px;height:32px;padding:0 8px 0 3px}.fb-play,.fb-full{width:26px;height:26px}.fb-play svg{width:10px;height:10px}.fb-full svg{width:14px;height:14px}.fb-time{display:none}}
 @media (max-width:480px){.cta .btn{flex:1 1 auto}}
 
