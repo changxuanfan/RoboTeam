@@ -358,14 +358,15 @@ function film() {
    Pointing at a team size shows that size at Level 3, pointing at a level shows the largest team at
    that level, and a click (or a tap) keeps that choice. Each of a card's five clips has its own video,
    stacked in the frame: their posters are fetched once the card is near the screen, and the clips
-   themselves start loading once the pointer is on the card, so a switch only changes which one shows. */
+   themselves start loading once the pointer is on the card, so a switch only changes which one shows.
+   The frame shimmers, from before the page has loaded, until the clip it shows really plays. */
 function clips() {
-  const c = D.media.clips; if (!c) return;
+  const c = D.media.clips; if (!c) { document.querySelectorAll('.job .clip').forEach(f => f.classList.remove('loading')); return; }
   const base = mediaUrl(c.base), byKey = Object.fromEntries(c.items.map(i => [i.key, i]));
   document.querySelectorAll('.job[data-type]').forEach(job => {
     const type = job.dataset.type, frame = job.querySelector('.clip'), of = job.querySelector('.clip-of');
     const keys = ['large-l3', 'small-l3', 'medium-l3', 'large-l1', 'large-l2'].map(k => `${type}-${k}`).filter(k => byKey[k]);
-    if (!keys.length) return;
+    if (!keys.length) { frame.classList.remove('loading'); return; }
     let kept = { size: 'large', level: 3 }, shown = null, inView = false;
     const pool = {};
     const video = key => {
@@ -373,6 +374,7 @@ function clips() {
       const clip = byKey[key], v = el('video');
       v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'none'; v.disablePictureInPicture = true;
       v.poster = base + clip.poster; v.src = base + clip.video; v.setAttribute('aria-label', clip.caption);
+      v.addEventListener('playing', () => { v.dataset.played = '1'; if (v.classList.contains('on')) frame.classList.remove('loading'); }, { once: true });
       frame.insertBefore(v, frame.querySelector('.chip')); return (pool[key] = v);
     };
     frame.insertAdjacentHTML('beforeend', `<span class="chip speed">${byKey[keys[0]].speed.toLocaleString('en-US')}× real time</span>`);
@@ -380,6 +382,7 @@ function clips() {
       const key = `${type}-${size}-l${level}`; if (!byKey[key] || key === shown) return;
       const v = video(key); shown = key; frame.dataset.task = key;
       Object.values(pool).forEach(x => { const on = x === v; x.classList.toggle('on', on); if (!on) x.pause(); });
+      frame.classList.toggle('loading', !v.dataset.played);
       if (inView) { v.preload = 'auto'; v.play().catch(() => {}); }
       job.querySelectorAll('.pk').forEach(b => b.setAttribute('aria-pressed', b.dataset.size ? b.dataset.size === size : +b.dataset.level === level));
       const f = D.facts[key] || {}, lvName = (job.querySelector(`.pk[data-level="${level}"]`) || {}).dataset?.name || '';
@@ -588,7 +591,8 @@ function howCamera() {
 
 /* Under a mouse, after a short pause, a card plays a muted preview of its front camera inside its
    picture, until the pointer leaves: the 500x copy, which shows the whole run in a few seconds and is
-   small. Never on touch screens or with reduced motion, and the file is only fetched then. */
+   small. Never on touch screens or with reduced motion, and the file is only fetched then. The picture
+   shimmers until the preview really plays. */
 const PEEK = { card: null, v: null, timer: 0 };
 function peekLater(card, set, task, e) {
   clearTimeout(PEEK.timer);
@@ -601,15 +605,16 @@ function peekStart(card, set, task) {
   const thumb = card.querySelector('.thumb');
   const v = el('video', 'peek'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.disablePictureInPicture = true; v.loop = true;
   v.setAttribute('aria-hidden', 'true'); setVideoSrc(v, fastSrc(video(set, task, 'front')));
-  v.addEventListener('playing', () => v.classList.add('on'), { once: true });
+  v.addEventListener('playing', () => { v.classList.add('on'); thumb.classList.remove('loading'); }, { once: true });
   v.addEventListener('loadeddata', () => { if (PEEK.v === v) v.play().catch(() => {}); }, { once: true });
+  thumb.classList.add('loading');
   thumb.insertBefore(v, thumb.querySelector('.chip'));
   PEEK.card = card; PEEK.v = v; v.play().catch(() => {});
 }
 function peekStop(card) {
   clearTimeout(PEEK.timer);
   if (!PEEK.v || (card && card !== PEEK.card)) return;
-  const v = PEEK.v; PEEK.card = PEEK.v = null; v.classList.remove('on');
+  const v = PEEK.v; PEEK.card.querySelector('.thumb').classList.remove('loading'); PEEK.card = PEEK.v = null; v.classList.remove('on');
   setTimeout(() => { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); }, 200);
 }
 
