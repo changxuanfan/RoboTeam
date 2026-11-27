@@ -15,7 +15,9 @@ TABLE = json.loads((ROOT / 'site/data/i18n/zh-CN.json').read_text(encoding='utf-
 # Where the Chinese says a number the English only implies
 NUMBER_NOTES = {
     'on all 36 tasks; hours count tasks not completed up to the cutoff.': ['24'],  # the cutoff is 24 h
-    'Three cameras on one clock for every run, at ten times real time, with idle stretches cut.': ['10'],  # ten times
+    'Three cameras on one clock for every run, at ten times real time, with idle stretches cut.': [
+        '10'
+    ],  # ten times
 }
 # English that stays on the Chinese page: the paper's title and what the agents and tools say
 ENGLISH_ON_PURPOSE = (
@@ -33,7 +35,9 @@ def numbers(text):
 class ChinesePageTests(unittest.TestCase):
     def test_built_page_is_current(self):
         built = build_zh.build(build_zh.SOURCE.read_text(encoding='utf-8'), TABLE)
-        self.assertEqual(built, build_zh.OUT.read_text(encoding='utf-8'), 'run python3 -m scripts.site.build_zh')
+        self.assertEqual(
+            built, build_zh.OUT.read_text(encoding='utf-8'), 'run python3 -m scripts.site.build_zh'
+        )
 
     def test_numbers_match_the_english(self):
         for english, chinese in TABLE['text'].items():
@@ -62,7 +66,9 @@ class ChinesePageTests(unittest.TestCase):
             if text in kept or text in ENGLISH_ON_PURPOSE or re.search(r'[一-鿿]', text):
                 continue
             with self.subTest(text=text[:60]):
-                self.assertNotRegex(text, r'[A-Za-z]+ [a-z]+ [a-z]+', 'an English sentence on the Chinese page')
+                self.assertNotRegex(
+                    text, r'[A-Za-z]+ [a-z]+ [a-z]+', 'an English sentence on the Chinese page'
+                )
 
     def test_both_pages_name_each_other(self):
         english = (ROOT / 'site/index.html').read_text(encoding='utf-8')

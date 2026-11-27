@@ -11,7 +11,9 @@ from scripts.dev.check_runtime import documentation_links
 
 ROOT = Path(__file__).resolve().parents[2]
 ZH = sorted((ROOT / 'docs/zh-CN').rglob('*.md'))
-PAIRS = [(ROOT / 'README.zh-CN.md', ROOT / 'README.md')] + [(p, ROOT / 'docs' / p.relative_to(ROOT / 'docs/zh-CN')) for p in ZH]
+PAIRS = [(ROOT / 'README.zh-CN.md', ROOT / 'README.md')] + [
+    (p, ROOT / 'docs' / p.relative_to(ROOT / 'docs/zh-CN')) for p in ZH
+]
 
 
 def code_blocks(text):
@@ -46,7 +48,10 @@ class ChineseDocumentTests(unittest.TestCase):
     def test_code_is_copied_exactly(self):
         for chinese, english in PAIRS:
             with self.subTest(document=str(chinese.relative_to(ROOT))):
-                self.assertEqual(code_blocks(chinese.read_text(encoding='utf-8')), code_blocks(english.read_text(encoding='utf-8')))
+                self.assertEqual(
+                    code_blocks(chinese.read_text(encoding='utf-8')),
+                    code_blocks(english.read_text(encoding='utf-8')),
+                )
 
     def test_english_anchors_still_work(self):
         for chinese, english in PAIRS:
@@ -60,7 +65,9 @@ class ChineseDocumentTests(unittest.TestCase):
     def test_every_number_of_the_english_is_kept(self):
         for chinese, english in PAIRS:
             with self.subTest(document=str(chinese.relative_to(ROOT))):
-                missing = numbers(english.read_text(encoding='utf-8')) - numbers(chinese.read_text(encoding='utf-8'))
+                missing = numbers(english.read_text(encoding='utf-8')) - numbers(
+                    chinese.read_text(encoding='utf-8')
+                )
                 self.assertFalse(missing, f'numbers of the English not in the Chinese: {dict(missing)}')
 
     def test_links_resolve(self):
