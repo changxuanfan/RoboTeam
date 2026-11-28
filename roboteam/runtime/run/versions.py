@@ -11,7 +11,7 @@ import re
 import subprocess
 
 HARNESSES = {'claude': '2.1.316', 'codex': '0.165.0'}
-LIBRARIES = {'mujoco': '3.16.0', 'numpy': '2.5.4', 'pillow': '12.3.0'}
+LIBRARIES = {'mujoco': '3.16.0', 'numpy': '2.5.4', 'pillow': '13.0.0'}
 HARNESS_COMMANDS = {'claude': ['claude', '--version'], 'codex': ['codex', '--version']}
 NPM_PACKAGES = {'claude': '@anthropic-ai/claude-code', 'codex': '@openai/codex'}
 HARNESS_ENVIRONMENT = {'claude': {'DISABLE_AUTOUPDATER': '1'}, 'codex': {}}

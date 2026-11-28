@@ -35,6 +35,9 @@ comparable.
 - Fewer files at the repository root: the contribution guide, the code of conduct and the
   Prettier settings are in `.github/`, this changelog in `docs/`, the Docker ignore file beside
   the Dockerfile; `.python-version` is gone (`requires-python` already says 3.12).
+- Pillow 13.0.0 (was 12.3.0), for its security fixes; the policy environment already had it.
+  `prepare` and `run` now refuse 12.3.0, so run `uv sync --locked` once. Not a benchmark change:
+  both observation profiles encode the same camera frame to the same bytes as before.
 
 ## 0.1.0
 
